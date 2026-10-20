@@ -55,6 +55,25 @@ export class PhonePage {
     await this.expectJoined();
   }
 
+  /** QR/Link mit gespeichertem Profil: tritt ohne Zwischenschritt bei (kein Name/Avatar-Formular). */
+  async autoJoinByUrl(url: string): Promise<void> {
+    await this.page.goto(url);
+    await expect(this.tid("lobby-status")).toBeVisible();
+    await expect(this.tid("name-input")).toHaveCount(0);
+    await this.expectJoined();
+  }
+
+  /** In der Lobby eigenen Namen/Avatar ändern (Bottom-Sheet) und auf Bestätigung warten. */
+  async editProfile(name: string, avatar: AvatarId): Promise<void> {
+    await this.tid("edit-profile").click();
+    await expect(this.tid("profile-sheet")).toBeVisible();
+    await this.tid("profile-name-input").fill(name);
+    await this.tid(`profile-avatar-${avatar}`).click();
+    await this.tid("profile-save").click();
+    await expect(this.tid("profile-sheet")).toBeHidden();
+    this.name = name;
+  }
+
   /** Code tippen (Tastatur) → Profil → beitreten. */
   async typeCode(code: string): Promise<void> {
     if (!this.page.url().startsWith(this.baseURL)) await this.page.goto("/");

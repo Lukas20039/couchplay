@@ -21,6 +21,14 @@ export interface AppState {
   code: string;
   joinPending: boolean;
   joinError: ErrorCode | "connect" | null;
+  /** Beitritt läuft automatisch (QR-Link + bekanntes Profil) → Ladeanzeige statt Formular. */
+  autoJoin: boolean;
+  /** Zuletzt versuchter Name (für Vorschlag/Vorbelegung nach NAME_TAKEN). */
+  attemptedName: string | null;
+  /** Code kam aus einem Link (/j/<code>) – für passendere Fehlermeldungen. */
+  viaLink: boolean;
+  /** /j/… mit ungültigem Code geöffnet. */
+  linkInvalid: boolean;
   /** Meldung auf der Startseite nach Sitzungsende. */
   notice: EndReason | null;
   playerId: string | null;
@@ -45,13 +53,14 @@ export type Action =
   | { type: "online"; online: boolean }
   | { type: "code"; code: string }
   | { type: "step"; step: JoinStep }
-  | { type: "joinStart" }
+  | { type: "joinStart"; name: string; auto?: boolean }
+  | { type: "autoJoinCancel" }
   | { type: "joinError"; code: ErrorCode | "connect" }
   | { type: "ended"; reason: EndReason }
   | { type: "dismissNotice" }
   | { type: "toastClear"; id: number };
 
-export function initialState(init: { code?: string | null; online?: boolean } = {}): AppState {
+export function initialState(init: { code?: string | null; online?: boolean; linkInvalid?: boolean } = {}): AppState {
   const code = init.code ?? "";
   return {
     conn: "idle",
@@ -60,6 +69,10 @@ export function initialState(init: { code?: string | null; online?: boolean } = 
     code,
     joinPending: false,
     joinError: null,
+    autoJoin: false,
+    attemptedName: null,
+    viaLink: !!code,
+    linkInvalid: init.linkInvalid ?? false,
     notice: null,
     playerId: null,
     room: null,
@@ -87,6 +100,8 @@ function onServer(s: AppState, msg: ServerMessage): AppState {
         code: msg.code,
         joinPending: false,
         joinError: null,
+        autoJoin: false,
+        linkInvalid: false,
         notice: null,
         // Nach (Re-)Connect beginnt seq neu; gecachte View folgt.
         lastSeq: -1,
@@ -136,15 +151,15 @@ export function reducer(s: AppState, a: Action): AppState {
     case "online":
       return { ...s, online: a.online };
     case "code":
-      return { ...s, code: a.code, joinError: null };
+      return { ...s, code: a.code, joinError: null, linkInvalid: false, viaLink: false };
     case "step":
       return { ...s, step: a.step, joinError: a.step === "code" ? s.joinError : null };
     case "joinStart":
-      return { ...s, joinPending: true, joinError: null, notice: null };
+      return { ...s, joinPending: true, joinError: null, notice: null, attemptedName: a.name, autoJoin: a.auto ?? false };
     case "joinError": {
       // Falscher Code → zurück zur Code-Eingabe; sonst (Name vergeben, voll, …) beim Profil bleiben.
       const backToCode = a.code === "ROOM_NOT_FOUND";
-      return { ...s, joinPending: false, joinError: a.code, step: backToCode ? "code" : s.step };
+      return { ...s, joinPending: false, autoJoin: false, joinError: a.code, step: backToCode ? "code" : "profile" };
     }
     case "ended":
       return {
@@ -153,6 +168,8 @@ export function reducer(s: AppState, a: Action): AppState {
         catalog: s.catalog,
         notice: a.reason,
       };
+    case "autoJoinCancel":
+      return { ...s, autoJoin: false, joinPending: false, joinError: null, step: "profile" };
     case "dismissNotice":
       return { ...s, notice: null };
     case "toastClear":

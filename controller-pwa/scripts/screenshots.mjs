@@ -32,6 +32,7 @@ function mockServer(ws, state) {
     const m = JSON.parse(String(raw));
     switch (m.t) {
       case "room.join": {
+        if (state.holdJoin) break; // Ladeanzeige des Auto-Joins festhalten
         const me = { id: "p_me", name: m.name, avatar: m.avatar, color: 4, connected: true, isHost: true };
         state.room = {
           code: m.code,
@@ -113,6 +114,13 @@ try {
 
     await page.getByTestId("join-button").click();
     await page.getByTestId("lobby-status").waitFor();
+    await page.getByTestId("edit-profile").click();
+    await page.getByTestId("profile-sheet").waitFor();
+    await page.getByTestId("profile-name-input").fill("Anni");
+    await page.getByTestId("profile-avatar-krake").click();
+    await shot("lobby-edit-profile");
+    await page.getByTestId("profile-cancel").click();
+
     await page.getByTestId("game-option-quiz").click();
     await page.getByTestId("host-settings").waitFor();
     await page.evaluate(() => document.getElementById("app").scrollTo(0, 0));
@@ -154,6 +162,17 @@ try {
     });
     await page.getByTestId("bot-wins").waitFor();
     await shot("results-bot");
+
+    // Wiederkehrend per QR (Profil gespeichert, anderer Raum): Ladeanzeige ohne Zwischenschritt.
+    const page2 = await context.newPage();
+    const state2 = { holdJoin: true };
+    await page2.routeWebSocket(/\/ws$/, (ws) => mockServer(ws, state2));
+    await page.close();
+    await page2.goto(base + "/j/731905");
+    await page2.getByTestId("auto-joining").waitFor();
+    await page2.waitForTimeout(250);
+    await page2.screenshot({ path: `${outDir}controller-${p.tag}-autojoin.png` });
+    console.log("→", `${outDir}controller-${p.tag}-autojoin.png`);
 
     await browser.close();
   }

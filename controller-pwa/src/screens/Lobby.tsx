@@ -5,6 +5,7 @@ import { MAX_PLAYERS } from "@couchplay/protocol/constants";
 import { useEffect, useState } from "preact/hooks";
 import { Avatar, SelfBar } from "../components/common.js";
 import { ConfirmDialog } from "../components/ConfirmDialog.js";
+import { ProfileSheet } from "../components/ProfileSheet.js";
 import { useApp, useAppState } from "../hooks.js";
 import { t } from "../i18n/index.js";
 import { AUTO, effectiveSelection, needsPicker, startCheck, toggleSelection, type Selection } from "../lib/participants.js";
@@ -21,6 +22,7 @@ export function Lobby() {
   const limits = room.playerLimits;
   const [selection, setSelection] = useState<Selection>(AUTO);
   const [askLeave, setAskLeave] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   // Spielwechsel → wieder automatische Vorauswahl (füllt bis maxPlayers nach).
   useEffect(() => setSelection(AUTO), [room.selectedGameId, limits?.maxPlayers]);
@@ -43,7 +45,7 @@ export function Lobby() {
 
         {host && <HostPanel game={game} selection={selection} setSelection={setSelection} />}
 
-        <PlayerList players={room.players} selfId={s.playerId} />
+        <PlayerList players={room.players} selfId={s.playerId} onEditSelf={() => setEditing(true)} />
 
         <button
           type="button"
@@ -55,6 +57,7 @@ export function Lobby() {
         </button>
       </section>
       {host && <StartButton selection={selection} />}
+      {editing && me && <ProfileSheet me={me} onClose={() => setEditing(false)} />}
       {askLeave && (
         <ConfirmDialog
           text={t.lobby.leaveConfirm}
@@ -71,22 +74,41 @@ export function Lobby() {
   );
 }
 
-function PlayerList({ players, selfId }: { players: readonly Player[]; selfId: string | null }) {
+function PlayerList({ players, selfId, onEditSelf }: { players: readonly Player[]; selfId: string | null; onEditSelf(): void }) {
   return (
     <section class="players" aria-labelledby="players-h">
       <h2 id="players-h" class="subtitle">
         {t.lobby.players(players.length, MAX_PLAYERS)}
       </h2>
       <ul class="players__list" data-testid="player-list">
-        {players.map((p) => (
-          <li key={p.id} class={`player${p.connected ? "" : " player--away"}`} style={{ "--c": `var(--p${p.color})` }}>
-            <Avatar player={p} size="s" />
-            <span class="player__name">{p.name}</span>
-            {p.id === selfId && <span class="tag tag--you">{t.lobby.you}</span>}
-            {p.isHost && <span class="tag">{t.lobby.host}</span>}
-            {!p.connected && <span class="tag tag--away">{t.lobby.away}</span>}
-          </li>
-        ))}
+        {players.map((p) => {
+          const self = p.id === selfId;
+          const inner = (
+            <>
+              <Avatar player={p} size="s" />
+              <span class="player__name">{p.name}</span>
+              {self && <span class="tag tag--you">{t.lobby.you}</span>}
+              {p.isHost && <span class="tag">{t.lobby.host}</span>}
+              {!p.connected && <span class="tag tag--away">{t.lobby.away}</span>}
+              {self && (
+                <span class="player__edit" aria-hidden="true">
+                  {t.lobby.edit}
+                </span>
+              )}
+            </>
+          );
+          return (
+            <li key={p.id} class={`player${p.connected ? "" : " player--away"}${self ? " player--self" : ""}`} style={{ "--c": `var(--p${p.color})` }}>
+              {self ? (
+                <button type="button" class="player__btn" data-testid="edit-profile" aria-label={t.lobby.editProfile} onClick={onEditSelf}>
+                  {inner}
+                </button>
+              ) : (
+                inner
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

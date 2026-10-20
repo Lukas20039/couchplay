@@ -87,11 +87,16 @@ describe("Join-Seiten (gerendert)", () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.profile)!)).toEqual({ name: "Anna", avatar: "eule" });
   });
 
-  it("zuletzt verwendeter Name wird vorgeschlagen", async () => {
+  it("zuletzt verwendeter Name wird bei Code-Eingabe vorgeschlagen", async () => {
     localStorage.setItem(STORAGE_KEYS.profile, JSON.stringify({ name: "Bert", avatar: "krake" }));
-    const app = makeApp("/j/042137");
+    const app = makeApp("/");
     const root = document.getElementById("app")!;
     await act(() => render(<App app={app} />, root));
+    const input = root.querySelector<HTMLInputElement>('[data-testid="code-input"]')!;
+    await act(() => {
+      input.value = "042137";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     expect(root.querySelector<HTMLInputElement>('[data-testid="name-input"]')!.value).toBe("Bert");
     expect(root.querySelector('[data-testid="avatar-option-krake"]')!.getAttribute("aria-checked")).toBe("true");
   });

@@ -1,8 +1,9 @@
 // Startseite: Code-Eingabe → Name + Avatar → room.join.
-import { AVATAR_EMOJI, AVATAR_IDS, NAME_MAX_LENGTH, type AvatarId } from "@couchplay/protocol/constants";
+import { AVATAR_IDS, NAME_MAX_LENGTH, type AvatarId } from "@couchplay/protocol/constants";
 import { normalizeName } from "@couchplay/protocol/util";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Brand } from "../components/common.js";
+import { AvatarGrid } from "../components/AvatarGrid.js";
 import { InstallHint } from "../components/InstallHint.js";
 import { useApp, useAppState } from "../hooks.js";
 import { errorText, t } from "../i18n/index.js";
@@ -42,7 +43,16 @@ function CodeStep() {
   const cells = codeCells(s.code);
   const cursor = activeCell(s.code);
   const complete = isCodeComplete(s.code);
-  const error = s.joinError && s.joinError !== "connect" ? errorText(s.joinError) : s.joinError ? t.connectError : null;
+  const error =
+    s.joinError === "ROOM_NOT_FOUND" && s.viaLink
+      ? t.join.linkRoomGone
+      : s.joinError && s.joinError !== "connect"
+        ? errorText(s.joinError)
+        : s.joinError
+          ? t.connectError
+          : s.linkInvalid
+            ? t.join.invalidLink
+            : null;
 
   // Fokus nur ohne Meldung setzen, sonst springt iOS sofort in die Tastatur und verdeckt sie.
   useEffect(() => {
@@ -119,7 +129,7 @@ function ProfileStep() {
   const app = useApp();
   const s = useAppState();
   const saved = useMemo(loadProfile, []);
-  const [name, setName] = useState(saved.name ?? "");
+  const [name, setName] = useState(s.attemptedName ?? saved.name ?? "");
   const [avatar, setAvatar] = useState<AvatarId>(saved.avatar ?? AVATAR_IDS[Math.floor(Math.random() * AVATAR_IDS.length)]!);
   const [touched, setTouched] = useState(false);
   const normalized = normalizeName(name);
@@ -183,22 +193,7 @@ function ProfileStep() {
 
         <fieldset class="field">
           <legend class="field__label">{t.join.avatarLabel}</legend>
-          <div class="avatars" role="radiogroup" aria-label={t.join.avatarLabel}>
-            {AVATAR_IDS.map((id) => (
-              <button
-                key={id}
-                type="button"
-                role="radio"
-                aria-checked={avatar === id}
-                aria-label={t.avatars[id]}
-                class={`avatars__opt${avatar === id ? " avatars__opt--on" : ""}`}
-                data-testid={`avatar-option-${id}`}
-                onClick={() => setAvatar(id)}
-              >
-                {AVATAR_EMOJI[id]}
-              </button>
-            ))}
-          </div>
+          <AvatarGrid value={avatar} onChange={setAvatar} />
         </fieldset>
 
         <p class={`hint${error ? " hint--error" : ""}`} data-testid="join-error" role={error ? "alert" : undefined}>

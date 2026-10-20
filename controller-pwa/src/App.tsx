@@ -36,6 +36,8 @@ function Root() {
   if (inRoom) {
     const phase = s.room!.phase;
     screen = phase === "game" ? <GameScreen /> : phase === "results" ? <Results /> : <Lobby />;
+  } else if (s.autoJoin) {
+    screen = <AutoJoining code={s.code} />;
   } else if (s.conn === "reconnecting" || s.conn === "joined") {
     screen = <Resuming />;
   } else {
@@ -48,6 +50,25 @@ function Root() {
       {screen}
       <Toast />
     </>
+  );
+}
+
+/** QR-Link + bekanntes Profil: Beitritt läuft ohne Zwischenschritt. */
+function AutoJoining({ code }: { code: string }) {
+  const app = useApp();
+  return (
+    <main class="screen screen--resume">
+      <Brand />
+      <section class="resume" role="status" data-testid="auto-joining">
+        <span class="spinner" aria-hidden="true" />
+        <p class="lead">{t.join.autoJoining(code)}</p>
+      </section>
+      <footer class="actions">
+        <button type="button" class="btn btn--ghost" data-testid="auto-join-cancel" onClick={() => app.cancelAutoJoin()}>
+          {t.join.autoJoinCancel}
+        </button>
+      </footer>
+    </main>
   );
 }
 

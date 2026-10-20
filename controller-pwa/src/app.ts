@@ -2,8 +2,10 @@
 import type { ClientMessage } from "@couchplay/protocol";
 import { WS_PATH, type AvatarId } from "@couchplay/protocol/constants";
 import { Connection, type WebSocketFactory, type WebSocketLike } from "./net/connection.js";
-import { parseRoute, resetUrl } from "./lib/route.js";
-import { loadSession, saveProfile, saveSession } from "./lib/storage.js";
+import { suggestName } from "./lib/names.js";
+import { resetUrl } from "./lib/route.js";
+import { decideStart } from "./lib/start.js";
+import { loadProfile, loadSession, saveProfile, saveSession } from "./lib/storage.js";
 import { createStore, initialState, type Store } from "./state/store.js";
 
 export interface AppController {
@@ -13,6 +15,10 @@ export interface AppController {
   goToProfile(): void;
   goToCode(): void;
   join(name: string, avatar: AvatarId): void;
+  /** Eigenen Namen/Avatar in Lobby/Ergebnis ändern (player.update). */
+  updateProfile(name: string, avatar: AvatarId): boolean;
+  /** Automatischen Beitritt abbrechen → Name/Avatar-Seite. */
+  cancelAutoJoin(): void;
   send(msg: ClientMessage): boolean;
   leave(): void;
   abandon(): void;
@@ -32,9 +38,17 @@ export function wsUrl(loc: Pick<Location, "protocol" | "host"> = location): stri
 }
 
 export function createApp(opts: AppOptions = {}): AppController {
-  const route = parseRoute(opts.pathname ?? location.pathname);
-  const stored = loadSession();
-  const store = createStore(initialState({ code: route.code, online: navigator.onLine !== false }));
+  const decision = decideStart(opts.pathname ?? location.pathname, loadSession(), loadProfile());
+  const plan = decision.plan;
+  // QR/Link hat Vorrang: Sitzung eines anderen Raums verwerfen (Platz dort verfällt nach der Gnadenfrist).
+  if (decision.discardSession) saveSession(null);
+  const linkCode = plan.kind === "autoJoin" || plan.kind === "profile" ? plan.code : null;
+  const store = createStore(
+    initialState({ code: linkCode, online: navigator.onLine !== false, linkInvalid: plan.kind === "code" && plan.invalidLink }),
+  );
+  /** Beim automatischen Beitritt wird NAME_TAKEN genau einmal mit einem Vorschlag wiederholt. */
+  let autoRetried = false;
+  let lastAvatar: AvatarId | null = null;
 
   const connection = new Connection({
     url: opts.url ?? wsUrl(),
@@ -47,7 +61,18 @@ export function createApp(opts: AppOptions = {}): AppController {
         if (msg.t === "room.joined") resetUrl();
       },
       status: (status) => store.dispatch({ type: "status", status }),
-      joinError: (code) => store.dispatch({ type: "joinError", code }),
+      joinError: (code) => {
+        const st = store.getState();
+        if (st.autoJoin && code === "NAME_TAKEN" && !autoRetried && st.attemptedName && lastAvatar) {
+          // Typisch: früherer Beitritt wurde angenommen, die Antwort ging verloren → „Anna2“.
+          autoRetried = true;
+          const name = suggestName(st.attemptedName);
+          store.dispatch({ type: "joinStart", name, auto: true });
+          connection.join(st.code, name, lastAvatar);
+          return;
+        }
+        store.dispatch({ type: "joinError", code });
+      },
       ended: (reason) => {
         store.dispatch({ type: "ended", reason });
         resetUrl();
@@ -55,8 +80,13 @@ export function createApp(opts: AppOptions = {}): AppController {
     },
   });
 
-  // Gespeicherte Sitzung nur aufnehmen, wenn kein anderer Raum per Link gewünscht ist.
-  if (stored && (!route.code || route.code === stored.code)) connection.resume(stored);
+  if (plan.kind === "resume") connection.resume(plan.session);
+  if (plan.kind === "autoJoin") {
+    lastAvatar = plan.avatar;
+    store.dispatch({ type: "joinStart", name: plan.name, auto: true });
+    connection.join(plan.code, plan.name, plan.avatar);
+  }
+  if (plan.kind === "code" && plan.invalidLink) resetUrl();
 
   if (opts.bindWindow !== false) {
     const check = (): void => {
@@ -87,8 +117,23 @@ export function createApp(opts: AppOptions = {}): AppController {
     join(name, avatar) {
       const { code } = store.getState();
       saveProfile({ name, avatar });
-      store.dispatch({ type: "joinStart" });
+      lastAvatar = avatar;
+      store.dispatch({ type: "joinStart", name });
       connection.join(code, name, avatar);
+    },
+    cancelAutoJoin() {
+      connection.abandon();
+      store.dispatch({ type: "autoJoinCancel" });
+    },
+    updateProfile(name, avatar) {
+      const st = store.getState();
+      const me = st.room?.players.find((p) => p.id === st.playerId);
+      if (!me) return false;
+      const msg: ClientMessage = { t: "player.update" };
+      if (name !== me.name) msg.name = name;
+      if (avatar !== me.avatar) msg.avatar = avatar;
+      if (msg.name === undefined && msg.avatar === undefined) return true;
+      return connection.send(msg);
     },
     send: (msg) => connection.send(msg),
     leave: () => connection.leave(),

@@ -25,6 +25,10 @@ export const de = {
     submit: "Beitreten",
     joining: "Trete bei …",
     resuming: "Verbinde mit deinem Raum …",
+    autoJoining: (code: string) => `Trete Raum ${code.slice(0, 3)} ${code.slice(3)} bei …`,
+    autoJoinCancel: "Name oder Tier ändern",
+    invalidLink: "Der Link enthält keinen gültigen Raumcode. Gib den Code vom Fernseher ein.",
+    linkRoomGone: "Diesen Raum gibt es nicht mehr. Gib den Code ein, der jetzt auf dem Fernseher steht.",
   },
 
   lobby: {
@@ -53,6 +57,11 @@ export const de = {
     leave: "Raum verlassen",
     leaveConfirm: "Wirklich den Raum verlassen?",
     leaveYes: "Verlassen",
+    editProfile: "Name oder Tier ändern",
+    edit: "ändern",
+    sheetTitle: "Dein Profil",
+    save: "Speichern",
+    saving: "Speichere …",
     on: "An",
     off: "Aus",
     decrease: "Weniger",

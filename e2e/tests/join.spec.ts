@@ -67,4 +67,66 @@ test.describe("Beitritt", () => {
     await expect(tv.playerItem(phone.playerId)).toContainText("Ben");
     await lab.shot(phone.page, "join-lobby");
   });
+
+  test("QR-Join wiederkehrend ohne Zwischenschritt", async ({ lab, baseURL }) => {
+    const tv1 = await lab.openTv("tv-1");
+    const phone = await lab.newPhone("handy-wieder");
+    // Erstes Mal: Name/Avatar wählen (wird gemerkt).
+    await phone.joinByUrl(await tv1.joinUrl(), "Wanda", "eule", await tv1.code());
+    await phone.leave();
+    await expect(phone.tid("code-input")).toBeVisible();
+
+    // Zweiter Raum, QR-Link öffnen → sofort in der Lobby, ohne Formular.
+    const tv2 = await lab.openTv("tv-2");
+    const code2 = await tv2.code();
+    await phone.page.goto(await tv2.joinUrl());
+    await expect(phone.tid("auto-joining").or(phone.tid("lobby-status"))).toBeVisible();
+    await expect(phone.tid("name-input")).toHaveCount(0);
+    await phone.expectJoined();
+    await lab.shot(phone.page, "autojoin-lobby");
+    await expect(phone.page).toHaveURL(`${baseURL}/`);
+    await tv2.expectPlayerCount(1);
+    await expect(tv2.playerItem(phone.playerId)).toContainText("Wanda");
+
+    // Reload → Rejoin per Token (kein zweiter Spieler).
+    await phone.page.reload();
+    await expect(phone.tid("lobby-status")).toBeVisible();
+    await tv2.expectPlayerCount(1);
+    expect(await phone.page.evaluate(() => JSON.parse(localStorage.getItem("couchplay.player.session")!).code)).toBe(code2);
+  });
+
+  test("QR-Join mit alter Sitzung eines anderen Raums", async ({ lab }) => {
+    const tv1 = await lab.openTv("tv-alt");
+    const tv2 = await lab.openTv("tv-neu");
+    const code2 = await tv2.code();
+    const phone = await lab.newPhone("handy-alt");
+    await phone.joinByUrl(await tv1.joinUrl(), "Otto", "panda", await tv1.code());
+    const oldId = phone.playerId;
+    await tv1.expectPlayerCount(1);
+
+    // QR des anderen Raums: Link hat Vorrang, alte Sitzung wird verworfen.
+    await phone.page.goto(await tv2.joinUrl());
+    await phone.expectJoined();
+    expect(phone.playerId).not.toBe(oldId);
+    await tv2.expectPlayerCount(1);
+    await expect(tv2.playerItem(phone.playerId)).toContainText("Otto");
+    expect(await phone.page.evaluate(() => JSON.parse(localStorage.getItem("couchplay.player.session")!).code)).toBe(code2);
+    // Im alten Raum ist der Platz nur noch reserviert (getrennt).
+    await expect(tv1.playerItem(oldId)).toHaveAttribute("data-connected", "false");
+  });
+
+  test("Name in Lobby ändern", async ({ lab }) => {
+    const tv = await lab.openTv();
+    const phone = await lab.newPhone("handy-profil");
+    await phone.joinByUrl(await tv.joinUrl(), "Paula", "fuchs", await tv.code());
+    await phone.tid("edit-profile").click();
+    await expect(phone.tid("profile-sheet")).toBeVisible();
+    await lab.shot(phone.page, "lobby-edit-profile");
+    await phone.tid("profile-cancel").click();
+    await phone.editProfile("Pia", "krake");
+    await expect(phone.tid("player-list")).toContainText("Pia");
+    await expect(tv.playerItem(phone.playerId)).toContainText("Pia");
+    // Neues Profil gilt auch für den nächsten QR-Join.
+    expect(await phone.page.evaluate(() => JSON.parse(localStorage.getItem("couchplay.player.profile")!))).toEqual({ name: "Pia", avatar: "krake" });
+  });
 });
