@@ -8,7 +8,11 @@ ARG NODE_IMAGE=node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff15
 # ---------------------------------------------------------------------------
 # 1) Build: alle Workspaces installieren und bauen
 # ---------------------------------------------------------------------------
-FROM ${NODE_IMAGE} AS build
+# Build- und deps-Stufe laufen nativ auf der Build-Maschine ($BUILDPLATFORM), auch beim
+# arm64-Image: npm unter QEMU-Emulation hängt sporadisch. Das ist zulässig, weil das Ergebnis
+# plattformunabhängig ist (JS-Bundle, statische Dateien, Abhängigkeiten ohne native Module –
+# geprüft: keine *.node / binding.gyp in node_modules der Runtime).
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build
 WORKDIR /app
 
 # Nur Manifeste zuerst → npm-Cache-Layer bleibt bei Code-Änderungen gültig.
@@ -36,7 +40,7 @@ RUN npm run build \
 # 2) Produktions-Abhängigkeiten des Server-Bundles (fastify, ws, zod, …)
 #    Workspace-Code (@couchplay/*) ist im esbuild-Bundle eingebettet.
 # ---------------------------------------------------------------------------
-FROM ${NODE_IMAGE} AS deps
+FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS deps
 WORKDIR /app
 COPY --from=build /app/package.json /app/package-lock.json ./
 COPY --from=build /app/packages/protocol/package.json packages/protocol/
@@ -60,7 +64,7 @@ ARG VERSION=dev
 ARG REVISION=unknown
 LABEL org.opencontainers.image.title="CouchPlay" \
       org.opencontainers.image.description="Game-Server für CouchPlay: Android TV als Spielkonsole, Smartphones als Controller" \
-      org.opencontainers.image.licenses="UNLICENSED" \
+      org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}"
 
