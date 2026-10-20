@@ -2,12 +2,21 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <!-- viewport-fit=cover: Inhalt unter Notch/Home-Indikator, Abstände über safe-area-insets.
+         user-scalable=no/maximum-scale verhindern Zoom (iOS ignoriert es teils → touch-action + gesturestart). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0b0b0f" />
+    <meta name="theme-color" content="#0f0e17" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CouchPlay" />
+    <meta name="description" content="Dein Handy als Controller für CouchPlay-Partyspiele auf dem Fernseher." />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/icons/icon-192.png" type="image/png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
     <title>CouchPlay</title>
   </head>
   <body>

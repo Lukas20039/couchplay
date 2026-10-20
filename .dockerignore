@@ -1,0 +1,26 @@
+# Build-Kontext klein halten: Abhängigkeiten und Builds entstehen im Image.
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.vite
+**/*.log
+.git
+.github
+.claude
+.env
+.env.*
+.DS_Store
+
+# Nicht für das Server-Image benötigt
+android-tv
+docs
+e2e/test-results
+e2e/playwright-report
+e2e/blob-report
+*.apk
+*.aab
+*.keystore
+*.jks
+Dockerfile
+docker-compose*.yml

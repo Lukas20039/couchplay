@@ -1,0 +1,99 @@
+# Android-TV-APK bauen. Mit Signatur-Secrets: assembleRelease (signiert), sonst assembleDebug.
+# Server-URL als Build-Default: Repository-Variable COUCHPLAY_SERVER_URL.
+name: APK
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    name: Android-TV-APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Signatur: Gradle liest diese ENV-Variablen (gleiche Namen wie die Secrets).
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      COUCHPLAY_SERVER_URL: ${{ vars.COUCHPLAY_SERVER_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Gradle einrichten (Cache)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build-Variante bestimmen
+        id: variant
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] \
+             && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
+            # Zusätzlich als Datei bereitstellen (falls Gradle einen Pfad bevorzugt).
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/couchplay-release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/couchplay-release.jks" >> "$GITHUB_ENV"
+            echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
+            echo "dir=release" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Keine Signatur-Secrets gesetzt – baue unsignierte Debug-APK (assembleDebug)."
+            echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
+            echo "dir=debug" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: APK bauen
+        working-directory: android-tv
+        run: |
+          chmod +x ./gradlew
+          args=(":app:${{ steps.variant.outputs.task }}" --no-daemon)
+          # Ohne Repository-Variable gilt der Default aus dem Gradle-Projekt.
+          if [ -n "$COUCHPLAY_SERVER_URL" ]; then args+=("-Pcouchplay.serverUrl=${COUCHPLAY_SERVER_URL}"); fi
+          ./gradlew "${args[@]}"
+
+      - name: APK umbenennen
+        id: apk
+        run: |
+          src=$(find android-tv/app/build/outputs/apk/${{ steps.variant.outputs.dir }} -name '*.apk' | head -n 1)
+          if [ -z "$src" ]; then echo "::error::Keine APK gefunden"; exit 1; fi
+          name="couchplay-tv-${GITHUB_REF_NAME//\//-}-${{ steps.variant.outputs.dir }}.apk"
+          cp "$src" "$RUNNER_TEMP/$name"
+          echo "path=$RUNNER_TEMP/$name" >> "$GITHUB_OUTPUT"
+
+      - name: APK als Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: couchplay-tv-apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+
+      - name: An GitHub-Release hängen
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.apk.outputs.path }}
+          fail_on_unmatched_files: true
+
+      - name: Keystore entfernen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/couchplay-release.jks"

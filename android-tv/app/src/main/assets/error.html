@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CouchPlay – Server nicht erreichbar</title>
+    <!-- Lokale Fehlerseite der Android-Shell. {{SERVER}}/{{DETAIL}} ersetzt MainActivity (HTML-escaped). -->
+    <style>
+      html { font-size: 1.6667vh; }
+      html, body {
+        margin: 0; height: 100%; overflow: hidden;
+        background: radial-gradient(60rem 40rem at 50% 40%, #2a1f5c 0%, #120f24 70%);
+        color: #f8f4ff; font-family: Roboto, "Segoe UI", Arial, sans-serif;
+      }
+      main {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        height: 100%; text-align: center; padding: 0 8rem; box-sizing: border-box;
+      }
+      .logo { display: flex; align-items: center; font-size: 4.4rem; font-weight: 900; letter-spacing: -0.02em; }
+      .mark { display: inline-block; width: 4.4rem; height: 4.4rem; margin-right: 1.6rem; position: relative; }
+      .mark i { position: absolute; width: 2rem; height: 2rem; border-radius: 0.6rem; }
+      .mark i:nth-child(1) { left: 0; top: 0; background: #ff5a5f; }
+      .mark i:nth-child(2) { right: 0; top: 0; background: #3fa7ff; }
+      .mark i:nth-child(3) { left: 0; bottom: 0; background: #3ddc84; }
+      .mark i:nth-child(4) { right: 0; bottom: 0; background: #ffc93c; }
+      h1 { margin: 4rem 0 0; font-size: 3.4rem; font-weight: 800; }
+      p { margin: 1.6rem 0 0; font-size: 2rem; color: #aaa1d2; max-width: 70rem; line-height: 1.4; }
+      .server { color: #f8f4ff; font-weight: 700; word-break: break-all; }
+      .detail { font-size: 1.4rem; margin-top: 0.8rem; }
+      .buttons { margin-top: 4rem; }
+      button {
+        font: inherit; font-size: 2rem; font-weight: 700; color: #f8f4ff; background: #2c2554;
+        border: 0; border-radius: 999px; padding: 1.2rem 3rem; margin: 0 1rem; min-width: 18rem;
+        outline: none; position: relative; transition: transform 0.12s ease-out;
+      }
+      button.primary { background: #ff3d6e; color: #fff; }
+      button:focus { transform: scale(1.05); box-shadow: 0 0 0 0.3rem #120f24, 0 0 0 0.75rem #ffd23f; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="logo"><span class="mark"><i></i><i></i><i></i><i></i></span>CouchPlay</div>
+      <h1>Server nicht erreichbar</h1>
+      <p>Prüfe, ob der CouchPlay-Server läuft und der Fernseher im selben Netzwerk ist.</p>
+      <p>Adresse: <span class="server">{{SERVER}}</span></p>
+      <p class="detail">{{DETAIL}}</p>
+      <p id="auto"></p>
+      <div class="buttons">
+        <button id="retry" class="primary" autofocus>Erneut versuchen</button>
+        <button id="settings">Einstellungen</button>
+      </div>
+    </main>
+    <script>
+      (function () {
+        var bridge = window.CouchPlayNative;
+        var retry = document.getElementById("retry");
+        var settings = document.getElementById("settings");
+        var buttons = [retry, settings];
+        function act(el) {
+          if (!bridge) return;
+          if (el === retry) bridge.retry();
+          else bridge.openSettings();
+        }
+        retry.addEventListener("click", function () { act(retry); });
+        settings.addEventListener("click", function () { act(settings); });
+        retry.focus();
+        // D-Pad: links/rechts zwischen den Buttons, OK löst aus.
+        document.addEventListener("keydown", function (e) {
+          var i = buttons.indexOf(document.activeElement);
+          if (e.key === "ArrowLeft" || e.key === "ArrowUp" || e.keyCode === 37 || e.keyCode === 38) {
+            buttons[Math.max(0, i - 1)].focus();
+            e.preventDefault();
+          } else if (e.key === "ArrowRight" || e.key === "ArrowDown" || e.keyCode === 39 || e.keyCode === 40) {
+            buttons[Math.min(buttons.length - 1, i + 1)].focus();
+            e.preventDefault();
+          } else if (i < 0) {
+            retry.focus();
+          }
+        });
+        // Automatisch erneut versuchen (z. B. wenn der TV vor dem Server startet).
+        var left = 15;
+        var auto = document.getElementById("auto");
+        function tick() {
+          auto.textContent = "Neuer Versuch in " + left + " s.";
+          if (left-- <= 0) { if (bridge) bridge.retry(); return; }
+          setTimeout(tick, 1000);
+        }
+        tick();
+      })();
+    </script>
+  </body>
+</html>

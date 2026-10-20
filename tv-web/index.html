@@ -4,10 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#120f24" />
     <title>CouchPlay TV</title>
   </head>
-  <body>
+  <body style="background:#120f24">
     <div id="app"></div>
+    <!-- Sehr alte WebViews ohne ES-Module: Hinweis statt leerem Bildschirm. -->
+    <script nomodule>
+      document.getElementById("app").innerHTML =
+        '<p style="font:24px sans-serif;color:#f8f4ff;padding:48px">Diese Android-System-WebView ist zu alt. Bitte im Play Store aktualisieren.</p>';
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

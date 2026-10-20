@@ -1,0 +1,48 @@
+# Beispiel-Deployment für CouchPlay (siehe docs/deploy.md).
+# Kopieren nach docker-compose.yml, Domain/Image anpassen, dann: docker compose up -d
+#
+# HTTPS ist Pflicht für den Produktivbetrieb (iOS installiert die Controller-PWA nur über
+# HTTPS, Service Worker brauchen einen sicheren Kontext). Das Beispiel nutzt Caddy, das
+# Zertifikate automatisch per Let's Encrypt holt.
+
+services:
+  couchplay:
+    image: ghcr.io/OWNER/couchplay:latest   # OWNER = GitHub-Benutzer/Organisation
+    restart: unless-stopped
+    init: true
+    environment:
+      PUBLIC_URL: https://play.example.org  # Basis für Join-Links/QR-Codes
+      PORT: "8080"
+      TRUST_PROXY: "1"                      # genau ein Reverse-Proxy (Caddy) davor
+      LOG_LEVEL: info
+      # ALLOWED_ORIGINS: https://andere.example.org   # zusätzliche Origins für /ws (optional)
+    # Nur intern erreichbar – Caddy terminiert TLS. Zum direkten Testen ohne Proxy:
+    # ports: ["8080:8080"]
+    expose:
+      - "8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    # Caddy leitet WebSocket-Upgrades (/ws) automatisch weiter.
+    command: caddy reverse-proxy --from play.example.org --to couchplay:8080
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - couchplay
+
+volumes:
+  caddy-data:
+  caddy-config:

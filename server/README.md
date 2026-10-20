@@ -2,16 +2,22 @@
 
 **Zuständig:** Agent A.
 
-Fastify + `ws`, server-authoritative. Gerüst vorhanden: `src/config.ts` (ENV), `src/app.ts` (`/healthz`), `src/games.ts` (eingebaute Spiele), `build.mjs` (esbuild-Bundle → `dist/index.js`).
+Fastify + `ws`, server-authoritative. Protokoll: `docs/protocol.md`, Deployment: `docs/deploy.md`.
 
-Zu implementieren (Vorschlag für die Struktur):
+| Datei | Inhalt |
+|---|---|
+| `src/index.ts` | Einstieg: Config, Listen, SIGTERM/SIGINT → Graceful Shutdown |
+| `src/config.ts` | ENV (`PUBLIC_URL`, `PORT`, `HOST`, `TRUST_PROXY`, `LOG_LEVEL`, `ALLOWED_ORIGINS`) mit zod |
+| `src/app.ts` | Fastify-App: `/healthz`, `/api/catalog`, Static, Sicherheitsheader, Gateway; `app.couchplay` (Runtime) |
+| `src/options.ts` | Grenzen/Zeiten (Defaults aus `@couchplay/protocol/constants`, in Tests überschreibbar) |
+| `src/ws/gateway.ts` | `/ws`: Origin-Check, Verbindungen/IP, Heartbeat, Handshake-Timeout, Rate-Limits, `parseClientMessage` → `CLIENT_MESSAGE_RULES` → Handler |
+| `src/ws/request-info.ts` | Client-IP (`TRUST_PROXY`), Basis-URL aus Request, Origin-Prüfung |
+| `src/rooms/manager.ts` | Raumcodes (kryptografisch, kollisionsfrei), Raumlimit, Idle-Ablauf |
+| `src/rooms/room.ts` | Spieler, Host-Wechsel, Gnadenfrist, Phasen, Settings, Teilnehmer (`resolveParticipants`), `createGameSession`, Cache `game.tv`/`game.view`, Crash → Lobby |
+| `src/http/static.ts` | `tv-web/dist` unter `/tv/`, `controller-pwa/dist` unter `/`, `/j/:code`, SPA-Fallback, Cache-Header |
+| `src/http/security.ts` | CSP (inkl. Hashes von Inline-Skripten der index.html), nosniff, Referrer-Policy … |
+| `src/games.ts` | Registrierung der eingebauten Spiele |
 
-- `src/ws/` – Upgrade auf `/ws` (Origin-Check, `maxPayload`, Verbindungen/IP), Heartbeat, Handshake-Timeout, `parseClientMessage` → `CLIENT_MESSAGE_RULES` → Handler.
-- `src/rooms/` – `RoomManager` (Codes, Idle-Timeout, Limits), `Room` (Spieler, Host-Übergabe, Phasen, Settings, Reconnect-Gnadenfrist, Cache letzter `game.tv`/`game.view`, `seq`).
-- `src/game-runner.ts` – Brücke zu `createGameSession` aus `@couchplay/game-sdk` (`systemClock`, `randomSeed()`, `previous`).
-- `src/rate-limit.ts` – Token-Buckets laut `@couchplay/protocol/constants`.
-- `src/static.ts` – `@fastify/static`: `../tv-web/dist` unter `/tv/`, `../controller-pwa/dist` unter `/` inkl. `/j/:code` und SPA-Fallback.
-- Integrationstests mit echten WS-Clients (`ws`) in `test/`.
-- Später: `Dockerfile` (multi-arch, non-root, HEALTHCHECK) + GitHub-Actions-Workflow → GHCR.
+Tests (`test/`): echter Server auf zufälligem Port, echte `ws`-Clients, Dummy-Spiel `test/fixtures/test-game.ts`.
 
-Scripts: `dev` (tsx watch), `build`, `start`, `typecheck`, `test`.
+Scripts: `dev` (tsx watch), `build` (esbuild → `dist/index.js`), `start`, `typecheck`, `test`.

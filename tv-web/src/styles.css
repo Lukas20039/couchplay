@@ -1,24 +1,813 @@
-/* Basis-Theme: dunkel, Netflix-artig, bunte Akzente. Details: Frontend-Agent. */
+/*
+ * CouchPlay TV – 10-Fuß-UI.
+ * Haltung: Wohnzimmer bei Nacht. Tiefes Aubergine statt Schwarz, Spielerfarben als
+ * einzige Buntheit; das markanteste Element ist der Raumcode (jede Ziffer trägt eine
+ * Spielerfarbe). Fokus = dicker Sonnenblumen-Rahmen + leichte Vergrößerung.
+ *
+ * Kompatibilität (alte Android-TV-WebViews, Chrome ≥ 64): kein Flexbox-`gap`, kein
+ * `inset`, kein `aspect-ratio`, kein `clamp()`. Animationen nur über transform/opacity.
+ */
 :root {
-  --bg: #0b0b0f;
-  --surface: #17171f;
-  --text: #f5f5f7;
-  --muted: #9a9aa8;
-  --accent: #e50914;
-  --focus: #ffd400;
-  --p0: #ff4d4d;
-  --p1: #4da6ff;
-  --p2: #4dff88;
-  --p3: #ffd24d;
-  --p4: #c34dff;
-  --p5: #ff9f4d;
-  --p6: #4dfff0;
-  --p7: #ff4dc4;
+  --bg: #120f24;
+  --bg-2: #1a1533;
+  --surface: #221c42;
+  --surface-2: #2c2554;
+  --line: #3b3270;
+  --text: #f8f4ff;
+  --muted: #aaa1d2;
+  --focus: #ffd23f;
+  --primary: #ff3d6e;
+  --danger: #ff5a4f;
+  --ok: #3ddc84;
+  --p0: #ff5a5f;
+  --p1: #3fa7ff;
+  --p2: #3ddc84;
+  --p3: #ffc93c;
+  --p4: #b26bff;
+  --p5: #ff8a3d;
+  --p6: #2ee6d6;
+  --p7: #ff5fbf;
+  --radius: 1.4rem;
   color-scheme: dark;
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, sans-serif; }
-#app { min-height: 100%; }
-/* 10-Fuß-UI: 1rem = 1/60 der Viewport-Höhe → 1080p ≈ 18px, skaliert mit dem TV. */
-html { font-size: calc(100vh / 60); }
-:focus-visible { outline: 0.3rem solid var(--focus); outline-offset: 0.2rem; }
+
+* {
+  box-sizing: border-box;
+}
+/* 10-Fuß-UI: 1rem = 1/60 der Viewport-Höhe → 1080p = 18px, skaliert mit dem TV. */
+html {
+  font-size: calc(100vh / 60);
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Roboto, "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+/* Nicht auf html setzen – dort definiert font-size das rem. */
+body {
+  font-size: 1.6rem;
+}
+#app {
+  height: 100%;
+}
+h1,
+h2 {
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+h1 {
+  font-size: 3.6rem;
+  line-height: 1.1;
+}
+h2 {
+  font-size: 2.1rem;
+  line-height: 1.2;
+}
+p {
+  margin: 0;
+}
+.muted {
+  color: var(--muted);
+}
+.small {
+  font-size: 1.3rem;
+}
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- Fokus & Buttons ---------- */
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/*
+ * Fokusrahmen als ::after-Ring: unabhängig von box-shadow/Hintergrund des Elements
+ * (Kacheln, ausgewählte Einträge) und ohne Layout-Verschiebung. Radius je Element
+ * über --ring-radius.
+ */
+[data-nav] {
+  position: relative;
+  outline: none;
+  transition: transform 0.12s ease-out;
+  --ring-radius: 1.8rem;
+}
+[data-nav]::after {
+  content: "";
+  position: absolute;
+  top: -0.7rem;
+  left: -0.7rem;
+  right: -0.7rem;
+  bottom: -0.7rem;
+  border: 0.45rem solid var(--focus);
+  border-radius: var(--ring-radius);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-nav]:focus {
+  outline: none;
+  transform: scale(1.04);
+  z-index: 2;
+}
+[data-nav]:focus::after {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-nav] {
+    transition: none;
+  }
+}
+
+.btn {
+  --ring-radius: 999px;
+  display: inline-block;
+  min-width: 16rem;
+  padding: 1.1rem 2.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 1.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-quiet {
+  min-width: 0;
+  padding: 0.6rem 1.6rem;
+  font-size: 1.4rem;
+  background: transparent;
+  box-shadow: inset 0 0 0 0.15rem var(--line);
+}
+.is-disabled {
+  opacity: 0.45;
+}
+.button-row > * + * {
+  margin-left: 2rem;
+}
+.button-col > * {
+  display: block;
+  width: 100%;
+}
+.button-col > * + * {
+  margin-top: 1.4rem;
+}
+
+/* ---------- Logo & Status ---------- */
+.logo {
+  display: flex;
+  align-items: center;
+  font-weight: 900;
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+}
+.logo-mark {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 0.25rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-right: 1rem;
+}
+.logo-mark i {
+  border-radius: 0.45rem;
+  background: var(--p0);
+}
+.logo-mark i:nth-child(2) {
+  background: var(--p1);
+}
+.logo-mark i:nth-child(3) {
+  background: var(--p2);
+}
+.logo-mark i:nth-child(4) {
+  background: var(--p3);
+}
+.logo-large {
+  font-size: 6rem;
+}
+.logo-large .logo-mark {
+  width: 6rem;
+  height: 6rem;
+  margin-right: 2rem;
+  grid-gap: 0.5rem;
+}
+.logo-large .logo-mark i {
+  border-radius: 1rem;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.4rem;
+  color: var(--muted);
+}
+.status-dot {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  margin-right: 0.8rem;
+  background: var(--p3);
+}
+.status-online .status-dot {
+  background: var(--ok);
+}
+.status-reconnecting .status-dot,
+.banner-warn .status-dot {
+  background: var(--danger);
+}
+
+/* ---------- Bildschirme ---------- */
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.start-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: radial-gradient(60rem 40rem at 50% 40%, #2a1f5c 0%, var(--bg) 70%);
+}
+.start-screen > * + * {
+  margin-top: 3rem;
+}
+.start-text {
+  font-size: 2.2rem;
+  color: var(--muted);
+  max-width: 60rem;
+}
+.fatal-title {
+  font-size: 3.4rem;
+}
+
+/* ---------- Lobby ---------- */
+/*
+ * ┌ logo ───────┐┌ catalog (Kacheln) ─────────── status ┐
+ * │ join-card   │├ players (4 Spalten × 2 Zeilen) ──────┤
+ * │ Code/QR/URL │├ settings ──────────────┐┌ start ─────┤
+ * └─────────────┘└────────────────────────┘└────────────┘
+ */
+.lobby {
+  display: grid;
+  grid-template-columns: 40rem minmax(0, 1fr) 27rem;
+  grid-template-rows: 4rem auto auto minmax(0, 1fr);
+  grid-template-areas:
+    "logo catalog catalog"
+    "join catalog catalog"
+    "join players players"
+    "join settings start";
+  grid-gap: 1.8rem 3rem;
+  padding: 2.2rem 3.5rem 2.4rem;
+  background: radial-gradient(70rem 50rem at 0% 100%, #261c55 0%, rgba(18, 15, 36, 0) 70%), var(--bg);
+}
+.lobby > section > h2,
+.section-head {
+  margin-bottom: 1.1rem;
+}
+.lobby-logo {
+  grid-area: logo;
+  display: flex;
+  align-items: center;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.section-tools {
+  display: flex;
+  align-items: center;
+}
+.section-tools > * + * {
+  margin-left: 2rem;
+}
+
+/* Beitritts-Karte */
+.join-card {
+  grid-area: join;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.4rem 2.4rem 2.8rem;
+  border-radius: 2rem;
+  background: var(--surface);
+  text-align: center;
+}
+.join-heading {
+  font-size: 2.4rem;
+}
+.room-code {
+  display: flex;
+  justify-content: center;
+  margin: 1.2rem 0 2rem;
+  font-size: 6.6rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+.code-group {
+  white-space: nowrap;
+}
+.code-group + .code-group {
+  margin-left: 2.2rem;
+}
+.digit {
+  display: inline-block;
+  padding-bottom: 0.7rem;
+  border-bottom: 0.6rem solid var(--digit-color, var(--p0));
+  margin: 0 0.05em;
+}
+.qr {
+  display: block;
+  width: 20rem;
+  height: 20rem;
+  border-radius: 1.2rem;
+}
+.join-help {
+  margin-top: 2rem;
+  font-size: 1.5rem;
+  color: var(--muted);
+  max-width: 30rem;
+}
+.join-url {
+  margin-top: 0.8rem;
+  font-size: 1.8rem;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+/* Katalog */
+.catalog {
+  grid-area: catalog;
+}
+.tiles {
+  display: flex;
+  padding: 0.9rem 0 0.9rem 0.9rem;
+  margin-left: -0.9rem;
+}
+.tile {
+  display: flex;
+  align-items: center;
+  width: 30rem;
+  height: 10.5rem;
+  padding: 0 2rem 0 2.2rem;
+  margin-right: 2.4rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: inset 0.5rem 0 0 var(--accent);
+  text-align: left;
+  --ring-radius: 2.1rem;
+}
+.tile.is-selected {
+  background: var(--surface-2);
+  box-shadow:
+    inset 0.5rem 0 0 var(--accent),
+    inset 0 0 0 0.25rem var(--accent);
+}
+.tile-icon {
+  flex: none;
+  width: 5.4rem;
+  margin-right: 1.6rem;
+  font-size: 4.4rem;
+  line-height: 1;
+  text-align: center;
+}
+.tile-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.tile-name {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+.tile-meta {
+  margin-top: 0.4rem;
+  font-size: 1.4rem;
+  color: var(--muted);
+}
+.tile-badge {
+  display: inline-block;
+  margin-left: 1rem;
+  padding: 0.15rem 0.9rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+/* Spieler */
+.players-panel {
+  grid-area: players;
+}
+.count {
+  margin-left: 0.6rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 1.6rem;
+}
+.player-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-gap: 1rem 1.4rem;
+}
+.player {
+  display: flex;
+  align-items: center;
+  height: 4.6rem;
+  padding: 0 1.2rem 0 0.6rem;
+  border-radius: 999px;
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 0.15rem var(--line);
+  min-width: 0;
+}
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 3.6rem;
+  height: 3.6rem;
+  margin-right: 1rem;
+  border-radius: 50%;
+  background: var(--pc, var(--p0));
+  font-size: 2.1rem;
+  line-height: 1;
+}
+.avatar-small {
+  width: 3rem;
+  height: 3rem;
+  font-size: 1.7rem;
+}
+.player-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.player-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 700;
+  font-size: 1.7rem;
+}
+.avatar {
+  position: relative;
+}
+.crown {
+  position: absolute;
+  top: -1.1rem;
+  right: -0.7rem;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+.offline-tag {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--danger);
+  line-height: 1.1;
+}
+.player.is-offline .avatar,
+.player.is-offline .player-name {
+  opacity: 0.45;
+}
+.player.is-offline {
+  box-shadow: inset 0 0 0 0.15rem var(--danger);
+}
+.players-empty {
+  padding: 1.6rem 2rem;
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 0.15rem var(--line);
+}
+
+/* Einstellungen */
+.settings-panel {
+  grid-area: settings;
+  min-height: 0;
+}
+.settings {
+  max-height: 100%;
+  overflow: hidden;
+  padding: 1.4rem;
+  margin: -1.4rem;
+}
+.setting-row {
+  --ring-radius: 1.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 4.6rem;
+  padding: 0 1rem 0 1.8rem;
+  border-radius: 1rem;
+  background: var(--surface);
+  text-align: left;
+}
+.setting-row + .setting-row {
+  margin-top: 1rem;
+}
+.setting-label {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+.setting-value {
+  max-width: 55%;
+  padding: 0.4rem 1.2rem;
+  border-radius: 0.7rem;
+  background: var(--bg-2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+.setting-toggle[aria-pressed="true"] .setting-value {
+  background: var(--ok);
+  color: var(--bg);
+}
+
+/* Start */
+.start-bar {
+  grid-area: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.btn-start {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 1.6rem 3.2rem;
+  font-size: 2.6rem;
+  font-weight: 800;
+  background: var(--primary);
+  color: #fff;
+}
+.btn-start.is-disabled {
+  background: var(--surface-2);
+  color: var(--muted);
+  opacity: 1;
+}
+.start-hint {
+  margin-top: 1.4rem;
+  min-height: 4.6rem;
+  font-size: 1.6rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---------- Overlays ---------- */
+.overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 8, 22, 0.86);
+}
+.overlay-panel {
+  min-width: 52rem;
+  max-width: 90rem;
+  max-height: 54rem;
+  overflow: hidden;
+  padding: 3rem 3.4rem;
+  border-radius: 2rem;
+  background: var(--surface);
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.5);
+}
+.overlay-panel > * + * {
+  margin-top: 1.6rem;
+}
+.picker-list {
+  max-height: 38rem;
+  overflow: hidden;
+  padding: 1.4rem;
+  margin-left: -1.4rem;
+  margin-right: -1.4rem;
+}
+/* Breite Zeilen nur leicht vergrößern, sonst schneidet der Container den Ring ab. */
+.setting-row:focus,
+.pick:focus {
+  transform: scale(1.015);
+}
+.picker-list > .pick + .pick {
+  margin-top: 0.9rem;
+}
+.picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-gap: 0.9rem 1.4rem;
+}
+.picker-grid > .pick + .pick {
+  margin-top: 0;
+}
+.pick {
+  --ring-radius: 1.6rem;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 4.4rem;
+  padding: 0 1.6rem;
+  border-radius: 1rem;
+  background: var(--bg-2);
+  text-align: left;
+  font-weight: 600;
+}
+.check,
+.radio {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  margin-right: 1.2rem;
+  border-radius: 0.5rem;
+  box-shadow: inset 0 0 0 0.2rem var(--muted);
+}
+.radio {
+  border-radius: 50%;
+}
+.is-checked .check,
+.is-selected .radio {
+  background: var(--focus);
+  box-shadow: inset 0 0 0 0.45rem var(--bg-2);
+}
+.pick.is-checked,
+.pick.is-selected {
+  background: var(--surface-2);
+}
+.pick-player.is-checked {
+  box-shadow: inset 0.4rem 0 0 var(--pc);
+}
+.choose-count {
+  font-weight: 700;
+}
+
+/* ---------- Spiel ---------- */
+.game-stage {
+  background: var(--bg);
+}
+.game-host {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.center-message {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: 2.4rem;
+  color: var(--muted);
+}
+.banner {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  padding: 1rem 2.4rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.45);
+  font-size: 1.7rem;
+  font-weight: 700;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.banner-player {
+  top: auto;
+  bottom: 2.4rem;
+  background: var(--danger);
+  color: #fff;
+}
+.menu h2 {
+  font-size: 3rem;
+}
+
+/* ---------- Ergebnisse ---------- */
+.results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4rem 6rem;
+  background: radial-gradient(60rem 36rem at 50% 0%, #2d2163 0%, var(--bg) 70%);
+}
+.results-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 3rem;
+}
+.results-icon {
+  font-size: 5.6rem;
+  margin-right: 2rem;
+}
+.ranking {
+  width: 64rem;
+}
+.rank-row {
+  display: flex;
+  align-items: center;
+  height: 5.2rem;
+  padding: 0 2.2rem 0 1.4rem;
+  border-radius: 1.2rem;
+  background: var(--surface);
+  box-shadow: inset 0.5rem 0 0 var(--pc);
+  font-size: 1.9rem;
+}
+.rank-row + .rank-row {
+  margin-top: 1rem;
+}
+.rank-1 {
+  height: 7rem;
+  font-size: 2.6rem;
+  background: var(--surface-2);
+  box-shadow:
+    inset 0.5rem 0 0 var(--pc),
+    inset 0 0 0 0.2rem var(--p3);
+}
+.rank-num {
+  width: 4.4rem;
+  font-weight: 900;
+  color: var(--muted);
+}
+.rank-1 .rank-num {
+  color: var(--p3);
+}
+.rank-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 700;
+}
+.rank-score {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.results-actions {
+  margin-top: 3.4rem;
+}
+
+/* ---------- Toast ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 3rem;
+  z-index: 60;
+  padding: 1.2rem 2.6rem;
+  border-radius: 1.2rem;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 1.8rem;
+  font-weight: 700;
+  transform: translateX(-50%);
+  animation: toast-in 0.18s ease-out;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}

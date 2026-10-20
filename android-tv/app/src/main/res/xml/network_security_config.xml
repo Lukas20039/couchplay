@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Klartext-HTTP erlaubt: Tests und Heimnetz laufen per HTTP (z. B. http://192.168.x.y:8080).
+     Produktiv hinter HTTPS-Reverse-Proxy wird ohnehin https:// verwendet. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

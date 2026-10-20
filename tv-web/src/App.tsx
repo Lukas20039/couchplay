@@ -1,11 +1,86 @@
-// GERÜST (Phase 1). Wird vom Frontend-Agent ersetzt.
-import { t } from "./i18n/index.js";
+// Wurzelkomponente: wählt den Bildschirm nach Verbindungs- und Raumphase.
+import { useEffect, useMemo, useState } from "preact/hooks";
+import { exitApp, hasNative, openNativeSettings } from "./lib/native.js";
+import { tvNav } from "./nav/navigator.js";
+import type { TvClient } from "./net/client.js";
+import type { AppState, Store } from "./state/store.js";
+import { ReconnectBanner, Toast } from "./ui/common.js";
+import { ApiContext, type AppApi } from "./ui/context.js";
+import { GameStage } from "./ui/GameStage.js";
+import { Lobby } from "./ui/Lobby.js";
+import { Results } from "./ui/Results.js";
+import { FatalScreen, StartScreen } from "./ui/Screens.js";
 
-export function App() {
+function useStore(store: Store): AppState {
+  const [state, setState] = useState(store.get());
+  useEffect(() => {
+    setState(store.get());
+    return store.subscribe(() => setState(store.get()));
+  }, [store]);
+  return state;
+}
+
+/** Oberste Ebene = kein Overlay offen und Start-/Lobby-/End-Bildschirm. */
+function atRoot(state: AppState): boolean {
+  if (document.querySelector("[data-nav-layer]")) return false;
+  return state.fatal !== null || !state.room || state.room.phase === "lobby";
+}
+
+export function App(props: { store: Store; client: TvClient }) {
+  const { store, client } = props;
+  const state = useStore(store);
+
+  const api = useMemo<AppApi>(
+    () => ({
+      send: (msg) => {
+        client.send(msg);
+      },
+      serverNow: () => client.serverNow(),
+      retryNow: () => client.retryNow(),
+      newRoom: () => client.newRoom(),
+      reload: () => location.reload(),
+    }),
+    [client],
+  );
+
+  // Zurück auf oberster Ebene → Android-Shell beenden lassen; Menü/Langdruck OK → Einstellungen.
+  useEffect(() => {
+    tvNav.onRootBack = () => exitApp();
+    tvNav.onMenu = () => {
+      if (hasNative() && atRoot(store.get())) openNativeSettings();
+    };
+  }, [store]);
+
+  // Neuer Raum ohne Spielauswahl: erstes Katalogspiel vorwählen (spart Klicks).
+  const autoSelected = useMemo(() => new Set<string>(), []);
+  useEffect(() => {
+    const { room, catalog, conn } = state;
+    const first = catalog[0];
+    if (!room || !first || conn.status !== "online" || room.phase !== "lobby" || room.selectedGameId) return;
+    if (autoSelected.has(room.code)) return;
+    autoSelected.add(room.code);
+    client.send({ t: "lobby.selectGame", gameId: first.id });
+  }, [state.room, state.catalog, state.conn.status]);
+
+  // Nach jedem Render: Fokus sicherstellen (neue Bildschirme, entfernte Elemente).
+  useEffect(() => {
+    const id = requestAnimationFrame(() => tvNav.ensureFocus());
+    return () => cancelAnimationFrame(id);
+  });
+
+  const { room, fatal } = state;
+  let screen;
+  if (fatal) screen = <FatalScreen fatal={fatal} />;
+  else if (!room) screen = <StartScreen conn={state.conn} resuming={client.session() !== null} />;
+  else if (room.phase === "game") screen = <GameStage room={room} game={state.game} />;
+  else if (room.phase === "results") screen = <Results room={room} catalog={state.catalog} />;
+  else screen = <Lobby state={state} room={room} />;
+
   return (
-    <main>
-      <h1>{t.appName}</h1>
-      <p>{t.placeholder}</p>
-    </main>
+    <ApiContext.Provider value={api}>
+      {screen}
+      {room && !fatal && <ReconnectBanner conn={state.conn} />}
+      <Toast notice={state.notice} onDone={() => store.dispatch({ type: "dismissNotice" })} />
+    </ApiContext.Provider>
   );
 }

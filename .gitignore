@@ -22,3 +22,5 @@ android-tv/.idea/
 *.aab
 *.keystore
 *.jks
+# Jait-Arbeitsartefakte (Screenshots, Reports)
+.jait/

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- CouchPlay-Logo: Couch mit drei Sitzkissen in Spielerfarben. Inhalt liegt in der
+       Maskable-Sicherheitszone (Kreis r = 40 %). -->
+  <rect width="512" height="512" fill="#0f0e17"/>
+  <g transform="translate(0 -20)">
+    <rect x="145" y="168" width="72" height="140" rx="22" fill="#ff4d4d"/>
+    <rect x="220" y="168" width="72" height="140" rx="22" fill="#4da6ff"/>
+    <rect x="295" y="168" width="72" height="140" rx="22" fill="#ffd24d"/>
+    <rect x="96" y="290" width="320" height="72" rx="24" fill="#f5f3ff"/>
+    <rect x="96" y="232" width="58" height="130" rx="26" fill="#f5f3ff"/>
+    <rect x="358" y="232" width="58" height="130" rx="26" fill="#f5f3ff"/>
+    <rect x="126" y="356" width="22" height="34" rx="8" fill="#f5f3ff"/>
+    <rect x="364" y="356" width="22" height="34" rx="8" fill="#f5f3ff"/>
+  </g>
+</svg>

@@ -14,7 +14,12 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    target: "es2020",
+    // Android-TV-WebView: ES-Module + dynamic import ab Chrome 63/64. Syntax (?. ?? usw.)
+    // wird auf dieses Ziel heruntergebrochen; @vitejs/plugin-legacy bewusst nicht
+    // (Babel + Polyfills, großer Zusatz-Chunk) – die System-WebView ist per Play Store
+    // aktualisierbar, ältere Geräte bekommen den nomodule-Hinweis aus index.html.
+    target: ["chrome64", "safari12"],
+    cssTarget: ["chrome64", "safari12"],
     sourcemap: true,
   },
   test: {

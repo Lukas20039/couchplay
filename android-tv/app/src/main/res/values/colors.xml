@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cp_bg">#FF120F24</color>
+    <color name="cp_surface">#FF221C42</color>
+    <color name="cp_surface_2">#FF2C2554</color>
+    <color name="cp_text">#FFF8F4FF</color>
+    <color name="cp_muted">#FFAAA1D2</color>
+    <color name="cp_focus">#FFFFD23F</color>
+    <color name="cp_primary">#FFFF3D6E</color>
+    <color name="cp_danger">#FFFF5A4F</color>
+</resources>

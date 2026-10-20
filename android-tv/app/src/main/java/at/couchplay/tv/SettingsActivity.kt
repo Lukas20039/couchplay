@@ -1,0 +1,51 @@
+package at.couchplay.tv
+
+import android.app.Activity
+import android.os.Bundle
+import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.widget.Button
+import android.widget.EditText
+import android.widget.TextView
+
+/** Server-Adresse ändern (per Fernbedienung bedienbar). Zurück = Abbrechen. */
+class SettingsActivity : Activity() {
+    private lateinit var input: EditText
+    private lateinit var error: TextView
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_settings)
+        input = findViewById(R.id.server_url)
+        error = findViewById(R.id.error)
+        findViewById<TextView>(R.id.default_url).text = getString(R.string.settings_default, ServerConfig.defaultUrl)
+        findViewById<TextView>(R.id.version).text = getString(R.string.settings_version, BuildConfig.VERSION_NAME)
+
+        input.setText(ServerConfig.serverUrl(this))
+        input.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                findViewById<Button>(R.id.save).requestFocus()
+                true
+            } else {
+                false
+            }
+        }
+        findViewById<Button>(R.id.save).setOnClickListener { save() }
+        findViewById<Button>(R.id.reset).setOnClickListener {
+            ServerConfig.setServerUrl(this, null)
+            finish()
+        }
+        findViewById<Button>(R.id.cancel).setOnClickListener { finish() }
+        // Fokus zuerst auf „Speichern“: OK übernimmt, Pfeil hoch bearbeitet die Adresse.
+        findViewById<Button>(R.id.save).requestFocus()
+    }
+
+    private fun save() {
+        if (ServerConfig.setServerUrl(this, input.text.toString())) {
+            finish()
+        } else {
+            error.visibility = View.VISIBLE
+            input.requestFocus()
+        }
+    }
+}

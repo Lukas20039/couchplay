@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">CouchPlay</string>
+    <string name="settings_title">Einstellungen</string>
+    <string name="settings_server_label">Server-Adresse</string>
+    <string name="settings_server_hint">http://192.168.1.10:8080</string>
+    <string name="settings_server_help">Adresse des CouchPlay-Servers. Die TV-Oberfläche wird unter dieser Adresse + /tv/ geladen.</string>
+    <string name="settings_default">Standard: %1$s</string>
+    <string name="settings_save">Speichern</string>
+    <string name="settings_reset">Standard verwenden</string>
+    <string name="settings_cancel">Abbrechen</string>
+    <string name="settings_invalid">Bitte eine Adresse mit http:// oder https:// eingeben.</string>
+    <string name="settings_version">Version %1$s</string>
+</resources>

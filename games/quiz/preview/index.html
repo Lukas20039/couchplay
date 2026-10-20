@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Quiz-Preview</title>
+    <style>
+      /* Nachbildung der App-Basis (tv-web / controller-pwa) für die Sichtprüfung. */
+      :root { --p0:#ff4d4d; --p1:#4da6ff; --p2:#4dff88; --p3:#ffd24d; --p4:#c34dff; --p5:#ff9f4d; --p6:#4dfff0; --p7:#ff4dc4; color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #0b0b0f; color: #f5f5f7; }
+      html.tv { font-size: calc(100vh / 60); }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
