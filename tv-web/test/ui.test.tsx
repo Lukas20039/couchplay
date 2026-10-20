@@ -40,6 +40,7 @@ describe("Lobby", () => {
     expect(el.querySelector('[data-player-id="a"]')?.getAttribute("data-host")).toBe("true");
     expect(el.querySelectorAll('[data-testid="game-tile"]')).toHaveLength(2);
     expect(q(el, "start-button")?.dataset.state).toBe("ready");
+    expect(q(el, "start-hint")?.textContent).toBe("1 Spieler ist bereit.");
     expect(q(el, "setting")?.textContent).toContain("Leicht");
   });
 

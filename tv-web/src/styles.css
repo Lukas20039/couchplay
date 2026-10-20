@@ -273,7 +273,7 @@ button {
  */
 .lobby {
   display: grid;
-  grid-template-columns: 40rem minmax(0, 1fr) 27rem;
+  grid-template-columns: 40rem minmax(0, 1fr) 23rem;
   grid-template-rows: 4rem auto auto minmax(0, 1fr);
   grid-template-areas:
     "logo catalog catalog"
@@ -536,18 +536,26 @@ button {
 .setting-row + .setting-row {
   margin-top: 1rem;
 }
+/* Der Wert wird nie gekürzt (flex: none); das Label darf auf zwei Zeilen umbrechen und
+   wird danach mit … gekürzt. */
 .setting-label {
-  font-size: 1.6rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 1.2rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 1.5rem;
   font-weight: 600;
+  line-height: 1.15;
 }
 .setting-value {
-  max-width: 55%;
+  flex: none;
   padding: 0.4rem 1.2rem;
   border-radius: 0.7rem;
   background: var(--bg-2);
-  overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
   font-weight: 700;
 }
 .setting-toggle[aria-pressed="true"] .setting-value {
@@ -566,8 +574,8 @@ button {
   display: block;
   width: 100%;
   min-width: 0;
-  padding: 1.6rem 3.2rem;
-  font-size: 2.6rem;
+  padding: 1.6rem 2rem;
+  font-size: 2.4rem;
   font-weight: 800;
   background: var(--primary);
   color: #fff;

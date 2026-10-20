@@ -53,7 +53,7 @@ export const de = {
     hintNoGame: "Wähle ein Spiel aus.",
     hintTooFew: "Noch {n} Spieler nötig.",
     hintWaiting: "Warte auf Spieler – QR-Code scannen.",
-    hintReady: "{n} Spieler sind bereit.",
+    hintReady: { one: "{n} Spieler ist bereit.", other: "{n} Spieler sind bereit." },
     hintChoose: "Höchstens {max} Spieler – wähle beim Start aus.",
   },
   choose: {
@@ -76,8 +76,7 @@ export const de = {
   results: {
     heading: "Ergebnis",
     rank: "{n}.",
-    points: "{n} Punkte",
-    point: "1 Punkt",
+    points: { one: "{n} Punkt", other: "{n} Punkte" },
     unknownPlayer: "Ehemaliger Spieler",
     botWins: "Der Computer gewinnt",
     botName: "Computer",

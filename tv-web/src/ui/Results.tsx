@@ -2,7 +2,7 @@
 import { useState } from "preact/hooks";
 import { BOT_EMOJI } from "@couchplay/protocol/constants";
 import type { GameManifest, Player, RoomState } from "@couchplay/protocol";
-import { t } from "../i18n/index.js";
+import { plural, t } from "../i18n/index.js";
 import { avatarEmoji, fill, gameIcon, playerColorVar } from "../lib/format.js";
 import { botWon, dataPlayerName, rematchPlayerIds, selectedGame, startCheck } from "../state/selectors.js";
 import { ChooseOverlay } from "./Choose.js";
@@ -34,7 +34,7 @@ function playerName(r: RankRow): string {
 }
 
 function scoreText(score: number): string {
-  return score === 1 ? t.results.point : fill(t.results.points, { n: score });
+  return plural(t.results.points, score);
 }
 
 export function Results(props: { room: RoomState; catalog: readonly GameManifest[] }) {

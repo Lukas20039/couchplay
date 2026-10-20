@@ -1,7 +1,7 @@
 // Lobby: Beitritts-Karte (Code, QR, URL), Spielkatalog, Spielerliste, Einstellungen, Start.
 import { useState } from "preact/hooks";
 import type { GameManifest, Player, RoomState } from "@couchplay/protocol";
-import { t } from "../i18n/index.js";
+import { plural, t } from "../i18n/index.js";
 import { MAX_PLAYERS } from "@couchplay/protocol/constants";
 import { avatarEmoji, displayUrl, fallbackJoinUrl, fill, gameIcon, playerColorVar, splitRoomCode, urlHost } from "../lib/format.js";
 import { hasNative, openNativeSettings } from "../lib/native.js";
@@ -188,7 +188,7 @@ function startHint(check: StartCheck): string {
     case "choose":
       return fill(t.startButton.hintChoose, { max: check.max });
     case "ready":
-      return fill(t.startButton.hintReady, { n: check.count });
+      return plural(t.startButton.hintReady, check.count);
   }
 }
 

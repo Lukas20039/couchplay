@@ -45,3 +45,13 @@ describe("Darstellung", () => {
     expect(fill("{x}", {})).toBe("{x}");
   });
 });
+
+describe("plural", () => {
+  it("wählt Singular nur für genau 1", async () => {
+    const { plural, t } = await import("../src/i18n/index.js");
+    expect(plural(t.startButton.hintReady, 1)).toBe("1 Spieler ist bereit.");
+    expect(plural(t.startButton.hintReady, 3)).toBe("3 Spieler sind bereit.");
+    expect(plural(t.results.points, 1)).toBe("1 Punkt");
+    expect(plural(t.results.points, 0)).toBe("0 Punkte");
+  });
+});

@@ -16,6 +16,12 @@ export function useApp(): AppController {
 export function useAppState(): AppState {
   const app = useApp();
   const [, force] = useReducer((n: number) => n + 1, 0);
-  useEffect(() => app.store.subscribe(() => force(undefined)), [app]);
+  useEffect(() => {
+    const unsubscribe = app.store.subscribe(() => force(undefined));
+    // Änderungen zwischen erstem Render und diesem Effekt (z. B. Rejoin-Antworten
+    // nach einem Reload) wären sonst verloren, bis der nächste Zustand kommt.
+    force(undefined);
+    return unsubscribe;
+  }, [app]);
   return app.store.getState();
 }

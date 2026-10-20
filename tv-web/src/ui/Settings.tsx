@@ -20,6 +20,9 @@ export function numberOptions(field: Extract<SettingField, { type: "number" }>):
   return out;
 }
 
+/** Höchstlänge einer aufgelisteten Mehrfachauswahl in der Wert-Pille. */
+const MAX_VALUE_CHARS = 14;
+
 /** Kurzer Anzeigetext des aktuellen Wertes. */
 export function valueText(field: SettingField, values: SettingsValues): string {
   const v = fieldValue(field, values);
@@ -34,7 +37,11 @@ export function valueText(field: SettingField, values: SettingsValues): string {
       const list = Array.isArray(v) ? v : [];
       if (list.length === field.options.length) return t.settings.all;
       const labels = field.options.filter((o) => list.includes(o.value)).map((o) => o.label);
-      return labels.length <= 2 ? labels.join(", ") : fill(t.settings.selectedCount, { n: labels.length, total: field.options.length });
+      // Wert-Pille wird nie gekürzt → nur kurze Auflistungen, sonst „n von m“.
+      const joined = labels.join(", ");
+      return labels.length <= 2 && joined.length <= MAX_VALUE_CHARS
+        ? joined
+        : fill(t.settings.selectedCount, { n: labels.length, total: field.options.length });
     }
   }
 }
