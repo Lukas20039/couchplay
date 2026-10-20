@@ -7,6 +7,8 @@ const InputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("point") }),
   z.object({ type: z.literal("finish") }),
   z.object({ type: z.literal("crash") }),
+  /** Großer TV-Zustand (Backpressure-Test). */
+  z.object({ type: z.literal("blob"), size: z.number().int().min(1).max(15_000) }),
 ]);
 
 export interface TestTvState {
@@ -45,12 +47,19 @@ export const testGame = defineGame<{ target: number }, z.infer<typeof InputSchem
       onPlayerInput(playerId, input) {
         if (input.type === "crash") throw new Error("Absichtlicher Testabsturz");
         if (input.type === "finish") return finish();
+        if (input.type === "blob") {
+          ctx.broadcastTv({ scores: { ...scores }, previousWinner, blob: "x".repeat(input.size) } as TestTvState);
+          return;
+        }
         scores[playerId] = (scores[playerId] ?? 0) + 1;
         push();
         if ((scores[playerId] ?? 0) >= ctx.settings.target) finish();
       },
       onPlayerLeave() {
         if (ctx.activePlayerIds().length === 0) finish();
+      },
+      onPlayerConnectionChange() {
+        push();
       },
     };
   },

@@ -2,6 +2,7 @@
 // Respektiert TRUST_PROXY genauso wie Fastify (request.ip).
 import type { IncomingMessage } from "node:http";
 import proxyaddr from "@fastify/proxy-addr";
+import type { FastifyBaseLogger } from "fastify";
 import type { ServerConfig } from "../config.js";
 
 export type TrustFn = (addr: string, hop: number) => boolean;
@@ -10,12 +11,30 @@ export function compileTrust(trust: ServerConfig["trustProxy"]): TrustFn {
   if (trust === true) return () => true;
   if (trust === false) return () => false;
   if (typeof trust === "number") return (_addr, hop) => hop < trust;
-  return proxyaddr.compile(
-    trust
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
-  );
+  return proxyaddr.compile(splitTrustList(trust));
+}
+
+export function splitTrustList(trust: string): string[] {
+  return trust
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Warnt einmalig, wenn TRUST_PROXY=false ist, aber Requests X-Forwarded-For tragen
+ * (Server läuft vermutlich hinter einem Proxy → alle Nutzer teilen eine IP und damit die Limits).
+ */
+export function untrustedXffWarner(config: ServerConfig, log: FastifyBaseLogger): (req: IncomingMessage) => void {
+  let warned = false;
+  return (req) => {
+    if (warned || config.trustProxy !== false || req.headers["x-forwarded-for"] === undefined) return;
+    warned = true;
+    log.warn(
+      "Request mit X-Forwarded-For, aber TRUST_PROXY=false: Läuft der Server hinter einem Reverse-Proxy, " +
+        "TRUST_PROXY auf die Hop-Zahl (z. B. 1) oder die Proxy-IP/CIDR setzen – sonst teilen sich alle Nutzer die Rate-Limits der Proxy-IP.",
+    );
+  };
 }
 
 export function clientIp(req: IncomingMessage, trust: TrustFn): string {
@@ -70,6 +89,8 @@ export function isOriginAllowed(config: ServerConfig, req: IncomingMessage, trus
   const normalized = parsed.origin.toLowerCase();
   if (config.allowedOrigins.some((o) => o.toLowerCase() === normalized)) return true;
   if (config.publicUrl && new URL(config.publicUrl).origin.toLowerCase() === normalized) return true;
-  const own = requestOrigin(req, trust);
+  // Gleiche Origin: Ist PUBLIC_URL gesetzt, zählt nur der echte Host-Header (X-Forwarded-Host
+  // könnte sonst eine beliebige Origin „passend" machen); ohne PUBLIC_URL auch der vertrauenswürdige XFH.
+  const own = config.publicUrl ? requestOrigin(req, () => false) : requestOrigin(req, trust);
   return own !== null && parsed.host.toLowerCase() === own.host;
 }

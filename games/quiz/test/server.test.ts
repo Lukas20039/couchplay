@@ -68,7 +68,12 @@ describe("Quiz – kompletter Durchlauf", () => {
     expect(phase(h)).toBe("final");
     expect(view(h, "p1")).toMatchObject({ phase: "final", rank: 1, score: 5000, correctCount: 5 });
     expect(h.results).toBeNull();
-    h.advance(TIMING.finalMs);
+    // Podium nur 5 s, Ende als endsAt für den Fortschrittsbalken am TV
+    expect(TIMING.finalMs).toBe(5000);
+    expect(tv(h)).toMatchObject({ phase: "final", endsAt: h.clock.now() + 5000 });
+    h.advance(TIMING.finalMs - 1);
+    expect(h.results).toBeNull();
+    h.advance(1);
     expect(h.results).toMatchObject({ gameId: "quiz", ranking: [{ playerId: "p1", score: 5000, rank: 1 }] });
     const data = h.results!.data as QuizResultData;
     expect(data.total).toBe(5);

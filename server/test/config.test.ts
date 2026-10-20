@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadConfig } from "../src/config.js";
+import { configWarnings, loadConfig } from "../src/config.js";
 
 describe("loadConfig", () => {
   it("liefert Defaults (PUBLIC_URL leer → aus Request ableiten)", () => {
@@ -11,6 +11,7 @@ describe("loadConfig", () => {
       logLevel: "info",
       allowedOrigins: [],
       devMode: true,
+      metricsToken: null,
     });
   });
 
@@ -32,13 +33,25 @@ describe("loadConfig", () => {
       logLevel: "warn",
       allowedOrigins: ["https://a.example.org", "https://b.example.org"],
       devMode: false,
+      metricsToken: null,
     });
   });
 
-  it("TRUST_PROXY: true/false/IP-Liste", () => {
-    expect(loadConfig({ TRUST_PROXY: "true" }).trustProxy).toBe(true);
+  it("TRUST_PROXY: Hop-Zahl, IP/CIDR-Liste; true nur im Dev-Modus (mit Warnung)", () => {
     expect(loadConfig({ TRUST_PROXY: "false" }).trustProxy).toBe(false);
-    expect(loadConfig({ TRUST_PROXY: "10.0.0.0/8,127.0.0.1" }).trustProxy).toBe("10.0.0.0/8,127.0.0.1");
+    expect(loadConfig({ TRUST_PROXY: "2", NODE_ENV: "production" }).trustProxy).toBe(2);
+    expect(loadConfig({ TRUST_PROXY: "10.0.0.0/8, 127.0.0.1, loopback" }).trustProxy).toBe("10.0.0.0/8, 127.0.0.1, loopback");
+    expect(() => loadConfig({ TRUST_PROXY: "10.0.0.0/99" })).toThrow(/TRUST_PROXY/);
+    expect(() => loadConfig({ TRUST_PROXY: "true", NODE_ENV: "production" })).toThrow(/TRUST_PROXY=true/);
+    const dev = loadConfig({ TRUST_PROXY: "true" });
+    expect(dev.trustProxy).toBe(true);
+    expect(configWarnings(dev).join()).toMatch(/TRUST_PROXY=true/);
+    expect(configWarnings(loadConfig({ TRUST_PROXY: "1" }))).toEqual([]);
+  });
+
+  it("METRICS_TOKEN optional, mindestens 16 Zeichen", () => {
+    expect(loadConfig({ METRICS_TOKEN: "x".repeat(16) }).metricsToken).toBe("x".repeat(16));
+    expect(() => loadConfig({ METRICS_TOKEN: "kurz" })).toThrow(/METRICS_TOKEN/);
   });
 
   it("leere Strings gelten als nicht gesetzt", () => {

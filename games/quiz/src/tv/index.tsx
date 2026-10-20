@@ -173,7 +173,7 @@ function Reveal({ s }: { s: S<"reveal"> }) {
                 <span class="qz-mini" style={{ "--pc": playerColor(p.color) }}>
                   {avatarEmoji(p.avatar)}
                 </span>
-                {p.name}
+                <span>{p.name}</span>
                 <span class="qz-pts">{t.plusPoints(pick.points)}</span>
               </span>
             );
@@ -210,7 +210,7 @@ function Board({ players, live, animate }: { players: QuizPlayerInfo[]; live: re
             <Avatar p={p} cls={off || p.left ? "is-off" : ""} />
             <span class="qz-row-name">
               <span>{p.name}</span>
-              {p.left ? <span class="qz-tag">{t.left}</span> : off ? <span class="qz-tag">{t.offline}</span> : null}
+              {p.left ? <span class="qz-tag">{t.left}</span> : null}
             </span>
             <span class={`qz-delta ${p.roundPoints > 0 ? "" : "is-zero"}`}>{t.plusPoints(p.roundPoints)}</span>
             <span class="qz-score">{t.number(moved ? p.score : p.score - p.roundPoints)}</span>
@@ -233,7 +233,9 @@ function Standings({ s, live }: { s: S<"standings">; live: readonly Player[] }) 
   );
 }
 
-function Final({ s }: { s: S<"final"> }) {
+function Final({ s, now }: { s: S<"final">; now: number }) {
+  // Fortschritt bis zum Ergebnis-Screen (0 → 1), aus endsAt der Serverzeit.
+  const progress = Math.min(1, Math.max(0, 1 - (s.endsAt - now) / TIMING.finalMs));
   const top = s.players.slice(0, 3);
   // Klassische Podest-Anordnung: 2 – 1 – 3
   const order = [top[1], top[0], top[2]].filter((p): p is QuizPlayerInfo => p !== undefined);
@@ -262,14 +264,17 @@ function Final({ s }: { s: S<"final"> }) {
       <div class="qz-rest">
         {rest.map((p) => (
           <span class="qz-chip" key={p.id}>
-            {t.rank(p.rank)}
+            <span>{t.rank(p.rank)}</span>
             <span class="qz-mini" style={{ "--pc": playerColor(p.color) }}>
               {avatarEmoji(p.avatar)}
             </span>
-            {p.name}
+            <span>{p.name}</span>
             <span class="qz-pts is-dim">{t.points(p.score)}</span>
           </span>
         ))}
+      </div>
+      <div class="qz-final-bar" role="progressbar" aria-label={t.finalProgress} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
+        <span style={{ transform: `scaleX(${progress})` }} />
       </div>
     </>
   );
@@ -277,7 +282,7 @@ function Final({ s }: { s: S<"final"> }) {
 
 export function QuizTv({ state, api, players }: TvComponentProps<QuizTvState>) {
   ensureStyles("qz-tv-css", TV_CSS);
-  const ticking = state?.phase === "question" || state?.phase === "intro";
+  const ticking = state?.phase === "question" || state?.phase === "intro" || state?.phase === "final";
   const now = useServerNow(api.serverNow, ticking);
   let body;
   switch (state?.phase) {
@@ -294,7 +299,7 @@ export function QuizTv({ state, api, players }: TvComponentProps<QuizTvState>) {
       body = <Standings s={state} live={players} />;
       break;
     case "final":
-      body = <Final s={state} />;
+      body = <Final s={state} now={now} />;
       break;
     default:
       body = <div class="qz-wait">{t.waiting}</div>;

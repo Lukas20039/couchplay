@@ -10,6 +10,8 @@ Diese Datei und der Code müssen übereinstimmen; Änderungen nur über den Arch
 - Unbekannte Felder werden vom Empfänger verworfen (vorwärtskompatibel).
 - **Version:** Jede Handshake-Nachricht (Client) und jede Handshake-Antwort (Server) trägt `v` (= `PROTOCOL_VERSION`, aktuell `1`). Bei Abweichung: `error VERSION_MISMATCH` (fatal), Close 4001. Neue optionale Felder/Nachrichten erhöhen `v` nicht; Umbenennen/Entfernen/Semantikänderung schon.
 - **`rid`** (optional, String ≤ 64): Request-ID des Clients; der Server spiegelt sie in der direkten Antwort bzw. im `error`.
+- `ping` dient nur der Latenz-/Uhrmessung: zählt **nicht** als Raumaktivität (Idle-Timeout) und nicht als Lebenszeichen; Liveness prüft der Server ausschließlich über WS-Pong-Frames (Browser antworten automatisch).
+- Rate-Limits (Werte in `@couchplay/protocol/constants`, Details `docs/architecture.md` §7) gelten pro IPv4 bzw. IPv6-/64. Erfolgreiche Joins/Rejoins verbrauchen kein Fehlversuchs-Budget; Fehlversuche (`ROOM_NOT_FOUND`/`TOKEN_INVALID`) über 5/min führen zu `RATE_LIMITED` mit wachsendem `retryAfterMs`.
 - Erste Nachricht jeder Verbindung muss ein Handshake sein (`room.create`, `room.resume`, `room.join`, `room.rejoin`), sonst `error NOT_IN_ROOM`. Timeout 10 s → Close 4009.
 - Nach erfolgreichem Handshake sendet der Server immer: Handshake-Antwort → `catalog` → `room.state` → (Phase `game`) gecachte `game.tv` bzw. `game.view`.
 
@@ -25,7 +27,9 @@ RoomState  = { code, phase: "lobby"|"game"|"results", joinUrl, players: Player[]
                results: GameResults|null }
 GameResults = { gameId, ranking: { playerId, score, rank }[], data?: unknown }
 SettingValue = string | number | boolean | string[]
-GameManifest = { id, name, description, version, minPlayers, maxPlayers, botSupport, settings: SettingField[], accentColor? }
+GameManifest = { id, name, description, version, minPlayers, maxPlayers, botSupport, settings: SettingField[],
+                 icon?,          // Emoji, 1–16 Zeichen, nur als Text rendern
+                 accentColor? }  // #rrggbb
 SettingField = { type: "select", key, label, options: {value,label}[], default: string }
              | { type: "multiselect", key, label, options, default: string[], minSelected?, maxSelected? }
              | { type: "number", key, label, min, max, step?, default: number }
@@ -34,7 +38,7 @@ SettingField = { type: "select", key, label, options: {value,label}[], default: 
 
 - `code`: 6 Ziffern (`/^\d{6}$/`, führende Nullen möglich). `token`/`tvToken`: base64url, 22–64 Zeichen.
 - **Zuschauer:** In Phase `game` ist jeder Spieler mit `id ∉ room.gamePlayerIds` Zuschauer (`isSpectator(room, playerId)`). Er erhält keine `game.view`, darf kein `game.input` senden (`NOT_ALLOWED`) und zeigt einen Zuschauer-Screen. Auch während einer Runde Beitretende sind Zuschauer.
-- `AvatarId`: `fuchs katze hund panda eule frosch tiger einhorn pinguin krake roboter alien`.
+- `AvatarId`: `fuchs katze hund panda eule frosch tiger einhorn pinguin krake roboter alien`. Darstellung ausschließlich über `AVATAR_EMOJI` / `avatarEmoji(id)` aus `@couchplay/protocol/constants` (Fallback `AVATAR_FALLBACK_EMOJI` 🙂). Bots/Computer-Gegner: `BOT_EMOJI` 🖥️ (nicht 🤖 – das ist der Avatar „roboter“).
 - Name: 1–16 Codepoints nach `normalizeName`, eindeutig im Raum (case-insensitive).
 
 ## Client → Server
@@ -132,8 +136,8 @@ Beispiele:
 | `SERVER_FULL` | Raumlimit der Instanz | create |
 | `NAME_INVALID` / `NAME_TAKEN` | Name leer/zu lang / vergeben | join, player.update |
 | `TOKEN_INVALID` | Token falsch oder Gnadenfrist abgelaufen | rejoin, resume |
-| `RATE_LIMITED` | Limit überschritten, `retryAfterMs` | alle |
-| `NOT_ALLOWED` | Rolle darf das nicht / kein Teilnehmer | Lobby-/Spielaktionen |
+| `RATE_LIMITED` | Limit überschritten (Nachrichten, Handshakes, Fehlversuchs-Backoff, Räume pro IP, player.update), `retryAfterMs` | alle |
+| `NOT_ALLOWED` | Rolle darf das nicht / kein Teilnehmer / aus dem Raum gekickt (IP gesperrt) | Lobby-/Spielaktionen, join |
 | `INVALID_PHASE` | falsche Raumphase | Lobby-/Spielaktionen |
 | `GAME_NOT_FOUND` | unbekannte `gameId` | selectGame |
 | `NO_GAME_SELECTED` | Start ohne Spiel | start |

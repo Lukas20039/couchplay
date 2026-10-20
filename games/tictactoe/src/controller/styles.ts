@@ -8,11 +8,12 @@ export const CONTROLLER_CSS = /* css */ `
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  
   min-height: 0;
   color: var(--text, #f8f4ff);
   font-variant-numeric: tabular-nums;
 }
+.ttt-ctl > :not(:first-child) { margin-top: 14px; }
 .ttt-ctl *, .ttt-ctl *::before, .ttt-ctl *::after { box-sizing: border-box; }
 
 /* ---------- Kopf: eigenes Symbol + Serienstand ---------- */
@@ -21,12 +22,14 @@ export const CONTROLLER_CSS = /* css */ `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  
 }
+.ttt-ctl__head > :not(:first-child) { margin-left: 12px; }
 .ttt-ctl__me {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; 
   font-weight: 800; font-size: 1.05rem;
 }
+.ttt-ctl__me > :not(:first-child) { margin-left: 10px; }
 .ttt-ctl__mymark {
   width: 44px; height: 44px;
   color: var(--me);
@@ -34,7 +37,8 @@ export const CONTROLLER_CSS = /* css */ `
   border-radius: 14px;
   background: color-mix(in srgb, var(--me) 16%, transparent);
 }
-.ttt-ctl__score { display: flex; gap: 14px; margin: 0; }
+.ttt-ctl__score { display: flex;  margin: 0; }
+.ttt-ctl__score > :not(:first-child) { margin-left: 14px; }
 .ttt-ctl__side { display: flex; flex-direction: column; align-items: flex-end; min-width: 0; }
 .ttt-ctl__side dt {
   font-size: 0.8rem; color: var(--ttt-dim);
@@ -52,11 +56,11 @@ export const CONTROLLER_CSS = /* css */ `
   max-width: calc(100vh - 300px - var(--sat, 0px) - var(--sab, 0px));
   max-width: calc(100dvh - 300px - var(--sat, 0px) - var(--sab, 0px));
   min-width: 220px;
-  aspect-ratio: 1 / 1;
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.035);
   transition: box-shadow 0.25s, background 0.25s;
 }
+.ttt-ctl__board::before { content: ""; display: block; padding-top: 100%; } /* quadratisch über padding-top (Chrome-64-kompatibel) */
 .ttt-ctl.is-myturn .ttt-ctl__board {
   background: color-mix(in srgb, var(--me) 9%, transparent);
   box-shadow: 0 0 0 3px var(--me);
@@ -105,10 +109,11 @@ export const CONTROLLER_CSS = /* css */ `
 .ttt-ctl.is-myturn .ttt-ctl__status { color: var(--text, #f8f4ff); }
 .ttt-ctl--paused .ttt-ctl__status { color: #ffd23f; }
 .ttt-ctl__result {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: flex; flex-direction: column; align-items: center; 
   text-align: center;
   animation: ttt-pop 0.4s cubic-bezier(.2,.9,.3,1.4) 0.6s both;
 }
+.ttt-ctl__result > :not(:first-child) { margin-top: 2px; }
 .ttt-ctl__result strong { font-size: 2rem; font-weight: 900; line-height: 1.1; }
 .ttt-ctl__result span { font-size: 0.9rem; color: var(--ttt-dim); }
 .ttt-ctl.is-win .ttt-ctl__result strong { color: var(--me); }

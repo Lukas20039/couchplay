@@ -26,7 +26,7 @@ describe("Raum erstellen und beitreten", () => {
   });
 
   it("ohne PUBLIC_URL wird joinUrl aus dem Host-Header abgeleitet", async () => {
-    server = await startServer({ config: { publicUrl: null, trustProxy: true } });
+    server = await startServer({ config: { publicUrl: null, trustProxy: 1 } });
     const { joinUrl, code } = await createRoom(server, { "x-forwarded-proto": "https", "x-forwarded-host": "tv.example.net" });
     expect(joinUrl).toBe(`https://tv.example.net/j/${code}`);
     const plain = await createRoom(server);
@@ -91,11 +91,22 @@ describe("Raum erstellen und beitreten", () => {
     server = await startServer({ options: { limits: { roomIdleTimeoutMs: 300, sweepIntervalMs: 50 } } });
     const { tv } = await createRoom(server);
     for (let i = 0; i < 8; i++) {
-      tv.send({ t: "ping" });
+      tv.send({ t: "lobby.selectGame", gameId: "testgame" });
       await sleep(100);
     }
     expect(tv.closeInfo).toBeNull();
     expect(server.app.couchplay.rooms.size).toBe(1);
+  });
+
+  it("ping allein hält einen Raum NICHT offen (Keep-alive ≠ Aktivität)", async () => {
+    server = await startServer({ options: { limits: { roomIdleTimeoutMs: 300, sweepIntervalMs: 50 } } });
+    const { tv } = await createRoom(server);
+    const iv = setInterval(() => tv.send({ t: "ping" }), 50);
+    try {
+      expect((await tv.next("room.closed", undefined, 2000)).reason).toBe("idle");
+    } finally {
+      clearInterval(iv);
+    }
   });
 
   it("room.close (TV) schließt den Raum für alle", async () => {

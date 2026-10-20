@@ -123,7 +123,7 @@ function GameCatalog(props: { games: readonly GameManifest[]; selectedId: string
             }}
           >
             <span class="tile-icon" aria-hidden="true">
-              {gameIcon(g.id)}
+              {gameIcon(g)}
             </span>
             <span class="tile-text">
               <span class="tile-name">{g.name}</span>

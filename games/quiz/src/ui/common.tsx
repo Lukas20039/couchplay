@@ -1,6 +1,5 @@
 // Gemeinsame UI-Bausteine für TV- und Controller-View: Antwortformen, Avatare,
 // Stil-Injektion und eine tickende Serverzeit für Countdowns.
-import type { AvatarId } from "@couchplay/protocol";
 import { useEffect, useState } from "preact/hooks";
 import { SHAPE_LABELS } from "../i18n/de.js";
 
@@ -39,22 +38,7 @@ export function Shape({ index, class: cls }: { index: number; class?: string }) 
 
 export const shapeLabel = (index: number): string => SHAPE_LABELS[index] ?? "";
 
-const AVATAR_EMOJI: Record<AvatarId, string> = {
-  fuchs: "🦊",
-  katze: "🐱",
-  hund: "🐶",
-  panda: "🐼",
-  eule: "🦉",
-  frosch: "🐸",
-  tiger: "🐯",
-  einhorn: "🦄",
-  pinguin: "🐧",
-  krake: "🐙",
-  roboter: "🤖",
-  alien: "👽",
-};
-
-export const avatarEmoji = (avatar: string): string => AVATAR_EMOJI[avatar as AvatarId] ?? "🙂";
+export { avatarEmoji } from "@couchplay/protocol";
 
 /** Spielerfarbe als CSS-Variable der App (--p0 … --p7) mit Fallback. */
 const FALLBACK = ["#ff4d4d", "#4da6ff", "#4dff88", "#ffd24d", "#c34dff", "#ff9f4d", "#4dfff0", "#ff4dc4"];

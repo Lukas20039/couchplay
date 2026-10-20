@@ -17,12 +17,11 @@ export const de = {
     yourTurn: "am Zug",
     turnOf: (name: string) => `${name} ist am Zug`,
     botThinking: "Der Computer überlegt …",
-    waitingFor: (names: string) => `Pause – wartet auf ${names} …`,
     winner: (name: string) => `${name} gewinnt!`,
     winnerForfeit: (name: string) => `${name} gewinnt kampflos`,
     draw: "Unentschieden!",
     starts: (name: string) => `${name} beginnt`,
-    offline: "getrennt",
+    paused: "Spiel pausiert",
     boardLabel: "Spielfeld",
   },
 

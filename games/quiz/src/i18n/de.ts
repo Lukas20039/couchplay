@@ -49,10 +49,10 @@ export const t = {
   standingsTitle: "Zwischenstand",
   standingsAfter: (i: number, total: number) => `nach Frage ${i + 1} von ${total}`,
   finalTitle: "Siegerehrung",
+  finalProgress: "Gleich kommt das Ergebnis",
   finalSubtitle: (total: number) => `nach ${plural(total, "Frage", "Fragen")}`,
   rank: (r: number) => `${r}.`,
   left: "hat verlassen",
-  offline: "getrennt",
   correctOf: (c: number, total: number) => `${c} von ${total} richtig`,
 
   // Controller

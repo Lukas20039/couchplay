@@ -13,10 +13,12 @@ TicTacToe, 1–2 Teilnehmer. Platz 0 spielt X, Platz 1 spielt O.
 - **Serie/Revanche:** Erste Partie beginnt Platz 0 (X), danach abwechselnd. Serienstand
   (`results.data.series = { key, games, draws, wins }`) wird über `ctx.previous` fortgeführt, solange dieselbe
   Paarung spielt (bei Computer: gleiche Stärke).
-- **Ende:** Gewinnlinie/Banner bleiben 4 s stehen, dann `ctx.end`. Ranking: Sieger Rang 1, Verlierer Rang 2,
-  Remis beide Rang 1; `score` = Siege in der Serie.
-- **Verbindung:** Disconnect pausiert (auch den Computer), Rejoin setzt fort. `onPlayerLeave` → der andere Platz
-  gewinnt kampflos.
+- **Ende:** Gewinnlinie/Banner bleiben 4 s stehen, dann `ctx.end`. Ranking enthält alle menschlichen Teilnehmer
+  (auch Gegangene): Sieger Rang 1, Verlierer Rang 2, Remis beide Rang 1; `score` = Siege in der Serie. Gegen den
+  Computer: Mensch Rang 1 bei Sieg/Remis, Rang 2 bei Niederlage. Der Computer steht nie im Ranking, sondern in
+  `results.data` (`winnerId: "bot"`, `bot: {difficulty, mark}`); `data.players[].left` markiert Gegangene.
+- **Verbindung:** Disconnect pausiert (auch den Computer), Rejoin setzt fort. Am TV wird das Brett nur gedimmt
+  (Pausensymbol), den Namen meldet das Plattform-Banner von tv-web. `onPlayerLeave` → der andere Platz gewinnt kampflos.
 
 | Datei | Inhalt |
 |---|---|

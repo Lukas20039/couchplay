@@ -1,5 +1,6 @@
 // Konfiguration aus Umgebungsvariablen (siehe docs/architecture.md, Abschnitt Konfiguration),
 // validiert mit zod. Fehler beim Start statt zur Laufzeit.
+import proxyaddr from "@fastify/proxy-addr";
 import { z } from "zod";
 
 const LOG_LEVELS = ["fatal", "error", "warn", "info", "debug", "trace", "silent"] as const;
@@ -23,6 +24,8 @@ export interface ServerConfig {
   allowedOrigins: string[];
   /** Dev-Modus (NODE_ENV ≠ production): jede Origin erlaubt. */
   devMode: boolean;
+  /** Optional: Bearer-Token für Detailzahlen unter /healthz (sonst nur {ok:true}). */
+  metricsToken: string | null;
 }
 
 const trimmed = (v: unknown): unknown => (typeof v === "string" && v.trim() === "" ? undefined : typeof v === "string" ? v.trim() : v);
@@ -46,6 +49,19 @@ const EnvSchema = z.object({
         if (raw === "true" || raw === "false") return raw === "true";
         if (/^\d+$/.test(raw)) return Number(raw);
         return raw;
+      })
+      .superRefine((v, ctx) => {
+        if (typeof v !== "string") return;
+        try {
+          proxyaddr.compile(
+            v
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean),
+          );
+        } catch (err) {
+          ctx.addIssue({ code: "custom", message: `TRUST_PROXY: ungültige IP/CIDR-Liste (${String(err)})` });
+        }
       }),
   ),
   LOG_LEVEL: z.preprocess(trimmed, z.enum(LOG_LEVELS).default("info")),
@@ -64,8 +80,21 @@ const EnvSchema = z.object({
         message: "ALLOWED_ORIGINS: kommagetrennte Origins wie https://play.example.org oder *",
       }),
   ),
+  METRICS_TOKEN: z.preprocess(trimmed, z.string().min(16, "METRICS_TOKEN: mindestens 16 Zeichen").optional()),
   NODE_ENV: z.string().optional(),
 });
+
+/** Warnungen beim Start (Konfiguration erlaubt, aber riskant). */
+export function configWarnings(config: ServerConfig): string[] {
+  const w: string[] = [];
+  if (config.trustProxy === true) {
+    w.push(
+      "TRUST_PROXY=true vertraut jeder X-Forwarded-For-Kette – Clients können ihre IP fälschen und alle IP-Limits umgehen. " +
+        "Nur im Dev-Modus erlaubt; Hop-Zahl (z. B. 1) oder Proxy-IP/CIDR verwenden.",
+    );
+  }
+  return w;
+}
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const parsed = EnvSchema.safeParse(env);
@@ -74,6 +103,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     throw new Error(`Ungültige Konfiguration: ${details}`);
   }
   const e = parsed.data;
+  const devMode = e.NODE_ENV !== "production";
+  if (e.TRUST_PROXY === true && !devMode) {
+    throw new Error(
+      "Ungültige Konfiguration: TRUST_PROXY=true ist in Produktion nicht erlaubt (IP-Spoofing über X-Forwarded-For). " +
+        "Hop-Zahl (z. B. TRUST_PROXY=1) oder IP/CIDR-Liste des Proxys angeben.",
+    );
+  }
   return {
     publicUrl: e.PUBLIC_URL ?? null,
     port: e.PORT,
@@ -81,6 +117,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     trustProxy: e.TRUST_PROXY,
     logLevel: e.LOG_LEVEL,
     allowedOrigins: e.ALLOWED_ORIGINS,
-    devMode: e.NODE_ENV !== "production",
+    devMode,
+    metricsToken: e.METRICS_TOKEN ?? null,
   };
 }

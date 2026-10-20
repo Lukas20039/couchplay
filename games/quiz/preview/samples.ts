@@ -69,7 +69,7 @@ export const TV_SAMPLES: Record<string, QuizTvState> = {
     endsAt: NOW + 5_000,
   },
   standings: { phase: "standings", total: 10, index: 6, players: PLAYERS, endsAt: NOW + 5_000 },
-  final: { phase: "final", total: 10, players: PLAYERS, endsAt: NOW + 10_000 },
+  final: { phase: "final", total: 10, players: PLAYERS, endsAt: NOW + 2_000 },
 };
 
 const base = { total: 10, score: 3105, rank: 3, playerCount: 6 };

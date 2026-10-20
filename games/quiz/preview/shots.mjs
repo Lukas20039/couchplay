@@ -16,12 +16,23 @@ try {
     await tv.waitForTimeout(key === "final" || key === "standings" ? 2200 : 900);
     await tv.screenshot({ path: `${out}/quiz-tv-${key}.png` });
   }
-  const phone = await browser.newPage({ ...devices["iPhone 13"] });
-  phone.on("pageerror", (e) => errors.push(`pad: ${e.message}`));
-  for (const key of ["intro", "question", "locked", "correct", "wrong", "standings", "final"]) {
-    await phone.goto(`${base}?pad=${key}`);
-    await phone.waitForTimeout(600);
-    await phone.screenshot({ path: `${out}/quiz-pad-${key}.png` });
+  for (const [device, suffix] of [["iPhone 13", ""], ["iPhone SE", "-se"]]) {
+    const ctx = await browser.newContext({ ...devices[device] });
+    const phone = await ctx.newPage();
+    phone.on("pageerror", (e) => errors.push(`pad: ${e.message}`));
+    const keys = suffix ? ["question"] : ["intro", "question", "locked", "correct", "wrong", "standings", "final"];
+    for (const key of keys) {
+      await phone.goto(`${base}?pad=${key}`);
+      await phone.waitForTimeout(600);
+      if (key === "question") {
+        // Alle vier Antwort-Buttons müssen ohne Scrollen vollständig sichtbar sein.
+        const h = await phone.evaluate(() => innerHeight);
+        const bottoms = await phone.$$eval(".qz-btn", (b) => b.map((x) => x.getBoundingClientRect().bottom));
+        if (bottoms.length !== 4 || bottoms.some((y) => y > h)) errors.push(`${device}: Buttons nicht sichtbar ${bottoms} > ${h}`);
+      }
+      await phone.screenshot({ path: `${out}/quiz-pad-${key}${suffix}.png` });
+    }
+    await ctx.close();
   }
 } finally {
   await browser.close();

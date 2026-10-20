@@ -4,13 +4,15 @@ import { join } from "node:path";
 import type { AnyGameDefinition } from "@couchplay/game-sdk";
 import Fastify, { type FastifyInstance } from "fastify";
 import { GameCatalog } from "./catalog.js";
-import type { ServerConfig } from "./config.js";
+import { configWarnings, type ServerConfig } from "./config.js";
 import { BUILTIN_GAMES } from "./games.js";
 import { inlineScriptHashes, registerSecurityHeaders } from "./http/security.js";
 import { defaultStaticDirs, registerStatic, type StaticDirs } from "./http/static.js";
 import { DEFAULT_LIMITS, type ServerLimits } from "./options.js";
+import { tokensEqual } from "./rooms/ids.js";
 import { RoomManager } from "./rooms/manager.js";
 import { Gateway } from "./ws/gateway.js";
+import { untrustedXffWarner } from "./ws/request-info.js";
 
 export interface AppOptions {
   /** Registrierte Spiele (Standard: eingebaute Spiele). */
@@ -19,6 +21,8 @@ export interface AppOptions {
   staticDirs?: StaticDirs;
   /** Einzelne Grenzen überschreiben (Tests). */
   limits?: Partial<ServerLimits>;
+  /** Ziel der Logs (Standard: stdout); Tests lesen Warnungen mit. */
+  logStream?: NodeJS.WritableStream;
 }
 
 export interface CouchPlayRuntime {
@@ -43,21 +47,28 @@ function trustProxyOption(trust: ServerConfig["trustProxy"]): boolean | string |
 export async function buildApp(config: ServerConfig, options: AppOptions = {}): Promise<FastifyInstance> {
   const limits: ServerLimits = { ...DEFAULT_LIMITS, ...options.limits };
   const app = Fastify({
-    logger: { level: config.logLevel },
+    logger: options.logStream ? { level: config.logLevel, stream: options.logStream } : { level: config.logLevel },
     trustProxy: trustProxyOption(config.trustProxy),
     // Upgrade-Sockets nicht künstlich offen halten; Shutdown schließt sie selbst.
     forceCloseConnections: true,
   });
 
+  for (const warning of configWarnings(config)) app.log.warn(warning);
+  const warnXff = untrustedXffWarner(config, app.log);
+  app.addHook("onRequest", async (req) => warnXff(req.raw));
+
   const catalog = new GameCatalog(options.games ?? BUILTIN_GAMES);
   const rooms = new RoomManager({
     catalog,
     maxRooms: limits.maxRooms,
+    maxRoomsPerIp: limits.maxRoomsPerIp,
     roomIdleTimeoutMs: limits.roomIdleTimeoutMs,
+    orphanRoomTimeoutMs: limits.orphanRoomTimeoutMs,
     reconnectGraceMs: limits.reconnectGraceMs,
+    stateCoalesceMs: limits.stateCoalesceMs,
     log: app.log,
   });
-  const gateway = new Gateway({ config, limits, rooms, catalog, log: app.log });
+  const gateway = new Gateway({ config, limits, rooms, catalog, log: app.log, warnXff });
   gateway.attach(app.server);
   app.decorate("couchplay", { rooms, gateway, catalog, limits });
 
@@ -79,9 +90,15 @@ export async function buildApp(config: ServerConfig, options: AppOptions = {}): 
     inlineScriptHashes([join(staticDirs.tv, "index.html"), join(staticDirs.controller, "index.html")]),
   );
 
-  app.get("/healthz", { logLevel: "warn" }, async (_req, reply) => {
+  // Öffentlich nur {ok:true}; Auslastung nur mit METRICS_TOKEN (Authorization: Bearer …).
+  app.get("/healthz", { logLevel: "warn" }, async (req, reply) => {
     reply.header("Cache-Control", "no-store");
-    return { ok: true, rooms: rooms.size, connections: gateway.connectionCount };
+    const auth = req.headers.authorization;
+    const token = typeof auth === "string" && auth.startsWith("Bearer ") ? auth.slice(7) : null;
+    if (config.metricsToken && token && tokensEqual(config.metricsToken, token)) {
+      return { ok: true, rooms: rooms.size, connections: gateway.connectionCount };
+    }
+    return { ok: true };
   });
 
   app.get("/api/catalog", async (_req, reply) => {
@@ -89,7 +106,7 @@ export async function buildApp(config: ServerConfig, options: AppOptions = {}): 
     return { games: catalog.manifests };
   });
 
-  await registerStatic(app, staticDirs);
+  await registerStatic(app, staticDirs, { serveSourceMaps: config.devMode });
 
   return app;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultSelection, disconnectedParticipants, rematchPlayerIds, startCheck, toggleSelection } from "../src/state/selectors.js";
+import { botWon, dataPlayerName, defaultSelection, disconnectedParticipants, rematchPlayerIds, startCheck, toggleSelection } from "../src/state/selectors.js";
 import { rankingRows } from "../src/ui/Results.js";
 import { player, quiz, room, ttt } from "./fixtures.js";
 
@@ -77,5 +77,20 @@ describe("rankingRows", () => {
     const rows = rankingRows(r);
     expect(rows.map((x) => x.playerId)).toEqual(["a", "b", "x"]);
     expect(rows[2]?.player).toBeNull();
+  });
+});
+
+describe("Ergebnisdaten aus results.data", () => {
+  it("erkennt Computer-Sieg nur mit winnerId bot und bot-Objekt", () => {
+    expect(botWon({ gameId: "tictactoe", ranking: [], data: { winnerId: "bot", bot: { mark: "O" } } })).toBe(true);
+    expect(botWon({ gameId: "tictactoe", ranking: [], data: { winnerId: "bot" } })).toBe(false);
+    expect(botWon({ gameId: "quiz", ranking: [], data: [1] })).toBe(false);
+    expect(botWon(null)).toBe(false);
+  });
+  it("liest Namen aus data.players", () => {
+    const res = { gameId: "x", ranking: [], data: { players: [{ playerId: "p", name: "Pia" }, { playerId: "q" }] } };
+    expect(dataPlayerName(res, "p")).toBe("Pia");
+    expect(dataPlayerName(res, "q")).toBeNull();
+    expect(dataPlayerName({ gameId: "x", ranking: [] }, "p")).toBeNull();
   });
 });

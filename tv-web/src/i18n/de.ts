@@ -79,6 +79,8 @@ export const de = {
     points: "{n} Punkte",
     point: "1 Punkt",
     unknownPlayer: "Ehemaliger Spieler",
+    botWins: "Der Computer gewinnt",
+    botName: "Computer",
     again: "Nochmal",
     toLobby: "Zur Lobby",
   },

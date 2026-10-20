@@ -7,7 +7,8 @@ interface NativeBridge {
 }
 
 function bridge(): NativeBridge | null {
-  const w = globalThis as { CouchPlayNative?: Partial<NativeBridge> };
+  // window statt globalThis: globalThis gibt es erst ab Chrome 71 (Build-Ziel Chrome 64).
+  const w = (typeof window !== "undefined" ? window : {}) as { CouchPlayNative?: Partial<NativeBridge> };
   const b = w.CouchPlayNative;
   return b && typeof b.exitApp === "function" && typeof b.openSettings === "function" ? (b as NativeBridge) : null;
 }

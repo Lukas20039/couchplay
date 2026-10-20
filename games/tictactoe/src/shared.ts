@@ -83,5 +83,10 @@ export interface TicTacToePlayerView {
 export interface TicTacToeResultData {
   series: Series;
   outcome: Outcome;
+  /** Teilnehmer-ID des Siegers, "bot" für den Computer, null bei Remis. */
   winnerId: string | null;
+  /** Alle menschlichen Teilnehmer; `left` = hat das Spiel verlassen. */
+  players: { playerId: string; name: string; mark: Mark; left: boolean }[];
+  /** Computer-Gegner (nur 1-Spieler-Partie), sonst null. Er steht nie im Ranking. */
+  bot: { difficulty: Difficulty; mark: Mark } | null;
 }

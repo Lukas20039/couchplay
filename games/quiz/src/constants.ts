@@ -23,8 +23,8 @@ export const TIMING = {
   introMs: 5_000,
   revealMs: 7_000,
   standingsMs: 6_000,
-  /** Podium bleibt so lange stehen, danach ctx.end() → Raumphase "results". */
-  finalMs: 12_000,
+  /** Podium bleibt so lange stehen (TV zeigt Fortschrittsbalken), danach ctx.end() → Raumphase "results". */
+  finalMs: 5_000,
 } as const;
 
 /**

@@ -1,6 +1,13 @@
 import { STORAGE_KEYS } from "@couchplay/protocol/constants";
 import { describe, expect, it } from "vitest";
-import { decodeServerMessage, TvClient, wsUrlFromLocation, type SocketLike } from "../src/net/client.js";
+import {
+  decodeServerMessage,
+  HANDSHAKE_TIMEOUT_MS_CLIENT,
+  PONG_TIMEOUT_MS,
+  TvClient,
+  wsUrlFromLocation,
+  type SocketLike,
+} from "../src/net/client.js";
 import type { Action } from "../src/state/store.js";
 
 class FakeSocket implements SocketLike {
@@ -181,5 +188,73 @@ describe("TvClient", () => {
     expect(decodeServerMessage('{"x":1}')).toBeNull();
     expect(decodeServerMessage(42)).toBeNull();
     expect(decodeServerMessage('{"t":"pong","serverTime":1}')).toEqual({ t: "pong", serverTime: 1 });
+  });
+
+  it("schließt den Socket ohne pong und verbindet neu (halboffene Verbindung)", () => {
+    const { client, sockets, last, actions, runTimer } = setup();
+    client.start();
+    last().open();
+    last().receive({ t: "room.created", v: 1, code: "042137", joinUrl: "u", tvToken: TOKEN });
+    const first = last();
+    runTimer(PONG_TIMEOUT_MS); // kein pong auf den ersten ping
+    expect(first.closedWith).toBe(1000);
+    expect(actions[actions.length - 1]).toMatchObject({ type: "conn", status: "reconnecting", attempt: 1 });
+    runTimer(500);
+    expect(sockets).toHaveLength(2);
+    last().open();
+    expect(last().sent[0]).toMatchObject({ t: "room.resume" });
+  });
+
+  it("pong (oder jede andere Nachricht) hält die Verbindung am Leben", () => {
+    const { client, sockets, last, timers } = setup();
+    client.start();
+    last().open();
+    last().receive({ t: "room.created", v: 1, code: "042137", joinUrl: "u", tvToken: TOKEN });
+    last().receive({ t: "pong", ts: 1, serverTime: 2 });
+    expect(timers.some((t) => !t.done && t.ms === PONG_TIMEOUT_MS)).toBe(false);
+    expect(sockets).toHaveLength(1);
+  });
+
+  it("bricht einen hängenden Verbindungsaufbau/Handshake ab", () => {
+    const { client, sockets, runTimer } = setup();
+    client.start();
+    const first = sockets[0]!;
+    runTimer(HANDSHAKE_TIMEOUT_MS_CLIENT); // Socket öffnet nie
+    expect(first.closedWith).toBe(1000);
+    runTimer(500);
+    expect(sockets).toHaveLength(2);
+  });
+
+  it("kein Handshake-Timeout nach room.created", () => {
+    const { client, last, timers } = setup();
+    client.start();
+    last().open();
+    last().receive({ t: "room.created", v: 1, code: "042137", joinUrl: "u", tvToken: TOKEN });
+    expect(timers.some((t) => !t.done && t.ms === HANDSHAKE_TIMEOUT_MS_CLIENT)).toBe(false);
+  });
+
+  it("probe(): pingt einen offen wirkenden Socket und verbindet ohne Antwort neu", () => {
+    const { client, sockets, last, runTimer } = setup();
+    client.start();
+    last().open();
+    last().receive({ t: "room.created", v: 1, code: "042137", joinUrl: "u", tvToken: TOKEN });
+    last().receive({ t: "pong", ts: 1, serverTime: 2 });
+    const before = last().sent.length;
+    client.probe();
+    expect(last().sent.length).toBe(before + 1);
+    expect(last().sent[before]).toMatchObject({ t: "ping" });
+    runTimer(PONG_TIMEOUT_MS);
+    runTimer(500);
+    expect(sockets).toHaveLength(2);
+  });
+
+  it("probe(): wartender Reconnect startet sofort", () => {
+    const { client, sockets, last } = setup();
+    client.start();
+    last().drop(1006);
+    expect(client.waiting()).toBe(true);
+    client.probe();
+    expect(client.waiting()).toBe(false);
+    expect(sockets).toHaveLength(2);
   });
 });

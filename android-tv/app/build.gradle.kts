@@ -1,4 +1,3 @@
-import java.util.Base64
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -18,27 +17,26 @@ require(serverUrl.startsWith("http://") || serverUrl.startsWith("https://")) {
 val appVersionCode: Int = (findProperty("couchplay.versionCode") as String?)?.toIntOrNull() ?: 1
 val appVersionName: String = (findProperty("couchplay.versionName") as String?) ?: "0.1.0"
 
-// Release-Signatur aus der Umgebung (CI):
-//   ANDROID_KEYSTORE_BASE64 (Inhalt) oder ANDROID_KEYSTORE_FILE (Pfad),
-//   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
-// Fehlt etwas, wird das Release mit dem Debug-Key signiert (installierbar, nicht für den Store).
+// Release-Signatur NUR aus der Umgebung (CI dekodiert den Keystore selbst in eine Datei):
+//   ANDROID_KEYSTORE_FILE (Pfad), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+// Nichts gesetzt → unsigniertes Release (app-release-unsigned.apk) + Warnung.
+// Teilweise gesetzt → Build-Fehler (sonst entstünde still eine falsch signierte APK).
 fun env(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
 
-val releaseKeystore: File? = run {
-    val b64 = env("ANDROID_KEYSTORE_BASE64")
-    val path = env("ANDROID_KEYSTORE_FILE")
-    when {
-        b64 != null -> layout.buildDirectory.file("keystore/release.jks").get().asFile.also { f ->
-            f.parentFile.mkdirs()
-            f.writeBytes(Base64.getMimeDecoder().decode(b64))
-        }
-        path != null -> file(path).takeIf { it.isFile }
-        else -> null
-    }
+val signingEnvNames = listOf("ANDROID_KEYSTORE_FILE", "ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS", "ANDROID_KEY_PASSWORD")
+val signingEnvSet = signingEnvNames.filter { env(it) != null }
+val releaseKeystore: File? = env("ANDROID_KEYSTORE_FILE")?.let { file(it) }
+val hasReleaseSigning = signingEnvSet.size == signingEnvNames.size
+// Nur prüfen, wenn ein Release-Task gebaut wird – Debug-Builds bleiben davon unberührt.
+val buildsRelease = gradle.startParameter.taskNames.any { it.contains("release", ignoreCase = true) }
+if (buildsRelease && signingEnvSet.isNotEmpty() && !hasReleaseSigning) {
+    throw GradleException(
+        "Release-Signatur unvollständig: gesetzt ${signingEnvSet.joinToString()}, fehlt ${(signingEnvNames - signingEnvSet.toSet()).joinToString()}",
+    )
 }
-val hasReleaseSigning = releaseKeystore != null &&
-    env("ANDROID_KEYSTORE_PASSWORD") != null &&
-    env("ANDROID_KEY_ALIAS") != null
+if (buildsRelease && hasReleaseSigning && releaseKeystore?.isFile != true) {
+    throw GradleException("ANDROID_KEYSTORE_FILE zeigt auf keine Datei: ${env("ANDROID_KEYSTORE_FILE")}")
+}
 
 android {
     namespace = "at.couchplay.tv"
@@ -63,7 +61,7 @@ android {
                 storeFile = releaseKeystore
                 storePassword = env("ANDROID_KEYSTORE_PASSWORD")
                 keyAlias = env("ANDROID_KEY_ALIAS")
-                keyPassword = env("ANDROID_KEY_PASSWORD") ?: env("ANDROID_KEYSTORE_PASSWORD")
+                keyPassword = env("ANDROID_KEY_PASSWORD")
             }
         }
     }
@@ -73,11 +71,11 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (hasReleaseSigning) {
-                signingConfigs.getByName("release")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
             } else {
-                logger.warn("CouchPlay: keine Release-Signatur in der Umgebung – Release wird mit dem Debug-Key signiert.")
-                signingConfigs.getByName("debug")
+                signingConfig = null
+                logger.warn("CouchPlay: keine Release-Signatur (ANDROID_KEYSTORE_FILE …) – Release wird UNSIGNIERT gebaut.")
             }
         }
     }

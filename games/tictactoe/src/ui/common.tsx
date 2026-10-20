@@ -1,5 +1,6 @@
 // Gemeinsame UI-Bausteine für TV- und Controller-View: Zeichen X/O als SVG,
-// Spielerfarben, Avatare und Stil-Injektion.
+// Spielerfarben, Avatare (aus @couchplay/protocol) und Stil-Injektion.
+import { BOT_EMOJI, avatarEmoji } from "@couchplay/protocol";
 import type { Mark, Seat } from "../shared.js";
 
 /** Länge der Striche im 100er-viewBox (für stroke-dashoffset-Animation). */
@@ -50,22 +51,8 @@ export const GLYPH_CSS = /* css */ `
 }
 `;
 
-const AVATAR_EMOJI: Record<string, string> = {
-  fuchs: "🦊",
-  katze: "🐱",
-  hund: "🐶",
-  panda: "🐼",
-  eule: "🦉",
-  frosch: "🐸",
-  tiger: "🐯",
-  einhorn: "🦄",
-  pinguin: "🐧",
-  krake: "🐙",
-  roboter: "🤖",
-  alien: "👽",
-};
-export const avatarEmoji = (avatar: string): string => AVATAR_EMOJI[avatar] ?? "🙂";
-export const seatEmoji = (seat: Seat): string => (seat.kind === "bot" ? "🤖" : avatarEmoji(seat.avatar));
+/** Avatar-Emoji eines Platzes; der Computer nutzt das plattformweite BOT_EMOJI. */
+export const seatEmoji = (seat: Seat): string => (seat.kind === "bot" ? BOT_EMOJI : avatarEmoji(seat.avatar));
 
 /** Spielerfarben der Apps (--p0 … --p7) mit Fallback; der Computer ist silbern. */
 const FALLBACK = ["#ff5a5f", "#3fa7ff", "#3ddc84", "#ffc93c", "#b26bff", "#ff8a3d", "#2ee6d6", "#ff5fbf"];

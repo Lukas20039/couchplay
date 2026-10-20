@@ -3,7 +3,7 @@
 // Die richtige Antwort kennt das Handy erst in der Phase "reveal" (Server sendet sie erst dann).
 import type { ControllerComponentProps } from "@couchplay/game-sdk/preact";
 import { preactControllerView } from "@couchplay/game-sdk/preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { t, errorText } from "../i18n/de.js";
 import type { QuizInput, QuizPlayerView } from "../shared.js";
 import { Shape, ensureStyles, shapeLabel } from "../ui/common.js";
@@ -59,7 +59,7 @@ function Question({ v, api, now, error }: { v: V<"question">; api: Props["api"];
           <Shape index={choice} />
           <h2>
             <LockIcon />
-            {t.ctrlLocked}
+            <span>{t.ctrlLocked}</span>
           </h2>
           <p class="qz-chosen">{v.answers[choice]}</p>
           <p>{t.ctrlLockedHint}</p>
@@ -94,13 +94,10 @@ function Question({ v, api, now, error }: { v: V<"question">; api: Props["api"];
 }
 
 function Reveal({ v, vibrate }: { v: V<"reveal">; vibrate: (p: number | number[]) => void }) {
-  // Einmal pro Frage vibrieren (Rejoin/erneutes Rendern löst nicht nochmal aus).
-  const done = useRef<number | null>(null);
+  // Einmal pro Auflösung vibrieren. Nur über api.vibrate – die Plattform schaltet Replays (Rejoin) stumm.
   useEffect(() => {
-    if (done.current === v.index) return;
-    done.current = v.index;
     vibrate(v.correct ? [60, 50, 60] : [250]);
-  }, [v.index, v.correct, vibrate]);
+  }, [v.index]);
 
   const answered = v.choice !== null;
   const cls = v.correct ? "is-good" : answered ? "is-bad" : "";

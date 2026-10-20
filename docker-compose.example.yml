@@ -16,8 +16,9 @@ services:
       TRUST_PROXY: "1"                      # genau ein Reverse-Proxy (Caddy) davor
       LOG_LEVEL: info
       # ALLOWED_ORIGINS: https://andere.example.org   # zusätzliche Origins für /ws (optional)
-    # Nur intern erreichbar – Caddy terminiert TLS. Zum direkten Testen ohne Proxy:
-    # ports: ["8080:8080"]
+    # Nur intern erreichbar – Caddy terminiert TLS. Nie direkt exponieren (sonst X-Forwarded-For fälschbar);
+    # zum lokalen Testen höchstens an localhost binden:
+    # ports: ["127.0.0.1:8080:8080"]
     expose:
       - "8080"
     read_only: true

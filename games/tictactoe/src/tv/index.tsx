@@ -62,7 +62,7 @@ function SeatCard(props: { seat: Seat; state: TicTacToeTvState; name: string; of
       </div>
       <h2 class="ttt-card__name">{name}</h2>
       <p class="ttt-card__sub">
-        {seat.kind === "bot" ? de.botLevel(de.difficulty[seat.difficulty]) : offline ? de.tv.offline : " "}
+        {seat.kind === "bot" ? de.botLevel(de.difficulty[seat.difficulty]) : " "}
       </p>
       <Glyph mark={seat.mark} class="ttt-card__mark" />
       <p class="ttt-card__wins">
@@ -139,10 +139,13 @@ function Status({ state, turnName, names }: { state: TicTacToeTvState; turnName:
     );
   }
   if (state.phase === "paused") {
-    const missing = state.seats.filter((s) => s.kind === "human" && state.waitingFor.includes(s.playerId)).map(names);
+    // Wer fehlt, meldet das Plattform-Banner von tv-web; hier nur ein Pausensymbol (kein Text doppelt).
     return (
-      <p class="ttt-status ttt-status--paused" role="status">
-        {de.tv.waitingFor(missing.join(", "))}
+      <p class="ttt-status ttt-status--paused" aria-label={de.tv.paused}>
+        <span class="ttt-pause" aria-hidden="true">
+          <i />
+          <i />
+        </span>
       </p>
     );
   }

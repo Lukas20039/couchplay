@@ -7,6 +7,7 @@
   "maxPlayers": 2,
   "botSupport": true,
   "accentColor": "#00c2a8",
+  "icon": "⭕",
   "settings": [
     {
       "type": "select",

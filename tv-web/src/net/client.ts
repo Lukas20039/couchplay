@@ -39,6 +39,10 @@ export interface ClientDeps {
 
 const OPEN = 1;
 const PING_INTERVAL_MS = 10_000;
+/** Kommt nach einem ping so lange nichts zurück, gilt der Socket als tot (halboffene Verbindung). */
+export const PONG_TIMEOUT_MS = 4_000;
+/** Verbindungsaufbau + Handshake (bis room.created/room.resumed) müssen so schnell gehen. */
+export const HANDSHAKE_TIMEOUT_MS_CLIENT = 8_000;
 /** Nicht automatisch reconnecten bei diesen Close-Codes. */
 const FINAL_CLOSE_CODES: readonly number[] = [
   WS_CLOSE.VERSION_MISMATCH,
@@ -83,6 +87,8 @@ export class TvClient {
   private attempt = 0;
   private retryTimer: unknown = null;
   private pingTimer: unknown = null;
+  private pongTimer: unknown = null;
+  private handshakeTimer: unknown = null;
   private handshakeDone = false;
   private stopped = false;
   /** serverTime - lokale Zeit (ms). */
@@ -126,6 +132,20 @@ export class TvClient {
     return this.retryTimer !== null;
   }
 
+  /**
+   * Verbindung aktiv prüfen (App wieder sichtbar, Netz wieder da): wartet ein Reconnect,
+   * sofort verbinden; sieht der Socket offen aus, ping senden – ohne pong in
+   * PONG_TIMEOUT_MS wird neu verbunden.
+   */
+  probe(): void {
+    if (this.stopped) return;
+    if (this.waiting()) {
+      this.retryNow();
+      return;
+    }
+    if (this.socket && this.handshakeDone) this.sendPing();
+  }
+
   /** Sofort neu verbinden (z. B. Taste „Erneut versuchen“). */
   retryNow(): void {
     this.stopped = false;
@@ -161,6 +181,11 @@ export class TvClient {
       return;
     }
     this.socket = socket;
+    this.clearTimer("handshakeTimer");
+    this.handshakeTimer = this.d.setTimer(() => {
+      this.handshakeTimer = null;
+      if (this.socket === socket && !this.handshakeDone) this.fail();
+    }, HANDSHAKE_TIMEOUT_MS_CLIENT);
     socket.onopen = () => {
       if (this.socket !== socket) return;
       const s = this.session();
@@ -171,6 +196,8 @@ export class TvClient {
     };
     socket.onmessage = (ev) => {
       if (this.socket !== socket) return;
+      // Jede Nachricht beweist, dass die Verbindung lebt.
+      this.clearTimer("pongTimer");
       const msg = decodeServerMessage(ev.data);
       if (msg) this.onMessage(msg);
     };
@@ -223,6 +250,7 @@ export class TvClient {
 
   private onHandshake(): void {
     this.handshakeDone = true;
+    this.clearTimer("handshakeTimer");
     this.attempt = 0;
     this.d.dispatch({ type: "conn", status: "online", attempt: 0 });
     this.sendPing();
@@ -235,7 +263,26 @@ export class TvClient {
   }
 
   private sendPing(): void {
-    this.send({ t: "ping", ts: this.d.now() });
+    if (!this.send({ t: "ping", ts: this.d.now() })) return;
+    if (this.pongTimer !== null) return; // bereits ein ausstehender ping
+    this.pongTimer = this.d.setTimer(() => {
+      this.pongTimer = null;
+      this.fail();
+    }, PONG_TIMEOUT_MS);
+  }
+
+  /** Socket gilt als tot (kein pong / Handshake hängt): schließen und Reconnect-Pfad starten. */
+  private fail(): void {
+    this.dropSocket();
+    this.clearTimers();
+    this.handshakeDone = false;
+    this.scheduleReconnect();
+  }
+
+  private clearTimer(name: "pongTimer" | "handshakeTimer" | "pingTimer" | "retryTimer"): void {
+    const id = this[name];
+    if (id !== null) this.d.clearTimer(id);
+    this[name] = null;
   }
 
   private onHandshakeError(code: string, retryAfterMs?: number): void {
@@ -304,10 +351,10 @@ export class TvClient {
   }
 
   private clearTimers(): void {
-    if (this.retryTimer !== null) this.d.clearTimer(this.retryTimer);
-    if (this.pingTimer !== null) this.d.clearTimer(this.pingTimer);
-    this.retryTimer = null;
-    this.pingTimer = null;
+    this.clearTimer("retryTimer");
+    this.clearTimer("pingTimer");
+    this.clearTimer("pongTimer");
+    this.clearTimer("handshakeTimer");
   }
 
   private saveSession(s: TvSession): void {

@@ -30,8 +30,17 @@ class MainActivity : Activity(), NativeBridge.Host {
     private lateinit var container: FrameLayout
     private var webView: WebView? = null
 
-    /** Adresse, die aktuell geladen ist bzw. geladen werden soll. */
+    /** In den Einstellungen konfigurierte Adresse, mit der zuletzt geladen wurde (für onResume-Vergleich). */
     private var loadedServerUrl: String? = null
+
+    /**
+     * Erlaubte Origin für Navigation und JS-Brücke. Startet als Origin von loadedServerUrl;
+     * leitet der Server von http auf https desselben Hosts um, wird sie auf https umgestellt.
+     */
+    private var allowedOrigin: Origin? = null
+
+    /** Renderer-Abstürze seit dem letzten erfolgreichen Laden (Schutz vor Reload-Schleifen). */
+    private var renderCrashes = 0
 
     /** true, solange die lokale Fehlerseite angezeigt wird. */
     private var showingError = false
@@ -58,12 +67,15 @@ class MainActivity : Activity(), NativeBridge.Host {
     override fun onResume() {
         super.onResume()
         webView?.onResume()
+        webView?.resumeTimers()
         // Server-Adresse in den Einstellungen geändert → neu laden.
         if (loadedServerUrl != null && loadedServerUrl != ServerConfig.serverUrl(this)) loadApp()
     }
 
     override fun onPause() {
         webView?.onPause()
+        // JS-Timer (WebSocket-Pings, Auto-Retry der Fehlerseite) im Hintergrund anhalten.
+        webView?.pauseTimers()
         super.onPause()
     }
 
@@ -113,6 +125,7 @@ class MainActivity : Activity(), NativeBridge.Host {
     private fun loadApp() {
         val server = ServerConfig.serverUrl(this)
         loadedServerUrl = server
+        allowedOrigin = Origin.of(server)
         showingError = false
         webAppReady = false
         webView?.loadUrl(server + ServerConfig.TV_PATH)
@@ -127,22 +140,44 @@ class MainActivity : Activity(), NativeBridge.Host {
         val html = template
             .replace("{{SERVER}}", TextUtils.htmlEncode(loadedServerUrl ?: ServerConfig.serverUrl(this)))
             .replace("{{DETAIL}}", TextUtils.htmlEncode(detail ?: ""))
-        webView?.loadDataWithBaseURL(ERROR_BASE_URL, html, "text/html", "utf-8", null)
+        // historyUrl = Basis-URL, damit webView.url eindeutig die Fehlerseite meldet (Brücken-Prüfung).
+        webView?.loadDataWithBaseURL(ERROR_BASE_URL, html, "text/html", "utf-8", ERROR_BASE_URL)
     }
 
     private fun isServerUrl(url: Uri): Boolean {
-        val server = Uri.parse(loadedServerUrl ?: return false)
-        return url.scheme == server.scheme && url.host == server.host && url.port == server.port
+        val allowed = allowedOrigin ?: return false
+        return Origin.of(url) == allowed
+    }
+
+    override fun isTrustedPage(): Boolean {
+        if (isFinishing || isDestroyed) return false
+        val url = webView?.url ?: return false
+        if (showingError && url == ERROR_BASE_URL) return true
+        return !showingError && isServerUrl(Uri.parse(url))
     }
 
     private inner class Client : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-            // Nur der eigene Server darf in der WebView laufen (JS-Brücke!).
-            return !isServerUrl(request.url) && request.url.toString() != ERROR_BASE_URL
+            val url = request.url
+            if (isServerUrl(url) || url.toString() == ERROR_BASE_URL) return false
+            val target = Origin.of(url)
+            val allowed = allowedOrigin
+            // Server leitet http → https desselben Hosts um (Reverse-Proxy): erlauben und merken.
+            if (request.isForMainFrame && request.isRedirect && target != null && allowed != null &&
+                allowed.scheme == "http" && target.scheme == "https" && target.sameHost(allowed)
+            ) {
+                allowedOrigin = target
+                return false
+            }
+            // Nur der eigene Server darf in der WebView laufen (JS-Brücke!). Blockierte
+            // Hauptseiten-Navigation → Fehlerseite statt schwarzem Bild.
+            if (request.isForMainFrame) showError(getString(R.string.error_blocked, target?.toString() ?: url.scheme ?: ""))
+            return true
         }
 
         override fun onPageFinished(view: WebView, url: String) {
             webAppReady = !showingError && url != ERROR_BASE_URL && url != "about:blank"
+            if (webAppReady) renderCrashes = 0
             view.requestFocus()
         }
 
@@ -157,9 +192,16 @@ class MainActivity : Activity(), NativeBridge.Host {
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
             // Renderer abgestürzt/beendet (z. B. Speicherdruck auf schwachen TVs): WebView neu aufbauen.
             if (view == webView) {
+                renderCrashes++
                 destroyWebView()
                 createWebView()
-                loadApp()
+                showingError = false
+                if (renderCrashes <= MAX_RENDER_CRASHES) {
+                    loadApp()
+                } else {
+                    // Wiederholter Absturz (z. B. zu wenig Speicher): nicht endlos neu laden.
+                    showError(getString(R.string.error_renderer))
+                }
             }
             return true
         }
@@ -211,14 +253,18 @@ class MainActivity : Activity(), NativeBridge.Host {
     // ---------------------------------------------------------------- Brücke
 
     override fun exitApp() {
+        if (isFinishing) return
         finish()
     }
 
     override fun openSettings() {
+        if (isFinishing || isDestroyed) return
         startActivity(Intent(this, SettingsActivity::class.java))
     }
 
     override fun retry() {
+        if (isFinishing || isDestroyed) return
+        renderCrashes = 0
         loadApp()
     }
 
@@ -246,5 +292,7 @@ class MainActivity : Activity(), NativeBridge.Host {
     companion object {
         /** Basis-URL der lokalen Fehlerseite (für Herkunftsprüfung). */
         private const val ERROR_BASE_URL = "file:///android_asset/error.html"
+
+        private const val MAX_RENDER_CRASHES = 3
     }
 }

@@ -8,11 +8,11 @@ export interface Clock {
   clearTimeout(handle: ClockHandle): void;
 }
 
-/** Echte Zeit (Date.now + globalThis.setTimeout). */
+/** Echte Zeit (Date.now + setTimeout). */
 export const systemClock: Clock = {
   now: () => Date.now(),
-  setTimeout: (fn, ms) => globalThis.setTimeout(fn, ms) as unknown as ClockHandle,
-  clearTimeout: (handle) => globalThis.clearTimeout(handle as unknown as Parameters<typeof clearTimeout>[0]),
+  setTimeout: (fn, ms) => setTimeout(fn, ms) as unknown as ClockHandle,
+  clearTimeout: (handle) => clearTimeout(handle as unknown as Parameters<typeof clearTimeout>[0]),
 };
 
 interface ManualTimer {

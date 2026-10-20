@@ -10,5 +10,7 @@
     <string name="settings_reset">Standard verwenden</string>
     <string name="settings_cancel">Abbrechen</string>
     <string name="settings_invalid">Bitte eine Adresse mit http:// oder https:// eingeben.</string>
+    <string name="error_blocked">Weiterleitung zu einer fremden Adresse blockiert: %1$s</string>
+    <string name="error_renderer">Die Anzeige ist wiederholt abgestürzt (zu wenig Speicher?).</string>
     <string name="settings_version">Version %1$s</string>
 </resources>

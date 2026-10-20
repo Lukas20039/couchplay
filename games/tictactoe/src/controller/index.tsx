@@ -2,7 +2,7 @@
 // man am Zug ist. Zeigt nur den empfangenen Zustand; Regeln prüft der Server.
 import { preactControllerView, type ControllerComponentProps } from "@couchplay/game-sdk/preact";
 import type { Player } from "@couchplay/protocol";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { de, seatName } from "../i18n/de.js";
 import type { Seat, TicTacToeInput, TicTacToePlayerView } from "../shared.js";
 import { GLYPH_CSS, Glyph, GlyphPaths, ensureStyles, playerColor, seatColor, seatEmoji, winLineCoords } from "../ui/common.js";
@@ -16,16 +16,14 @@ function TicTacToeController({ view, api, players, error }: Props) {
   ensureStyles("ttt-glyph-css", GLYPH_CSS);
   ensureStyles("ttt-ctl-css", CONTROLLER_CSS);
   const [pending, setPending] = useState<number | null>(null);
-  const lastResult = useRef<string | null>(null);
 
   // Neue Ansicht vom Server ersetzt den vorläufig gesetzten Zug.
   useEffect(() => setPending(null), [view, error]);
 
-  // Haptik beim Spielende (einmal pro Ergebnis).
+  // Haptik beim Spielende. Nur über api.vibrate – die Plattform schaltet Replays (Rejoin) stumm.
   const result = view?.result ?? null;
   useEffect(() => {
-    if (result && lastResult.current !== result) api.vibrate([...VIBRATION[result]]);
-    lastResult.current = result;
+    if (result) api.vibrate([...VIBRATION[result]]);
   }, [result]);
 
   if (!view) {

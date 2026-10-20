@@ -28,7 +28,7 @@ Verbindlich ergänzend zu `docs/PLAN.md`. Protokolldetails: `docs/protocol.md`.
 | `server` | Fastify-HTTP, WS-Endpoint, Raumverwaltung, Rate-Limits, Auslieferung der gebauten Frontends. |
 | `tv-web` | TV-UI (10-Fuß, D-Pad): Start, Code + QR, Lobby, Spielauswahl, Ergebnis, Host-Funktionen per Fernbedienung. |
 | `controller-pwa` | Handy-UI: Code/QR-Join, Name + Avatar, Lobby, Host-Einstellungen, Controller-View des Spiels. |
-| `games/quiz`, `games/tictactoe` | je `manifest.json` + `src/server` + `src/tv` + `src/controller` + `src/shared.ts`. |
+| `games/quiz`, `games/tictactoe` | je `manifest.json` (optional `icon`: Emoji für die Katalog-Kachel) + `src/server` + `src/tv` + `src/controller` + `src/shared.ts`. |
 | `android-tv` | Kotlin-Shell (kein npm-Workspace). |
 | `e2e` | Playwright-Browser-E2E, später Emulator-E2E. |
 
@@ -72,7 +72,9 @@ Dev: Server auf 8080, `tv-web` Vite 5173, `controller-pwa` Vite 5174; Vite proxy
 - **Zuschauer:** alle Nicht-Teilnehmer (auch während der Runde Beitretende). Signal: `phase === "game"` und eigene ID ∉ `gamePlayerIds` (`isSpectator`). Sie bekommen keine `game.view`, `game.input` → `NOT_ALLOWED`; Controller zeigt Zuschauer-Screen. Ein Teilnehmer, der die Gnadenfrist überschreitet, wird entfernt (`onPlayerLeave`) und ist nach erneutem `room.join` Zuschauer bis zur nächsten Runde.
 - **results:** `ctx.end(results)` → `room.state.results`. `lobby.start` = Revanche (gleiches Spiel/Settings, `ctx.previous` = letztes Ergebnis), `room.toLobby` → Lobby.
 - **closed:** `room.closed{reason}` an alle, Verbindungen schließen (Close-Code 4004), Code wird frei.
-- **Inaktivität:** jeder eingehende Client-Frame setzt `lastActivity`. Nach `ROOM_IDLE_TIMEOUT_MS` (2 h) → `closed(idle)`.
+- **Inaktivität:** jede eingehende Client-Nachricht **außer `ping`** setzt `lastActivity`. Nach `ROOM_IDLE_TIMEOUT_MS` (2 h) → `closed(idle)`.
+- **Verwaiste Räume:** Ist weder TV noch ein Spieler verbunden, wird der Raum nach `ORPHAN_ROOM_TIMEOUT_MS` (10 min) geschlossen.
+- **Broadcast-Bündelung:** `room.state` wird pro Raum höchstens alle `STATE_COALESCE_MS` (50 ms) gesendet; Zwischenstände werden zusammengefasst (immer der neueste Zustand).
 
 ## 5. Datenfluss im Spiel (server-authoritative)
 
@@ -87,7 +89,7 @@ Dev: Server auf 8080, `tv-web` Vite 5173, `controller-pwa` Vite 5174; Vite proxy
 - **TV:** speichert `{code, tvToken}` unter `STORAGE_KEYS.tvSession`; `room.resume` → `room.resumed`, `catalog`, `room.state`, gecachter `game.tv`. Der Raum lebt ohne TV weiter (bis Idle-Timeout); Spiele laufen weiter.
 - **Doppelte Verbindung** mit gleichem Token: alte Verbindung wird mit Close-Code 4002 (`SESSION_REPLACED`) geschlossen.
 - **Nicht reconnecten** bei Close-Codes 4001/4002/4003/4004 oder Fehlercodes aus `SESSION_INVALIDATING_CODES` → gespeicherte Sitzung löschen, Startbildschirm.
-- **Heartbeat:** Server sendet WS-Ping alle 15 s; ohne Lebenszeichen 35 s → Verbindung terminiert (gilt als Abbruch).
+- **Heartbeat:** Server sendet WS-Ping-Frames alle 15 s; Liveness zählt **nur über Pong-Frames** (Anwendungs-`ping` und andere Nachrichten nicht). Ohne Pong 35 s → Verbindung terminiert (gilt als Abbruch).
 
 ## 7. Sicherheit & Rate-Limits
 
@@ -97,13 +99,20 @@ Alle Grenzen als Konstanten in `packages/protocol/src/constants.ts`.
 |---|---|---|
 | Nachrichtengröße | 16 KiB (`maxPayload` in ws + Parser) | `MESSAGE_TOO_LARGE` |
 | Nachrichten / Verbindung | Token-Bucket 40, +20/s | `RATE_LIMITED` (+`retryAfterMs`), nach 20 Verstößen Close 4008 |
-| `room.join`/`room.rejoin` / IP | Bucket 10, +10/min (zählt auch Fehlversuche) | `RATE_LIMITED` – verhindert Code-Raten |
+| Handshakes (`room.join`/`rejoin`/`resume`) / IP | `JOIN_ATTEMPT_RATE`: Bucket 60, +60/min – nur Missbrauchsschutz (CGNAT/Haushalt) | `RATE_LIMITED` |
+| Fehlversuche (`ROOM_NOT_FOUND`/`TOKEN_INVALID`) / IP | `JOIN_FAILURE_BACKOFF`: 5/min frei, danach Sperre 1 s, verdoppelt je Fehlversuch, max. 5 min; Reset nach 10 min ohne Fehlversuch | `RATE_LIMITED` (+`retryAfterMs`) – bremst Code-Raten |
+| Fehlversuche global (alle IPs) | `GLOBAL_JOIN_FAILURE_RATE`: Bucket 100, +2/s; leer → IPs mit Fehlversuchen 60 s gesperrt | `RATE_LIMITED` – gegen verteiltes Raten |
 | `room.create` / IP | Bucket 5, +5/min | `RATE_LIMITED` |
+| offene Räume / Ersteller-IP | `MAX_ROOMS_PER_IP` = 5 | `RATE_LIMITED` |
+| `player.update` / Verbindung | `PLAYER_UPDATE_RATE_LIMIT`: Bucket 3, +1/s | `RATE_LIMITED` |
+| Ausgehender Puffer / Verbindung | `MAX_BUFFERED_BYTES` = 1 MiB | Verbindung getrennt (Client liest nicht) |
 | Verbindungen / IP | 32 | Upgrade mit 429 ablehnen |
 | Räume / Instanz | 1000 | `SERVER_FULL` |
 | Handshake | erste Nachricht ≤ 10 s | Close 4009 |
 
-- Client-IP über Fastify `request.ip` (respektiert `TRUST_PROXY`).
+- Client-IP über Fastify `request.ip` (respektiert `TRUST_PROXY`). Alle IP-Limits gelten pro IPv4-Adresse bzw. pro **IPv6-/64-Präfix**.
+- Erfolgreiche Joins/Rejoins kosten **kein** Fehlversuchs-Budget (nur den großzügigen `JOIN_ATTEMPT_RATE`).
+- Gekickte Spieler: die IP wird für diesen Raum gesperrt (außer der TV-IP); erneuter `room.join` → `NOT_ALLOWED`.
 - Tokens: 24 Byte `crypto.randomBytes` → base64url; Vergleich mit `timingSafeEqual`.
 - Namen: `normalizeName` (NFC, Steuer-/Bidi-Zeichen entfernt, 1–16 Codepoints), eindeutig per `nameKey`. Clients rendern Namen nur als Text (kein `innerHTML`).
 - Jede eingehende Nachricht: `parseClientMessage` → Handshake-Pflicht → `CLIENT_MESSAGE_RULES` (Rolle/Phase) → Handler. Unbekannte Felder werden verworfen.

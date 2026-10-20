@@ -32,6 +32,8 @@ import { newPlayerId, newToken, tokensEqual } from "./ids.js";
 /** Verbindung aus Sicht des Raums (implementiert vom WS-Gateway). */
 export interface Conn {
   readonly id: number;
+  /** Schlüssel der Client-IP (IPv4 exakt, IPv6 /64), siehe ipKey(). */
+  readonly ipKey: string;
   send(msg: ServerMessage): void;
   /** Schließt die Verbindung; das Gateway ruft danach KEINE Disconnect-Logik mehr auf, wenn binding null ist. */
   close(code: number, reason: string): void;
@@ -46,6 +48,7 @@ export interface HandlerError {
   message: string;
   fatal?: boolean;
   closeCode?: number;
+  retryAfterMs?: number;
 }
 export type HandlerResult = HandlerError | undefined;
 
@@ -59,6 +62,8 @@ interface PlayerRecord {
   token: string;
   connected: boolean;
   conn: Conn | null;
+  /** Letzte bekannte IP (für Kick-Sperre während der Gnadenfrist). */
+  lastIpKey: string;
   graceTimer: NodeJS.Timeout | null;
 }
 
@@ -67,6 +72,10 @@ export interface RoomDeps {
   joinUrl: string;
   catalog: GameCatalog;
   reconnectGraceMs: number;
+  /** room.state höchstens alle … ms (Zwischenstände werden zusammengefasst). */
+  stateCoalesceMs: number;
+  /** IP-Schlüssel des Erstellers (Limit offener Räume pro IP). */
+  ownerKey: string;
   log: FastifyBaseLogger;
   onClosed(room: Room): void;
 }
@@ -75,13 +84,18 @@ export class Room {
   readonly code: string;
   readonly tvToken = newToken();
   readonly joinUrl: string;
+  readonly ownerKey: string;
   lastActivity = Date.now();
+  /** Seit wann kein Client (TV/Spieler) verbunden ist; null = mindestens einer verbunden. */
+  emptySince: number | null = null;
   closed = false;
 
   private phase: RoomPhase = "lobby";
   private readonly players: PlayerRecord[] = [];
   private hostId: PlayerId | null = null;
   private tv: Conn | null = null;
+  /** IP des (zuletzt) verbundenen TVs – bleibt auch nach TV-Trennung bekannt. */
+  private tvIpKey: string | null = null;
   private selectedGameId: string | null = null;
   private settings: SettingsValues = {};
   private gamePlayerIds: PlayerId[] = [];
@@ -94,10 +108,16 @@ export class Room {
   private tvCache: ServerMessageOf<"game.tv"> | null = null;
   private readonly viewCache = new Map<PlayerId, ServerMessageOf<"game.view">>();
   private readonly log: FastifyBaseLogger;
+  /** IP-Schlüssel gekickter Spieler (Sperre für die Lebensdauer des Raums). */
+  private readonly bannedIps = new Set<string>();
+  private stateDirty = false;
+  private stateTimer: NodeJS.Timeout | null = null;
+  private lastStateAt = 0;
 
   constructor(private readonly deps: RoomDeps) {
     this.code = deps.code;
     this.joinUrl = deps.joinUrl;
+    this.ownerKey = deps.ownerKey;
     this.log = deps.log.child({ room: deps.code });
   }
 
@@ -161,10 +181,39 @@ export class Room {
     for (const p of this.players) if (p.conn) fn(p.conn);
   }
 
+  /**
+   * room.state an alle – zusammengefasst: höchstens alle stateCoalesceMs ein Paket
+   * (erstes sofort, weitere Änderungen im Fenster als ein nachlaufendes Paket).
+   */
   broadcastState(): void {
     if (this.closed) return;
+    this.updateEmptySince();
+    this.stateDirty = true;
+    if (this.stateTimer) return;
+    const wait = this.lastStateAt + this.deps.stateCoalesceMs - Date.now();
+    if (wait <= 0) {
+      this.flushState();
+    } else {
+      this.stateTimer = setTimeout(() => this.flushState(), wait);
+      this.stateTimer.unref();
+    }
+  }
+
+  /** Ausstehenden room.state sofort senden (vor game.*-Paketen, damit die Reihenfolge stimmt). */
+  flushState(): void {
+    if (this.stateTimer) clearTimeout(this.stateTimer);
+    this.stateTimer = null;
+    if (!this.stateDirty || this.closed) return;
+    this.stateDirty = false;
+    this.lastStateAt = Date.now();
     const msg: ServerMessage = { t: "room.state", room: this.snapshot() };
     this.forEachConn((c) => c.send(msg));
+  }
+
+  private updateEmptySince(): void {
+    const anyone = this.tv !== null || this.players.some((p) => p.connected);
+    if (anyone) this.emptySince = null;
+    else if (this.emptySince === null) this.emptySince = Date.now();
   }
 
   /** Handshake-Folge: Antwort → catalog → room.state (an alle) → gecachte Spielansicht. */
@@ -172,6 +221,7 @@ export class Room {
     conn.send(response);
     conn.send(this.deps.catalog.message);
     this.broadcastState();
+    this.flushState();
     if (cached && this.phase === "game") conn.send(cached);
   }
 
@@ -187,6 +237,7 @@ export class Room {
       old.close(WS_CLOSE.SESSION_REPLACED, "session_replaced");
     }
     this.tv = conn;
+    this.tvIpKey = conn.ipKey;
     conn.binding = { room: this, role: "tv" };
     const response: ServerMessage =
       kind === "created"
@@ -220,6 +271,7 @@ export class Room {
 
   join(conn: Conn, rawName: string, avatar: AvatarId, rid: string | undefined): HandlerResult {
     const name = normalizeName(rawName);
+    if (this.bannedIps.has(conn.ipKey)) return fail("NOT_ALLOWED", "Aus diesem Raum entfernt");
     if (!name.ok) return fail("NAME_INVALID", `Name ungültig (${name.reason})`);
     if (this.players.length >= MAX_PLAYERS) return fail("ROOM_FULL", "Raum ist voll");
     if (this.isNameTaken(name.name)) return fail("NAME_TAKEN", "Name bereits vergeben");
@@ -232,6 +284,7 @@ export class Room {
       token: newToken(),
       connected: true,
       conn,
+      lastIpKey: conn.ipKey,
       graceTimer: null,
     };
     this.players.push(player);
@@ -260,10 +313,13 @@ export class Room {
     const wasConnected = player.connected;
     player.conn = conn;
     player.connected = true;
+    player.lastIpKey = conn.ipKey;
     conn.binding = { room: this, role: "player", playerId };
     this.log.info({ playerId }, "Spieler wieder verbunden");
-    if (!wasConnected) this.session?.connectionChanged(playerId, true);
+    // Erst Handshake-Folge (room.joined → catalog → room.state → gecachte View), dann das Spiel informieren
+    // (das evtl. sofort neue game.*-Pakete sendet).
     this.afterHandshake(conn, this.joinedMessage(player, rid), this.viewCache.get(playerId));
+    if (!wasConnected) this.session?.connectionChanged(playerId, true);
     return undefined;
   }
 
@@ -322,7 +378,11 @@ export class Room {
   kick(targetId: PlayerId): HandlerResult {
     const player = this.players.find((p) => p.id === targetId);
     if (!player) return fail("PLAYER_NOT_FOUND", "Spieler unbekannt");
-    const conn = player.conn;
+    const conn = player.conn ?? null;
+    // Sperre für die Lebensdauer des Raums: das Reconnect-Token wird mit dem Spieler ungültig;
+    // zusätzlich die IP – außer sie ist die des TVs (gleiches Heim-WLAN, sonst wären alle gesperrt).
+    const ip = conn?.ipKey ?? player.lastIpKey;
+    if (ip && ip !== this.tv?.ipKey && ip !== this.tvIpKey) this.bannedIps.add(ip);
     player.conn = null;
     if (conn) {
       conn.binding = null;
@@ -344,8 +404,10 @@ export class Room {
       if (this.isNameTaken(n.name, playerId)) return fail("NAME_TAKEN", "Name bereits vergeben");
       name = n.name;
     }
+    const nextAvatar = avatar ?? player.avatar;
+    if (name === player.name && nextAvatar === player.avatar) return undefined; // keine Änderung → kein Broadcast
     player.name = name;
-    if (avatar !== undefined) player.avatar = avatar;
+    player.avatar = nextAvatar;
     this.broadcastState();
     return undefined;
   }
@@ -383,6 +445,14 @@ export class Room {
     const participants = resolveParticipants(this.snapshot().players, def.manifest, requested);
     if (!participants.ok) return fail(participants.code, participants.message);
 
+    // parseSettings läuft im SDK außerhalb des Crash-Guards → vorab prüfen, bevor die Phase wechselt.
+    try {
+      def.parseSettings?.(this.settings);
+    } catch (err) {
+      this.log.warn({ err, gameId: def.manifest.id }, "parseSettings abgelehnt");
+      return fail("INVALID_SETTINGS", "Einstellungen passen nicht zum Spiel");
+    }
+
     const gameId = def.manifest.id;
     const byId = new Map(this.players.map((p) => [p.id, p]));
     const gamePlayers = participants.playerIds.map((id) => {
@@ -402,40 +472,49 @@ export class Room {
     // Erst room.state{phase:"game"}, danach die ersten game.tv/game.view.
     this.broadcastState();
 
-    const session = createGameSession(def, {
-      players: gamePlayers,
-      settings: this.settings,
-      seed,
-      clock: systemClock,
-      previous: this.lastResults.get(gameId) ?? null,
-      isConnected: (id) => byId.get(id)?.connected === true && this.players.includes(byId.get(id) as PlayerRecord),
-      log: toGameLogger(gameLog),
-      sink: {
-        tv: (state) => {
-          if (run !== this.run) return;
-          const msg: ServerMessageOf<"game.tv"> = { t: "game.tv", gameId, seq: ++this.seq, state };
-          // Serialisierbarkeit früh prüfen: Fehler landen im Guard des SDK (→ crash).
-          JSON.stringify(msg);
-          this.tvCache = msg;
-          this.tv?.send(msg);
+    let session: GameSession;
+    try {
+      session = createGameSession(def, {
+        players: gamePlayers,
+        settings: this.settings,
+        seed,
+        clock: systemClock,
+        previous: this.lastResults.get(gameId) ?? null,
+        isConnected: (id) => byId.get(id)?.connected === true && this.players.includes(byId.get(id) as PlayerRecord),
+        log: toGameLogger(gameLog),
+        sink: {
+          tv: (state) => {
+            if (run !== this.run) return;
+            const msg: ServerMessageOf<"game.tv"> = { t: "game.tv", gameId, seq: ++this.seq, state };
+            // Serialisierbarkeit früh prüfen: Fehler landen im Guard des SDK (→ crash).
+            JSON.stringify(msg);
+            this.tvCache = msg;
+            this.flushState();
+            this.tv?.send(msg);
+          },
+          player: (playerId, view) => {
+            if (run !== this.run) return;
+            const msg: ServerMessageOf<"game.view"> = { t: "game.view", gameId, seq: ++this.seq, view };
+            JSON.stringify(msg);
+            this.viewCache.set(playerId, msg);
+            this.flushState();
+            this.players.find((p) => p.id === playerId)?.conn?.send(msg);
+          },
+          end: (results) => {
+            if (run !== this.run) return;
+            this.finishGame(results, gameLog);
+          },
+          crash: (error) => {
+            if (run !== this.run) return;
+            this.crashGame(error, gameLog);
+          },
         },
-        player: (playerId, view) => {
-          if (run !== this.run) return;
-          const msg: ServerMessageOf<"game.view"> = { t: "game.view", gameId, seq: ++this.seq, view };
-          JSON.stringify(msg);
-          this.viewCache.set(playerId, msg);
-          this.players.find((p) => p.id === playerId)?.conn?.send(msg);
-        },
-        end: (results) => {
-          if (run !== this.run) return;
-          this.finishGame(results, gameLog);
-        },
-        crash: (error) => {
-          if (run !== this.run) return;
-          this.crashGame(error, gameLog);
-        },
-      },
-    });
+      });
+    } catch (error) {
+      // Synchrone Exception außerhalb des SDK-Guards: Raum darf nicht ohne Session in "game" hängen.
+      if (run === this.run) this.crashGame(error, gameLog);
+      return undefined;
+    }
     // Spiel kann schon in createGame() beendet worden oder abgestürzt sein.
     if (run === this.run && !session.ended) this.session = session;
     return undefined;
@@ -462,6 +541,7 @@ export class Room {
     this.phase = "lobby";
     this.results = null;
     log.error({ err: error instanceof Error ? error : new Error(String(error)) }, "Spiel abgestürzt – Raum zurück in die Lobby");
+    this.flushState();
     const msg: ServerMessage = { t: "error", code: "INTERNAL", message: "Das Spiel wurde wegen eines Fehlers beendet" };
     this.forEachConn((c) => c.send(msg));
     this.broadcastState();
@@ -505,6 +585,8 @@ export class Room {
     const conns: Conn[] = [];
     this.forEachConn((c) => conns.push(c));
     this.closed = true;
+    if (this.stateTimer) clearTimeout(this.stateTimer);
+    this.stateTimer = null;
     for (const p of this.players) {
       if (p.graceTimer) clearTimeout(p.graceTimer);
       p.graceTimer = null;

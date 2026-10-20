@@ -31,8 +31,9 @@ describe("Darstellung", () => {
   it("Avatare und Spiel-Icons mit Fallback", () => {
     expect(avatarEmoji("fuchs")).toBe("🦊");
     expect(avatarEmoji("unbekannt")).toBe("🙂");
-    expect(gameIcon("quiz")).toBe("🧠");
-    expect(gameIcon("neu")).toBe("🎮");
+    expect(gameIcon({ icon: "🧠" })).toBe("🧠");
+    expect(gameIcon({})).toBe("🎮");
+    expect(gameIcon(null)).toBe("🎮");
   });
   it("Spielerfarbe wird auf 0..7 begrenzt", () => {
     expect(playerColorVar(3)).toBe("var(--p3)");

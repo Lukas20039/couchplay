@@ -1,7 +1,7 @@
 // Serverlogik TicTacToe (server-authoritative).
 // 1 Teilnehmer: gegen den Computer (Stärke aus Settings), 2 Teilnehmer: Handy gegen Handy.
 // Platz 0 spielt X, Platz 1 spielt O. Wer beginnt, wechselt mit jeder Partie der Serie.
-import { defineGame, type GameContext, type GameEndResults } from "@couchplay/game-sdk";
+import { defineGame, type GameContext } from "@couchplay/game-sdk";
 import type { GameResults, RankingEntry } from "@couchplay/protocol";
 import { z } from "zod";
 import manifest from "../../manifest.json" with { type: "json" };
@@ -87,8 +87,8 @@ export default defineGame<TicTacToeSettings, TicTacToeInput, TicTacToeTvState, T
     let winLine: number[] | null = null;
     let outcome: Outcome | null = null;
     let botTimer: number | null = null;
-    let endResults: GameEndResults | null = null;
     const waiting = new Set<string>();
+    const left = new Set<string>();
 
     for (const s of seats) if (s.kind === "human" && !ctx.isConnected(s.playerId)) waiting.add(s.playerId);
     if (waiting.size > 0) phase = "paused";
@@ -153,10 +153,12 @@ export default defineGame<TicTacToeSettings, TicTacToeInput, TicTacToeTvState, T
       }, BOT_DELAY_MS);
     };
 
+    // Alle menschlichen Plätze – auch wer gegangen ist (Markierung in data.players).
+    // Gegen den Computer: Platz 1 bei Sieg/Remis, Platz 2 bei Niederlage; der Computer selbst nur in data.
     const ranking = (): RankingEntry[] => {
       const out: RankingEntry[] = [];
       for (const s of seats) {
-        if (s.kind !== "human" || !ctx.isActive(s.playerId)) continue;
+        if (s.kind !== "human") continue;
         const won = outcome?.kind === "win" && outcome.mark === s.mark;
         const rank = outcome?.kind === "draw" || won ? 1 : 2;
         out.push({ playerId: s.playerId, score: series.wins[s.playerId] ?? 0, rank });
@@ -177,11 +179,18 @@ export default defineGame<TicTacToeSettings, TicTacToeInput, TicTacToeTvState, T
         winnerId = seatId(seatOf(result.mark));
         series.wins[winnerId] = (series.wins[winnerId] ?? 0) + 1;
       }
-      const data: TicTacToeResultData = { series, outcome: result, winnerId };
+      const resultData = (): TicTacToeResultData => ({
+        series,
+        outcome: result,
+        winnerId,
+        players: seats.flatMap((s) =>
+          s.kind === "human" ? [{ playerId: s.playerId, name: s.name, mark: s.mark, left: left.has(s.playerId) }] : [],
+        ),
+        bot: seats[1].kind === "bot" ? { difficulty: seats[1].difficulty, mark: seats[1].mark } : null,
+      });
       publish();
-      endResults = { ranking: [], data };
       ctx.timers.setTimeout(() => {
-        if (endResults) ctx.end({ ...endResults, ranking: ranking() });
+        ctx.end({ ranking: ranking(), data: resultData() });
       }, END_DELAY_MS);
     };
 
@@ -228,15 +237,12 @@ export default defineGame<TicTacToeSettings, TicTacToeInput, TicTacToeTvState, T
 
       onPlayerLeave(playerId) {
         waiting.delete(playerId);
+        left.add(playerId);
         if (phase === "over") return; // Ergebnis steht schon, Timer beendet die Runde
         const seat = seats.find((s) => s.kind === "human" && s.playerId === playerId);
         if (!seat) return;
         // Wer geht, verliert kampflos – der andere Platz (Mensch oder Computer) gewinnt.
         finish({ kind: "win", mark: other(seat.mark), forfeit: true }, null);
-      },
-
-      dispose() {
-        endResults = null;
       },
     };
   },

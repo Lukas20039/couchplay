@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  AVATAR_EMOJI,
+  AVATAR_FALLBACK_EMOJI,
+  AVATAR_IDS,
+  BOT_EMOJI,
   GameManifestSchema,
+  avatarEmoji,
   NAME_MAX_LENGTH,
   RECONNECT_BACKOFF_MAX_MS,
   buildJoinUrl,
@@ -69,10 +74,32 @@ describe("Manifest", () => {
     expect(GameManifestSchema.safeParse(base).success).toBe(true);
   });
 
+  it("akzeptiert optionales Icon bis 16 Zeichen", () => {
+    expect(GameManifestSchema.safeParse({ ...base, icon: "🧠" }).success).toBe(true);
+    expect(GameManifestSchema.safeParse({ ...base, icon: "" }).success).toBe(false);
+    expect(GameManifestSchema.safeParse({ ...base, icon: "x".repeat(17) }).success).toBe(false);
+  });
+
   it("lehnt min > max, doppelte Keys und zu viele Spieler ab", () => {
     expect(GameManifestSchema.safeParse({ ...base, minPlayers: 3, maxPlayers: 2 }).success).toBe(false);
     expect(GameManifestSchema.safeParse({ ...base, maxPlayers: 9 }).success).toBe(false);
     expect(GameManifestSchema.safeParse({ ...base, settings: [fields[0], fields[0]] }).success).toBe(false);
+  });
+});
+
+describe("Avatare", () => {
+  it("hat für jede Avatar-ID ein eindeutiges Emoji, Bot-Emoji kollidiert nicht", () => {
+    expect(Object.keys(AVATAR_EMOJI).sort()).toEqual([...AVATAR_IDS].sort());
+    const emojis = Object.values(AVATAR_EMOJI);
+    expect(new Set(emojis).size).toBe(emojis.length);
+    expect(emojis).not.toContain(BOT_EMOJI);
+    expect(emojis).not.toContain(AVATAR_FALLBACK_EMOJI);
+  });
+
+  it("avatarEmoji mit Fallback", () => {
+    expect(avatarEmoji("fuchs")).toBe("🦊");
+    expect(avatarEmoji("drache")).toBe(AVATAR_FALLBACK_EMOJI);
+    expect(avatarEmoji("toString")).toBe(AVATAR_FALLBACK_EMOJI);
   });
 });
 

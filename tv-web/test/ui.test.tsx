@@ -88,4 +88,59 @@ describe("Ergebnis", () => {
     q(el, "to-lobby")!.click();
     expect(sent).toEqual([{ t: "lobby.start", playerIds: ["a", "b"] }, { t: "room.toLobby" }]);
   });
+
+  it("zeigt die Top 3 als Podium und den Rest als Liste (DOM-Reihenfolge = Rang)", () => {
+    const ids = ["a", "b", "c", "d", "e"];
+    const r = room({
+      phase: "results",
+      selectedGameId: "quiz",
+      players: ids.map((id) => player(id)),
+      gamePlayerIds: ids,
+      results: { gameId: "quiz", ranking: ids.map((id, i) => ({ playerId: id, score: 50 - i * 10, rank: i + 1 })).reverse() },
+    });
+    const { el } = mount(<Results room={r} catalog={[{ ...quiz, icon: "🧠" }]} />);
+    expect(el.querySelectorAll(".podium [data-testid='result-row']")).toHaveLength(3);
+    expect(el.querySelectorAll(".ranking [data-testid='result-row']")).toHaveLength(2);
+    const order = [...el.querySelectorAll<HTMLElement>("[data-testid='result-row']")].map((x) => x.dataset.rank);
+    expect(order).toEqual(["1", "2", "3", "4", "5"]);
+    expect(el.querySelector(".results-icon")?.textContent).toBe("🧠");
+  });
+
+  it("TicTacToe gegen Computer verloren: Banner + Computer auf Sockel 1, Mensch auf 2", () => {
+    const r = room({
+      phase: "results",
+      selectedGameId: "tictactoe",
+      players: [player("a")],
+      gamePlayerIds: ["a"],
+      results: {
+        gameId: "tictactoe",
+        ranking: [{ playerId: "a", score: 0, rank: 2 }],
+        data: { winnerId: "bot", bot: { difficulty: "mittel", mark: "O" }, players: [{ playerId: "a", name: "A", mark: "X", left: false }] },
+      },
+    });
+    const { el } = mount(<Results room={r} catalog={[ttt]} />);
+    expect(q(el, "bot-wins")?.textContent).toContain("Der Computer gewinnt");
+    expect(q(el, "podium-bot")?.className).toContain("place-1");
+    const row = q(el, "result-row")!;
+    expect(row.className).toContain("place-2");
+    expect(row.dataset.rank).toBe("2");
+    expect(el.querySelectorAll(".podium-place")).toHaveLength(2);
+  });
+
+  it("ohne Computer-Sieg kein Banner; gegangene Spieler mit Namen aus data", () => {
+    const r = room({
+      phase: "results",
+      selectedGameId: "tictactoe",
+      players: [player("a")],
+      gamePlayerIds: ["a", "b"],
+      results: {
+        gameId: "tictactoe",
+        ranking: [{ playerId: "a", score: 1, rank: 1 }, { playerId: "b", score: 0, rank: 2 }],
+        data: { winnerId: "a", bot: null, players: [{ playerId: "b", name: "Bea", mark: "O", left: true }] },
+      },
+    });
+    const { el } = mount(<Results room={r} catalog={[ttt]} />);
+    expect(q(el, "bot-wins")).toBeNull();
+    expect(el.querySelector('[data-player-id="b"] .podium-name')?.textContent).toBe("Bea");
+  });
 });

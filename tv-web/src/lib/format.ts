@@ -1,5 +1,4 @@
 // Reine Formatierungs-Helfer (ohne DOM), getestet in test/format.test.ts.
-import type { AvatarId } from "@couchplay/protocol/constants";
 
 /** "042137" → ["042", "137"] (3+3 gruppiert, führende Nullen bleiben). */
 export function splitRoomCode(code: string): [string, string] {
@@ -29,33 +28,15 @@ export function fallbackJoinUrl(origin: string, code: string): string {
   return `${origin.replace(/\/+$/, "")}/j/${code}`;
 }
 
-const AVATAR_EMOJI: Record<AvatarId, string> = {
-  fuchs: "🦊",
-  katze: "🐱",
-  hund: "🐶",
-  panda: "🐼",
-  eule: "🦉",
-  frosch: "🐸",
-  tiger: "🐯",
-  einhorn: "🦄",
-  pinguin: "🐧",
-  krake: "🐙",
-  roboter: "🤖",
-  alien: "👽",
-};
+// Avatar-Darstellung ist zentral im Protokoll-Paket definiert (zod-frei).
+export { avatarEmoji } from "@couchplay/protocol/constants";
 
-export function avatarEmoji(avatar: string): string {
-  return (AVATAR_EMOJI as Record<string, string>)[avatar] ?? "🙂";
-}
+/** Fallback-Icon für Spiele ohne `icon` im Manifest. */
+export const DEFAULT_GAME_ICON = "🎮";
 
-/** Icon je Spiel-ID. Das Manifest hat (noch) kein Icon-Feld → Zuordnung hier, Fallback Gamepad. */
-const GAME_ICONS: Record<string, string> = {
-  quiz: "🧠",
-  tictactoe: "⭕",
-};
-
-export function gameIcon(gameId: string): string {
-  return GAME_ICONS[gameId] ?? "🎮";
+/** Icon eines Spiels aus dem Manifest (Emoji/Text, nur als Text rendern). */
+export function gameIcon(game: { icon?: string | undefined } | null | undefined): string {
+  return game?.icon || DEFAULT_GAME_ICON;
 }
 
 /** CSS-Variable der Spielerfarbe 0..7. */

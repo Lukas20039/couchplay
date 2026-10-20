@@ -2,7 +2,8 @@
 # CouchPlay – Game-Server inkl. TV-Web-UI (/tv/) und Controller-PWA (/).
 # Multi-Stage: build (alle Workspaces) → deps (nur Produktions-Abhängigkeiten des Servers) → runtime.
 
-ARG NODE_IMAGE=node:22-alpine
+# Base-Image per Digest gepinnt (reproduzierbar); Aktualisierung über Renovate/Dependabot.
+ARG NODE_IMAGE=node:22-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
 
 # ---------------------------------------------------------------------------
 # 1) Build: alle Workspaces installieren und bauen
@@ -24,10 +25,12 @@ RUN --mount=type=cache,target=/root/.npm \
     npm ci --include=dev --no-audit --no-fund
 
 COPY . .
+# Source Maps der Frontends nicht ausliefern (die Server-Map bleibt intern für Stacktraces).
 RUN npm run build \
  && test -f server/dist/index.js \
  && test -f tv-web/dist/index.html \
- && test -f controller-pwa/dist/index.html
+ && test -f controller-pwa/dist/index.html \
+ && find tv-web/dist controller-pwa/dist -name '*.map' -delete
 
 # ---------------------------------------------------------------------------
 # 2) Produktions-Abhängigkeiten des Server-Bundles (fastify, ws, zod, …)

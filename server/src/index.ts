@@ -3,7 +3,14 @@
 import { buildApp } from "./app.js";
 import { loadConfig } from "./config.js";
 
-const config = loadConfig();
+let config: ReturnType<typeof loadConfig>;
+try {
+  config = loadConfig();
+} catch (err) {
+  // Klare Meldung statt Stacktrace (Docker-Logs).
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+}
 const app = await buildApp(config);
 
 let stopping = false;

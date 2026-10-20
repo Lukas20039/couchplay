@@ -50,7 +50,19 @@ const hasIndex = (dir: string): boolean => existsSync(resolve(dir, "index.html")
 /** Letztes Pfadsegment ohne Punkt → Navigations-Request (SPA-Fallback), sonst echte Datei. */
 const looksLikeRoute = (path: string): boolean => !(path.split("/").pop() ?? "").includes(".");
 
-export async function registerStatic(app: FastifyInstance, dirs: StaticDirs): Promise<void> {
+export async function registerStatic(
+  app: FastifyInstance,
+  dirs: StaticDirs,
+  opts: { serveSourceMaps?: boolean } = {},
+): Promise<void> {
+  // Source Maps nur im Dev-Modus ausliefern (Produktion: 404).
+  if (!opts.serveSourceMaps) {
+    app.addHook("onRequest", async (req, reply) => {
+      if ((req.url.split("?")[0] ?? "").endsWith(".map")) {
+        return reply.code(404).header("Cache-Control", "no-store").send({ error: "not_found" });
+      }
+    });
+  }
   const tvOk = hasIndex(dirs.tv);
   const controllerOk = hasIndex(dirs.controller);
   if (!tvOk) app.log.warn({ dir: dirs.tv }, "tv-web ist nicht gebaut – /tv/ liefert 503");

@@ -19,10 +19,8 @@ const client = new TvClient({ url: wsUrlFromLocation(location), dispatch: store.
 tvNav.install(window);
 client.start();
 
-// Netz wieder da / App wieder sichtbar → nicht auf den Backoff warten.
-const wake = (): void => {
-  if (client.waiting()) client.retryNow();
-};
+// Netz wieder da / App wieder sichtbar → aktiv prüfen statt auf Backoff/Heartbeat zu warten.
+const wake = (): void => client.probe();
 window.addEventListener("online", wake);
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") wake();

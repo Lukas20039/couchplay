@@ -211,8 +211,32 @@ describe("Verbindung", () => {
     expect(tv(h)).toMatchObject({ phase: "over", outcome: { kind: "win", mark: "O", forfeit: true } });
     expect(h.lastView("p2")).toMatchObject({ result: "win", forfeit: true });
     h.advance(END_DELAY_MS);
-    expect(h.results?.ranking).toEqual([{ playerId: "p2", score: 1, rank: 1 }]);
-    expect(h.results?.data).toMatchObject({ winnerId: "p2", series: { games: 1, wins: { p2: 1 } } });
+    // Wer gegangen ist, bleibt im Ranking (Verlierer) und ist in data.players markiert.
+    expect(h.results?.ranking).toEqual([
+      { playerId: "p1", score: 0, rank: 2 },
+      { playerId: "p2", score: 1, rank: 1 },
+    ]);
+    expect(h.results?.data).toMatchObject({
+      winnerId: "p2",
+      series: { games: 1, wins: { p2: 1 } },
+      players: [
+        { playerId: "p1", mark: "X", left: true },
+        { playerId: "p2", mark: "O", left: false },
+      ],
+      bot: null,
+    });
+  });
+
+  it("Sieger geht im Ergebnisfenster: bleibt Platz 1", () => {
+    const h = pvp();
+    playPvp(h, [4, 0, 2, 1, 6]);
+    h.leave("p1");
+    h.advance(END_DELAY_MS);
+    expect(h.results?.ranking).toEqual([
+      { playerId: "p1", score: 1, rank: 1 },
+      { playerId: "p2", score: 0, rank: 2 },
+    ]);
+    expect((h.results?.data as TicTacToeResultData).players[0]).toMatchObject({ playerId: "p1", left: true });
   });
 
   it("Leave gegen den Computer beendet die Runde", () => {
@@ -220,7 +244,45 @@ describe("Verbindung", () => {
     h.leave("p1");
     expect(tv(h).outcome).toEqual({ kind: "win", mark: "O", forfeit: true });
     h.advance(END_DELAY_MS);
-    expect(h.results?.ranking).toEqual([]);
+    // Mensch bleibt im Ranking (Platz 2), der Computer steht nur in data.
+    expect(h.results?.ranking).toEqual([{ playerId: "p1", score: 0, rank: 2 }]);
+    expect(h.results?.data).toMatchObject({
+      winnerId: "bot",
+      bot: { difficulty: "mittel", mark: "O" },
+      players: [{ playerId: "p1", left: true }],
+    });
+  });
+});
+
+describe("Ranking gegen den Computer", () => {
+  /** Spielt gegen den Computer, bis die Partie entschieden ist (Mensch nimmt das erste freie Feld). */
+  function playOut(difficulty: Difficulty, seed: number): H {
+    const h = vsBot(difficulty, { seed });
+    while (tv(h).phase !== "over") {
+      place(h, "p1", tv(h).board.findIndex((c) => c === null));
+      h.advance(BOT_DELAY_MS);
+    }
+    h.advance(END_DELAY_MS);
+    return h;
+  }
+
+  it("Niederlage: Mensch Platz 2, Computer nur in data", () => {
+    const h = playOut("unbesiegbar", 1);
+    expect(h.results?.ranking).toEqual([{ playerId: "p1", score: 0, rank: 2 }]);
+    expect(h.results?.data).toMatchObject({ winnerId: "bot", bot: { difficulty: "unbesiegbar" }, series: { wins: { bot: 1 } } });
+  });
+
+  it("Sieg oder Remis: Mensch Platz 1", () => {
+    // Erster Seed, mit dem die einfache Strategie gegen „leicht“ nicht verliert.
+    for (let seed = 1; seed < 50; seed++) {
+      const r = playOut("leicht", seed);
+      const data = r.results?.data as TicTacToeResultData;
+      if (data.winnerId === "p1" || data.outcome.kind === "draw") {
+        expect(r.results?.ranking).toEqual([{ playerId: "p1", score: data.winnerId === "p1" ? 1 : 0, rank: 1 }]);
+        return;
+      }
+    }
+    expect.unreachable("kein Sieg/Remis gegen „leicht“ gefunden");
   });
 });
 

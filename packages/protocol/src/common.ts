@@ -181,6 +181,8 @@ export const GameManifestSchema = z
     /** true = Spiel stellt selbst Bot-Gegner, wenn Menschen fehlen (z. B. TicTacToe 1 Spieler). */
     botSupport: z.boolean(),
     settings: z.array(SettingFieldSchema),
+    /** Icon für die Katalog-Kachel: Emoji, wird nur als Text gerendert (nie als HTML). */
+    icon: z.string().min(1).max(16).optional(),
     /** Akzentfarbe für Katalog-Kachel (#rrggbb). */
     accentColor: z
       .string()

@@ -1,5 +1,9 @@
-# Android-TV-APK bauen. Mit Signatur-Secrets: assembleRelease (signiert), sonst assembleDebug.
-# Server-URL als Build-Default: Repository-Variable COUCHPLAY_SERVER_URL.
+# Android-TV-APK bauen.
+# - Tag v*: signierte Release-APK (assembleRelease). Fehlen Signatur-Secrets, schlägt der Job fehl
+#   (nie eine Debug-APK im Release – wechselnder Debug-Key verhindert Updates).
+# - workflow_dispatch ohne Secrets: Debug-APK nur als Workflow-Artifact.
+# Sicherheit: Secrets nur im Build-Schritt; Build-Job nur lesend; Release-Upload in eigenem Job
+# (contents: write) ohne Dritt-Actions. Actions auf Commit-SHA gepinnt (Kommentar = Version).
 name: APK
 
 on:
@@ -8,92 +12,153 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: apk-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  apk:
-    name: Android-TV-APK
+  build:
+    name: Android-TV-APK bauen
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    env:
-      # Signatur: Gradle liest diese ENV-Variablen (gleiche Namen wie die Secrets).
-      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-      COUCHPLAY_SERVER_URL: ${{ vars.COUCHPLAY_SERVER_URL }}
+    permissions:
+      contents: read
+    outputs:
+      variant: ${{ steps.variant.outputs.dir }}
+      apk-name: ${{ steps.apk.outputs.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
 
       - name: Node 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
 
       - name: Gradle einrichten (Cache)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
 
-      - name: Build-Variante bestimmen
+      - name: Build-Variante und Version bestimmen
         id: variant
+        env:
+          # Nur ein Wahrheitswert, nicht die Secrets selbst.
+          HAS_SIGNING: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+          IS_TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ] \
-             && [ -n "$ANDROID_KEY_ALIAS" ] && [ -n "$ANDROID_KEY_PASSWORD" ]; then
-            # Zusätzlich als Datei bereitstellen (falls Gradle einen Pfad bevorzugt).
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/couchplay-release.jks"
-            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/couchplay-release.jks" >> "$GITHUB_ENV"
+          if [ "$HAS_SIGNING" = "true" ]; then
             echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
             echo "dir=release" >> "$GITHUB_OUTPUT"
+          elif [ "$IS_TAG" = "true" ]; then
+            echo "::error::Tag-Build ohne Signatur-Secrets (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD). Release-APKs müssen signiert sein – Secrets setzen und Tag neu bauen."
+            exit 1
           else
-            echo "::warning::Keine Signatur-Secrets gesetzt – baue unsignierte Debug-APK (assembleDebug)."
+            echo "::warning::Keine Signatur-Secrets – baue Debug-APK (nur als Workflow-Artifact, nicht für Releases)."
             echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
             echo "dir=debug" >> "$GITHUB_OUTPUT"
           fi
+          # Version: Tag v1.2.3[-rc.1] → versionName 1.2.3[-rc.1], versionCode = 1_000_000*major + 1_000*minor + patch.
+          if [ "$IS_TAG" = "true" ]; then
+            name="${GITHUB_REF_NAME#v}"
+            core="${name%%-*}"
+            IFS=. read -r major minor patch <<< "$core"
+            if ! [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ && "$patch" =~ ^[0-9]+$ ]] || [ "$minor" -ge 1000 ] || [ "$patch" -ge 1000 ]; then
+              echo "::error::Tag $GITHUB_REF_NAME ist keine Version vX.Y.Z (Y, Z < 1000)."
+              exit 1
+            fi
+            code=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+          else
+            name="0.0.0-dev.${GITHUB_RUN_NUMBER}"
+            code="${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version-name=$name" >> "$GITHUB_OUTPUT"
+          echo "version-code=$code" >> "$GITHUB_OUTPUT"
 
       - name: APK bauen
         working-directory: android-tv
+        env:
+          # Secrets ausschließlich in diesem Schritt.
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          COUCHPLAY_SERVER_URL: ${{ vars.COUCHPLAY_SERVER_URL }}
+          TASK: ${{ steps.variant.outputs.task }}
+          VERSION_NAME: ${{ steps.variant.outputs.version-name }}
+          VERSION_CODE: ${{ steps.variant.outputs.version-code }}
         run: |
+          set -euo pipefail
+          keystore="$RUNNER_TEMP/couchplay-release.jks"
+          trap 'rm -f "$keystore"' EXIT
+          if [ "$TASK" = "assembleRelease" ]; then
+            # Gradle liest nur ANDROID_KEYSTORE_FILE + Passwörter/Alias (Datei außerhalb von Repo/build).
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$keystore"
+            export ANDROID_KEYSTORE_FILE="$keystore"
+          fi
+          unset ANDROID_KEYSTORE_BASE64
           chmod +x ./gradlew
-          args=(":app:${{ steps.variant.outputs.task }}" --no-daemon)
+          args=(":app:${TASK}" --no-daemon
+            "-Pcouchplay.versionName=${VERSION_NAME}"
+            "-Pcouchplay.versionCode=${VERSION_CODE}")
           # Ohne Repository-Variable gilt der Default aus dem Gradle-Projekt.
-          if [ -n "$COUCHPLAY_SERVER_URL" ]; then args+=("-Pcouchplay.serverUrl=${COUCHPLAY_SERVER_URL}"); fi
+          if [ -n "${COUCHPLAY_SERVER_URL}" ]; then args+=("-Pcouchplay.serverUrl=${COUCHPLAY_SERVER_URL}"); fi
           ./gradlew "${args[@]}"
 
       - name: APK umbenennen
         id: apk
+        env:
+          DIR: ${{ steps.variant.outputs.dir }}
+          VERSION_NAME: ${{ steps.variant.outputs.version-name }}
         run: |
-          src=$(find android-tv/app/build/outputs/apk/${{ steps.variant.outputs.dir }} -name '*.apk' | head -n 1)
+          src=$(find "android-tv/app/build/outputs/apk/$DIR" -name '*.apk' | head -n 1)
           if [ -z "$src" ]; then echo "::error::Keine APK gefunden"; exit 1; fi
-          name="couchplay-tv-${GITHUB_REF_NAME//\//-}-${{ steps.variant.outputs.dir }}.apk"
-          cp "$src" "$RUNNER_TEMP/$name"
-          echo "path=$RUNNER_TEMP/$name" >> "$GITHUB_OUTPUT"
+          name="couchplay-tv-${VERSION_NAME}-${DIR}.apk"
+          mkdir -p "$RUNNER_TEMP/apk"
+          cp "$src" "$RUNNER_TEMP/apk/$name"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
 
       - name: APK als Artifact hochladen
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: couchplay-tv-apk
-          path: ${{ steps.apk.outputs.path }}
+          path: ${{ runner.temp }}/apk/
           if-no-files-found: error
 
-      - name: An GitHub-Release hängen
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+  release:
+    name: An GitHub-Release hängen
+    needs: build
+    # Nur signierte Release-APKs aus Tag-Builds.
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build.outputs.variant == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: APK herunterladen
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          files: ${{ steps.apk.outputs.path }}
-          fail_on_unmatched_files: true
+          name: couchplay-tv-apk
+          path: apk
 
-      - name: Keystore entfernen
-        if: always()
-        run: rm -f "$RUNNER_TEMP/couchplay-release.jks"
+      - name: Release anlegen bzw. APK hochladen (gh CLI)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          APK: apk/${{ needs.build.outputs.apk-name }}
+        run: |
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --verify-tag --generate-notes --title "$TAG"
+          fi
+          gh release upload "$TAG" "$APK" --clobber

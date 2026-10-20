@@ -68,7 +68,11 @@ export const TV_CSS = /* css */ `
   background: var(--c);
   animation: ttt-pulse 1.4s ease-in-out infinite;
 }
-.ttt-status--paused { color: #ffd23f; }
+.ttt-status--paused { color: var(--ttt-dim); }
+.ttt-pause i { display: inline-block; width: 1.3rem; height: 4.2rem; margin: 0 0.6rem; border-radius: 0.5rem; background: currentColor; }
+/* Pause: Brett gedimmt, Karten neutral */
+.ttt-board { transition: opacity 0.4s; }
+.ttt-tv--paused .ttt-board { opacity: 0.35; }
 .ttt-banner {
   padding: 0 3.6rem;
   border-radius: 3.2rem;
@@ -117,7 +121,6 @@ export const TV_CSS = /* css */ `
   font-size: 3.2rem; font-weight: 800; letter-spacing: -0.01em;
 }
 .ttt-card__sub { height: 2.4rem; margin-top: 0.4rem !important; font-size: 1.7rem; color: var(--ttt-dim); }
-.ttt-card.is-offline .ttt-card__sub { color: #ffd23f; }
 .ttt-card__mark { width: 6.4rem; height: 6.4rem; margin: 1rem 0 0.6rem; color: var(--c); }
 .ttt-card__wins { display: flex; align-items: baseline; justify-content: center; }
 .ttt-card__num { font-size: 6rem; font-weight: 900; line-height: 1; margin-right: 1rem; }

@@ -19,7 +19,7 @@ Lokal bauen und starten:
 ```bash
 docker build -t couchplay:dev .
 docker run --rm -p 8080:8080 -e PUBLIC_URL=http://192.168.1.10:8080 couchplay:dev
-curl http://localhost:8080/healthz      # {"ok":true,...}
+curl http://localhost:8080/healthz      # {"ok":true}
 ```
 
 ## Umgebungsvariablen
@@ -29,10 +29,11 @@ curl http://localhost:8080/healthz      # {"ok":true,...}
 | `PUBLIC_URL` | *(leer)* | Öffentliche Basis-URL, z. B. `https://play.example.org`. Daraus entstehen Join-Links und QR-Codes (`${PUBLIC_URL}/j/<code>`). Leer: wird pro Raum aus dem Request des TVs abgeleitet (`Host` bzw. `X-Forwarded-Host`/`-Proto` bei vertrauenswürdigem Proxy). Für Produktion **setzen**. |
 | `PORT` | `8080` | HTTP-Port im Container. |
 | `HOST` | `0.0.0.0` | Bind-Adresse. |
-| `TRUST_PROXY` | `false` | `X-Forwarded-*` vertrauen: `true`, Anzahl Proxy-Hops (z. B. `1`) oder kommagetrennte IPs/CIDRs (`10.0.0.0/8,172.16.0.0/12`). Nötig, damit die Rate-Limits pro Client-IP greifen und nicht pro Proxy. |
+| `TRUST_PROXY` | `false` | Wem `X-Forwarded-For/-Proto/-Host` geglaubt wird: **Anzahl Proxy-Hops** (z. B. `1` bei genau einem Reverse-Proxy) oder **kommagetrennte Proxy-IPs/CIDRs** (`172.18.0.0/16`, `10.0.0.5`; auch `loopback`, `uniquelocal`). `true` ist in Produktion **nicht erlaubt** (Start bricht ab): Jeder Client könnte seine IP per `X-Forwarded-For` fälschen und alle Limits umgehen. Hinter einem Proxy **muss** der Wert gesetzt sein, sonst teilen sich alle Nutzer die Limits der Proxy-IP (der Server warnt einmalig im Log, wenn bei `false` `X-Forwarded-For` ankommt). |
 | `LOG_LEVEL` | `info` | `fatal`, `error`, `warn`, `info`, `debug`, `trace`, `silent`. Logs sind JSON (pino), mit Feld `room` pro Raum. |
 | `ALLOWED_ORIGINS` | *(leer)* | Zusätzliche erlaubte Origins für das WebSocket-Upgrade (kommagetrennt, `*` = alle). Immer erlaubt: gleiche Origin wie der aufgerufene Host, Origin von `PUBLIC_URL`, Clients ohne `Origin`-Header. |
-| `NODE_ENV` | `production` (im Image) | Außerhalb von `production` (Dev-Modus) ist jede WS-Origin erlaubt. |
+| `METRICS_TOKEN` | *(leer)* | Optional (≥ 16 Zeichen). `/healthz` liefert öffentlich nur `{"ok":true}`; mit `Authorization: Bearer <METRICS_TOKEN>` zusätzlich `rooms` und `connections`. |
+| `NODE_ENV` | `production` (im Image) | Außerhalb von `production` (Dev-Modus) ist jede WS-Origin erlaubt, `TRUST_PROXY=true` nur mit Warnung möglich und Source Maps werden ausgeliefert. |
 
 Ungültige Werte führen beim Start zu einer klaren Fehlermeldung (zod-Validierung).
 
@@ -43,7 +44,11 @@ Ungültige Werte führen beim Start zu einer klaren Fehlermeldung (zod-Validieru
 - Der Server selbst spricht nur HTTP. TLS übernimmt ein Reverse-Proxy davor.
 - Der Proxy muss **WebSocket-Upgrades** auf `/ws` durchreichen und lange Verbindungen
   erlauben (Server-Heartbeat alle 15 s, Timeout ≥ 60 s genügt).
-- `TRUST_PROXY` passend setzen (bei genau einem Proxy: `1`).
+- `TRUST_PROXY` passend setzen (bei genau einem Proxy: `1`, oder die Proxy-IP/CIDR).
+- **Den App-Port nie direkt ins Internet exponieren**, wenn `TRUST_PROXY` gesetzt ist: Wer Port 8080
+  direkt erreicht, gilt sonst selbst als „Proxy" und kann `X-Forwarded-For` fälschen. Im Compose-Beispiel
+  ist 8080 nur intern (`expose`), mit `ports:` höchstens an `127.0.0.1` binden.
+- HSTS setzt der Reverse-Proxy (z. B. Caddy automatisch, nginx `add_header Strict-Transport-Security …`).
 - Die Android-TV-App lädt `${Server-URL}/tv/` – dieselbe Origin wie der WebSocket.
   Server-URL in der App = `PUBLIC_URL`.
 
@@ -130,9 +135,22 @@ iOS-PWA-Installation und Service Worker stehen dann nicht zur Verfügung.
 
 - Sicherheitsheader: CSP (nur eigene Skripte, `ws:`/`wss:` zur selben Origin),
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `frame-ancestors 'none'`.
-- Rate-Limits pro Client-IP: Join-/Rejoin-/Resume-Versuche 10 (+10/min), Raumerstellung 5 (+5/min),
-  32 gleichzeitige Verbindungen; pro Verbindung 40 Nachrichten (+20/s). Max. 1000 Räume,
-  Nachrichten ≤ 16 KiB. Räume schließen nach 2 h ohne Aktivität.
+- IP-basierte Limits gelten pro IPv4-Adresse bzw. pro **IPv6-/64** (ein Anschluss = ein Schlüssel):
+  Join-/Rejoin-/Resume-Versuche 60 (+60/min, nur gegen Missbrauch – ein Haushalt mit 8 Handys und
+  Reconnects stößt nie an), Raumerstellung 5 (+5/min), **max. 5 gleichzeitig offene
+  Räume**, 32 gleichzeitige Verbindungen; pro Verbindung 40 Nachrichten (+20/s), `player.update` 3 (+1/s).
+- Code-Raten: Bestraft werden nur Fehlversuche (falscher Code/Token). 5 pro Minute und IP sind frei
+  (Tippfehler), danach exponentieller Backoff (1 s, 2 s, 4 s … max. 5 min). Häufen sich Fehlversuche
+  serverweit (> 100, +2/s), werden IPs über dem Freikontingent für 60 s komplett abgewiesen
+  (`RATE_LIMITED`). Erfolgreiche Beitritte und Reconnects mit gültigem Token kosten nichts.
+- Räume schließen nach 2 h ohne Aktivität (`ping` zählt nicht) und nach **10 min ohne verbundenen
+  Client** (kein TV, kein Spieler). Max. 1000 Räume, Nachrichten ≤ 16 KiB.
+- Backpressure: Liest ein Client nicht mehr (Sendepuffer > 1 MiB), wird die Verbindung getrennt;
+  `room.state` wird pro Raum auf höchstens ein Paket je 50 ms zusammengefasst. Lebenszeichen zählen nur
+  über WebSocket-Pong.
+- Kick: Ein gekickter Spieler wird für die Lebensdauer des Raums gesperrt (Sitzung + IP; IP nur, wenn
+  sie nicht die des TVs ist – sonst wäre das ganze Heim-WLAN gesperrt).
+- Source Maps der Frontends sind nicht im Image; `*.map` liefert in Produktion 404.
 - Cache: `index.html`, Service Worker und `*.webmanifest` mit `no-cache`, gehashte Assets
   unter `/assets/` mit `immutable` (1 Jahr) – ein CDN/Proxy darf das übernehmen.
 

@@ -1,5 +1,5 @@
 // Abgeleitete Werte für die Lobby (rein, getestet in test/selectors.test.ts).
-import type { GameManifest, Player, RoomState } from "@couchplay/protocol";
+import type { GameManifest, GameResults, Player, RoomState } from "@couchplay/protocol";
 
 export type StartCheck =
   /** Kein Spiel gewählt. */
@@ -73,4 +73,28 @@ export function rematchPlayerIds(room: RoomState): string[] | undefined {
 export function disconnectedParticipants(room: RoomState | null): Player[] {
   if (!room || room.phase !== "game") return [];
   return room.players.filter((p) => !p.connected && room.gamePlayerIds.includes(p.id));
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Hat ein Computer-Gegner gewonnen? Erkennung über `results.data` (Konvention aus
+ * games/tictactoe: `winnerId === "bot"` und `bot`-Objekt). Generisch, solange das
+ * Protokoll kein eigenes Feld dafür hat.
+ */
+export function botWon(results: GameResults | null | undefined): boolean {
+  const data = results?.data;
+  return isRecord(data) && data.winnerId === "bot" && isRecord(data.bot);
+}
+
+/** Name eines (inzwischen gegangenen) Spielers aus `results.data.players[]`, falls das Spiel ihn mitliefert. */
+export function dataPlayerName(results: GameResults | null | undefined, playerId: string): string | null {
+  const data = results?.data;
+  if (!isRecord(data) || !Array.isArray(data.players)) return null;
+  for (const p of data.players) {
+    if (isRecord(p) && p.playerId === playerId && typeof p.name === "string" && p.name) return p.name;
+  }
+  return null;
 }

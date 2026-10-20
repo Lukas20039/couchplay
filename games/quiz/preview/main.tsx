@@ -24,6 +24,10 @@ if (tvKey !== null || !params.has("pad")) {
   const state = TV_SAMPLES[tvKey ?? "question"];
   if (state) view.update(state);
 } else {
+  // Rahmen wie controller-pwa: SelfBar oben, darunter die Stage, deren Inhalt die Spiel-View füllt.
+  document.documentElement.classList.add("pad");
+  el.innerHTML = `<main class="screen"><div class="selfbar">🐼 Chiara</div><section class="stage"><div class="stage__view"></div></section></main>`;
+  const host = el.querySelector<HTMLElement>(".stage__view")!;
   const view = controllerFactory();
   const api: ControllerViewApi<QuizInput> = {
     ...base,
@@ -33,7 +37,7 @@ if (tvKey !== null || !params.has("pad")) {
     sendInput: (input) => console.log("sendInput", input),
     vibrate: (p) => console.log("vibrate", p),
   };
-  view.mount(el, api);
+  view.mount(host, api);
   const sample = CONTROLLER_SAMPLES[params.get("pad") ?? "question"];
   if (sample) view.update(sample);
 }
