@@ -1,2 +1,11 @@
-0874a27
-dbd4588
+Herkunft der übernommenen Agent- und Skill-Dateien
+
+.claude/agents/*.md
+  Quelle: https://github.com/wshobson/agents (Commit 0874a27)
+  Lizenz: MIT, Copyright (c) 2024 Seth Hobson — siehe .claude/agents/LICENSE
+  Änderung: nur das Frontmatter-Feld `name` vereinfacht.
+
+.claude/skills/webapp-testing, .claude/skills/frontend-design
+  Quelle: https://github.com/anthropics/skills (Commit dbd4588)
+  Lizenz: Apache 2.0 — siehe LICENSE.txt im jeweiligen Ordner
+  Unverändert.
