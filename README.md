@@ -17,3 +17,9 @@ npm start                   # http://localhost:8080  (TV: /tv/, Handy: /)
 Entwicklung: `npm run dev` (Server, Port 8080), `npm run dev:tv` (5173), `npm run dev:controller` (5174).
 
 ENV: `PUBLIC_URL`, `PORT`, `TRUST_PROXY`, `LOG_LEVEL`.
+
+## Lizenz
+
+[MIT](LICENSE) © 2026 Lukas Grundtner. Übernommene Agent- und Skill-Dateien unter
+`.claude/` stehen unter ihren eigenen Lizenzen (MIT bzw. Apache 2.0), siehe
+`.claude/SOURCES.txt`.
