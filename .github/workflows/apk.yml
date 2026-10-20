@@ -27,7 +27,6 @@ jobs:
       contents: read
     outputs:
       variant: ${{ steps.variant.outputs.dir }}
-      apk-name: ${{ steps.apk.outputs.name }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -159,9 +158,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-          APK: apk/${{ needs.build.outputs.apk-name }}
         run: |
           set -euo pipefail
+          # Dateinamen selbst ermitteln: Job-Outputs, die einem Secret-Wert ähneln, verwirft GitHub.
+          APK=$(find apk -maxdepth 1 -name '*.apk' | head -n 1)
+          if [ -z "$APK" ]; then echo "::error::Keine APK im Artifact"; exit 1; fi
           (cd apk && sha256sum "$(basename "$APK")" > "$(basename "$APK").sha256")
           if ! gh release view "$TAG" > /dev/null 2>&1; then
             image="ghcr.io/${GH_REPO,,}"
