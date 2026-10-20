@@ -56,3 +56,14 @@ Artefakte: `.jait/shots/emulator/`, `.jait/artifacts/emulator-e2e.mp4` (screenre
 Report `.jait/artifacts/emulator-report/`, Logs `.jait/artifacts/emulator-logs/`.
 Umgebung: `ANDROID_HOME` (Default `/home/hermes/Android/Sdk`), `ANDROID_USER_HOME` (Default `/home/hermes/.android`),
 `EMULATOR_AVD`, `EMULATOR_PORT` (5584), `EMULATOR_CDP_PORT` (9222).
+
+### Fehlerbehebung Emulator
+
+- **APK-Installation hängt oder schlägt ohne Meldung fehl:** Meist liegt noch eine
+  ältere App-Version mit anderer Debug-Signatur im AVD (z. B. aus einem anderen
+  HOME gebaut). AVD einmal zurücksetzen und danach die Suite erneut starten:
+  `$ANDROID_HOME/emulator/emulator -avd couchplay_tv -no-window -wipe-data`,
+  nach dem Boot mit `adb emu kill` beenden.
+- **Sehr langsamer Boot / Timeouts:** Der Emulator rendert per Software
+  (swiftshader) und braucht ~2 GB RAM. Währenddessen keine anderen schweren
+  Prozesse (Builds, weitere Emulatoren) laufen lassen.
