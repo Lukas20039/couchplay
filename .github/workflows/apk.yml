@@ -41,6 +41,9 @@ jobs:
 
       - name: Android SDK
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        with:
+          # Default „tools platform-tools“ scheitert: das Paket „tools“ gibt es nicht mehr.
+          packages: "platform-tools platforms;android-35 build-tools;35.0.0"
 
       - name: Node 22
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
