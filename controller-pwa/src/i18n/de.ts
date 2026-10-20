@@ -1,0 +1,30 @@
+// ALLE UI-Texte der Controller-App (Deutsch). Keine Texte direkt in Komponenten schreiben.
+// Spätere Sprachen: gleiche Struktur in en.ts, Auswahl in i18n/index.ts.
+export const de = {
+  appName: "CouchPlay",
+  loading: "Lade …",
+  placeholder: "Controller folgt (Phase 2).",
+  errors: {
+    BAD_MESSAGE: "Ungültige Nachricht.",
+    MESSAGE_TOO_LARGE: "Nachricht zu groß.",
+    VERSION_MISMATCH: "Bitte App aktualisieren.",
+    NOT_IN_ROOM: "Keine Verbindung zum Raum.",
+    ALREADY_IN_ROOM: "Bereits in einem Raum.",
+    ROOM_NOT_FOUND: "Raum nicht gefunden.",
+    ROOM_FULL: "Der Raum ist voll.",
+    SERVER_FULL: "Server ausgelastet. Bitte später erneut versuchen.",
+    NAME_INVALID: "Ungültiger Name.",
+    NAME_TAKEN: "Name schon vergeben.",
+    TOKEN_INVALID: "Sitzung abgelaufen.",
+    RATE_LIMITED: "Zu viele Versuche. Bitte kurz warten.",
+    NOT_ALLOWED: "Nicht erlaubt.",
+    INVALID_PHASE: "Gerade nicht möglich.",
+    GAME_NOT_FOUND: "Spiel nicht gefunden.",
+    NO_GAME_SELECTED: "Bitte zuerst ein Spiel wählen.",
+    PLAYER_COUNT: "Falsche Spieleranzahl für dieses Spiel.",
+    INVALID_SETTINGS: "Ungültige Einstellungen.",
+    INVALID_INPUT: "Ungültige Eingabe.",
+    PLAYER_NOT_FOUND: "Spieler nicht gefunden.",
+    INTERNAL: "Interner Fehler.",
+  },
+} as const;

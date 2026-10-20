@@ -1,0 +1,24 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vite/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+# Android
+android-tv/.gradle/
+android-tv/build/
+android-tv/app/build/
+android-tv/local.properties
+android-tv/.idea/
+*.apk
+*.aab
+*.keystore
+*.jks

@@ -1,0 +1,31 @@
+{
+  "id": "quiz",
+  "name": "Allgemeinwissen-Quiz",
+  "description": "Wer weiß am meisten? Beantwortet Fragen aus 8 Kategorien – schnelle Antworten bringen Bonuspunkte.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#7c4dff",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "geografie", "label": "Geografie" },
+        { "value": "geschichte", "label": "Geschichte" },
+        { "value": "wissenschaft", "label": "Wissenschaft & Natur" },
+        { "value": "sport", "label": "Sport" },
+        { "value": "kultur", "label": "Kunst & Literatur" },
+        { "value": "unterhaltung", "label": "Film & Musik" },
+        { "value": "essen", "label": "Essen & Trinken" },
+        { "value": "technik", "label": "Technik" }
+      ],
+      "default": ["geografie", "geschichte", "wissenschaft", "sport", "kultur", "unterhaltung", "essen", "technik"],
+      "minSelected": 1
+    },
+    { "type": "number", "key": "rounds", "label": "Fragen", "min": 5, "max": 30, "step": 5, "default": 10 },
+    { "type": "number", "key": "answerSeconds", "label": "Antwortzeit (Sekunden)", "min": 10, "max": 30, "step": 5, "default": 20 }
+  ]
+}

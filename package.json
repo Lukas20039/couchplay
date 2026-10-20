@@ -1,0 +1,35 @@
+{
+  "name": "couchplay",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CouchPlay – Android TV als Spielkonsole, Smartphones als Controller",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/protocol",
+    "packages/game-sdk",
+    "games/quiz",
+    "games/tictactoe",
+    "server",
+    "tv-web",
+    "controller-pwa",
+    "e2e"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev": "npm run dev -w @couchplay/server",
+    "dev:tv": "npm run dev -w @couchplay/tv-web",
+    "dev:controller": "npm run dev -w @couchplay/controller-pwa",
+    "start": "npm run start -w @couchplay/server",
+    "test:e2e": "npm run test:e2e -w @couchplay/e2e"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.5"
+  }
+}

@@ -1,0 +1,121 @@
+import { describe, expect, it } from "vitest";
+import {
+  GameManifestSchema,
+  NAME_MAX_LENGTH,
+  RECONNECT_BACKOFF_MAX_MS,
+  buildJoinUrl,
+  defaultSettings,
+  isValidRoomCode,
+  nameKey,
+  normalizeName,
+  parseJoinPath,
+  reconnectDelayMs,
+  sanitizeRoomCodeInput,
+  validateSettings,
+  type SettingField,
+} from "../src/index.js";
+
+const fields: SettingField[] = [
+  { type: "select", key: "difficulty", label: "Stärke", options: [{ value: "leicht", label: "L" }, { value: "schwer", label: "S" }], default: "leicht" },
+  {
+    type: "multiselect",
+    key: "categories",
+    label: "Kategorien",
+    options: [{ value: "a", label: "A" }, { value: "b", label: "B" }, { value: "c", label: "C" }],
+    default: ["a", "b"],
+    minSelected: 1,
+    maxSelected: 2,
+  },
+  { type: "number", key: "rounds", label: "Runden", min: 5, max: 20, step: 5, default: 10 },
+  { type: "toggle", key: "bonus", label: "Bonus", default: true },
+];
+
+describe("Settings", () => {
+  it("liefert Defaults", () => {
+    expect(defaultSettings(fields)).toEqual({ difficulty: "leicht", categories: ["a", "b"], rounds: 10, bonus: true });
+  });
+
+  it("mergt gültige Teil-Updates", () => {
+    const res = validateSettings(fields, { rounds: 15, categories: ["c"] });
+    expect(res).toEqual({ ok: true, settings: { difficulty: "leicht", categories: ["c"], rounds: 15, bonus: true } });
+  });
+
+  it("verwendet base als Ausgangswert", () => {
+    const res = validateSettings(fields, { bonus: false }, { rounds: 20, legacy: "weg" });
+    expect(res).toEqual({ ok: true, settings: { difficulty: "leicht", categories: ["a", "b"], rounds: 20, bonus: false } });
+  });
+
+  it.each([
+    [{ difficulty: "mittel" }],
+    [{ difficulty: 3 }],
+    [{ categories: [] }],
+    [{ categories: ["a", "b", "c"] }],
+    [{ categories: ["a", "a"] }],
+    [{ categories: ["x"] }],
+    [{ rounds: 7 }],
+    [{ rounds: 25 }],
+    [{ rounds: Number.NaN }],
+    [{ bonus: "ja" }],
+    [{ unbekannt: 1 }],
+  ])("lehnt %j ab", (input) => {
+    expect(validateSettings(fields, input as never).ok).toBe(false);
+  });
+});
+
+describe("Manifest", () => {
+  const base = { id: "quiz", name: "Quiz", description: "", version: "1.0.0", minPlayers: 1, maxPlayers: 8, botSupport: false, settings: fields };
+
+  it("akzeptiert gültiges Manifest", () => {
+    expect(GameManifestSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("lehnt min > max, doppelte Keys und zu viele Spieler ab", () => {
+    expect(GameManifestSchema.safeParse({ ...base, minPlayers: 3, maxPlayers: 2 }).success).toBe(false);
+    expect(GameManifestSchema.safeParse({ ...base, maxPlayers: 9 }).success).toBe(false);
+    expect(GameManifestSchema.safeParse({ ...base, settings: [fields[0], fields[0]] }).success).toBe(false);
+  });
+});
+
+describe("Codes und URLs", () => {
+  it("prüft Raumcodes", () => {
+    expect(isValidRoomCode("000123")).toBe(true);
+    expect(isValidRoomCode("12345")).toBe(false);
+    expect(isValidRoomCode("1234567")).toBe(false);
+    expect(sanitizeRoomCodeInput(" 123 4567x")).toBe("123456");
+  });
+
+  it("baut und parst Join-Links", () => {
+    expect(buildJoinUrl("https://play.example.org/", "012345")).toBe("https://play.example.org/j/012345");
+    expect(parseJoinPath("/j/012345")).toBe("012345");
+    expect(parseJoinPath("/j/012345/")).toBe("012345");
+    expect(parseJoinPath("/j/12a456")).toBeNull();
+    expect(parseJoinPath("/tv/")).toBeNull();
+  });
+});
+
+describe("Namen", () => {
+  it("normalisiert Whitespace und Steuerzeichen", () => {
+    expect(normalizeName("  Anna \n  Lena​ ")).toEqual({ ok: true, name: "Anna Lena" });
+    expect(normalizeName("‮evil")).toEqual({ ok: true, name: "evil" });
+  });
+
+  it("prüft Länge in Codepoints", () => {
+    expect(normalizeName("   ")).toEqual({ ok: false, reason: "empty" });
+    expect(normalizeName("😀".repeat(NAME_MAX_LENGTH)).ok).toBe(true);
+    expect(normalizeName("x".repeat(NAME_MAX_LENGTH + 1))).toEqual({ ok: false, reason: "too_long" });
+  });
+
+  it("vergleicht Namen ohne Groß-/Kleinschreibung", () => {
+    expect(nameKey("ANNA")).toBe(nameKey("anna"));
+  });
+});
+
+describe("Reconnect-Backoff", () => {
+  it("wächst exponentiell und ist gedeckelt", () => {
+    const mid = () => 0.5;
+    expect(reconnectDelayMs(0, mid)).toBe(500);
+    expect(reconnectDelayMs(1, mid)).toBe(1000);
+    expect(reconnectDelayMs(20, mid)).toBe(RECONNECT_BACKOFF_MAX_MS);
+    expect(reconnectDelayMs(0, () => 0)).toBe(400);
+  });
+});

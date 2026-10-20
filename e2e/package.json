@@ -1,0 +1,21 @@
+{
+  "name": "@couchplay/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@couchplay/protocol": "0.1.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0",
+    "@types/pngjs": "^6.0.5",
+    "ws": "^8.18.0",
+    "@types/ws": "^8.18.0"
+  }
+}

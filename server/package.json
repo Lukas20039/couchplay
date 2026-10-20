@@ -1,0 +1,29 @@
+{
+  "name": "@couchplay/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CouchPlay Game-Server (Fastify + ws), liefert auch TV-Web und Controller-PWA aus",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "node build.mjs",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@couchplay/game-quiz": "0.1.0",
+    "@couchplay/game-sdk": "0.1.0",
+    "@couchplay/game-tictactoe": "0.1.0",
+    "@couchplay/protocol": "0.1.0",
+    "@fastify/static": "^10.1.0",
+    "fastify": "^5.12.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.23.0"
+  }
+}

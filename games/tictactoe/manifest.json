@@ -1,0 +1,23 @@
+{
+  "id": "tictactoe",
+  "name": "TicTacToe",
+  "description": "Drei in einer Reihe – gegeneinander oder allein gegen den Computer.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 2,
+  "botSupport": true,
+  "accentColor": "#00c2a8",
+  "settings": [
+    {
+      "type": "select",
+      "key": "difficulty",
+      "label": "Computer-Stärke (1 Spieler)",
+      "options": [
+        { "value": "leicht", "label": "Leicht" },
+        { "value": "mittel", "label": "Mittel" },
+        { "value": "unbesiegbar", "label": "Unbesiegbar" }
+      ],
+      "default": "mittel"
+    }
+  ]
+}

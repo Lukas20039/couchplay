@@ -1,0 +1,32 @@
+{
+  "name": "@couchplay/game-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spielmodul-Schnittstelle (Server + Client), Laufzeit, RNG, Test-Harness",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./preact": "./src/preact.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@couchplay/protocol": "0.1.0",
+    "zod": "^4.1.0"
+  },
+  "peerDependencies": {
+    "preact": "^10.29.0"
+  },
+  "peerDependenciesMeta": {
+    "preact": { "optional": true }
+  },
+  "devDependencies": {
+    "happy-dom": "^21.0.0",
+    "preact": "^10.29.0"
+  }
+}
