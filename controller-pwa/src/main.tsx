@@ -7,7 +7,8 @@ import "./styles.css";
 // iOS ignoriert user-scalable=no: Pinch-Zoom per Gesture-Events unterbinden.
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 
+const app = createApp();
 const root = document.getElementById("app");
-if (root) render(<App app={createApp()} />, root);
+if (root) render(<App app={app} />, root);
 
-if (import.meta.env.PROD) registerServiceWorker();
+if (import.meta.env.PROD) registerServiceWorker(app.store);

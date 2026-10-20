@@ -1,13 +1,13 @@
 // Startseite: Code-Eingabe → Name + Avatar → room.join.
-import { AVATAR_IDS, NAME_MAX_LENGTH, type AvatarId } from "@couchplay/protocol/constants";
+import { AVATAR_EMOJI, AVATAR_IDS, NAME_MAX_LENGTH, type AvatarId } from "@couchplay/protocol/constants";
 import { normalizeName } from "@couchplay/protocol/util";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { AVATAR_EMOJI } from "../avatars.js";
 import { Brand } from "../components/common.js";
 import { InstallHint } from "../components/InstallHint.js";
 import { useApp, useAppState } from "../hooks.js";
 import { errorText, t } from "../i18n/index.js";
 import { activeCell, codeCells, isCodeComplete, nextCode } from "../lib/codeInput.js";
+import { suggestName } from "../lib/names.js";
 import { loadProfile } from "../lib/storage.js";
 import type { EndReason } from "../net/connection.js";
 
@@ -125,7 +125,15 @@ function ProfileStep() {
   const normalized = normalizeName(name);
   const length = [...name.trim()].length;
   const localError = !touched ? null : normalized.ok ? null : normalized.reason === "empty" ? t.join.nameEmpty : t.join.nameTooLong(NAME_MAX_LENGTH);
-  const serverError = s.joinError ? (s.joinError === "connect" ? t.connectError : errorText(s.joinError)) : null;
+  const nameTaken = s.joinError === "NAME_TAKEN" && !localError;
+  const serverError = s.joinError
+    ? s.joinError === "connect"
+      ? t.connectError
+      : s.joinError === "NAME_TAKEN"
+        ? t.join.nameTakenHint
+        : errorText(s.joinError)
+    : null;
+  const suggestion = nameTaken ? suggestName(name) : null;
   const error = localError ?? serverError;
 
   const submit = (e: Event): void => {
@@ -196,6 +204,20 @@ function ProfileStep() {
         <p class={`hint${error ? " hint--error" : ""}`} data-testid="join-error" role={error ? "alert" : undefined}>
           {error ?? " "}
         </p>
+        {suggestion && (
+          <button
+            type="button"
+            class="btn btn--small"
+            data-testid="name-suggestion"
+            disabled={s.joinPending}
+            onClick={() => {
+              setName(suggestion);
+              app.join(suggestion, avatar);
+            }}
+          >
+            {t.join.useName(suggestion)}
+          </button>
+        )}
 
         <footer class="actions actions--sticky">
           <button type="submit" class="btn btn--primary" data-testid="join-button" disabled={s.joinPending}>

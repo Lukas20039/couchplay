@@ -143,6 +143,18 @@ try {
     await page.getByTestId("results").waitFor();
     await shot("results");
 
+    state.push({
+      phase: "results",
+      results: {
+        gameId: "tictactoe",
+        ranking: [{ playerId: "p_me", score: 0, rank: 1 }],
+        data: { winnerId: "bot", bot: { difficulty: "unbesiegbar", mark: "O" }, series: {}, outcome: "win", players: [] },
+      },
+      gamePlayerIds: ["p_me"],
+    });
+    await page.getByTestId("bot-wins").waitFor();
+    await shot("results-bot");
+
     await browser.close();
   }
 } finally {

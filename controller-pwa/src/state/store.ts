@@ -9,6 +9,8 @@ export interface GameViewPacket {
   gameId: string;
   seq: number;
   view: unknown;
+  /** true = vom Server nach (Re-)Join aus dem Cache wiederholt, nicht live entstanden. */
+  replay: boolean;
 }
 
 export interface AppState {
@@ -27,6 +29,10 @@ export interface AppState {
   gameView: GameViewPacket | null;
   /** Zuletzt gesehenes seq (game.view); kleinere werden verworfen. */
   lastSeq: number;
+  /** Nach room.joined: die nächste game.view ist die gecachte Wiederholung (bis room.state ≠ game). */
+  replayPending: boolean;
+  /** Übergang game → results wurde in dieser Seite live mitverfolgt (für einmaliges Feedback). */
+  resultsLive: boolean;
   /** Fehler für die Spiel-View (onError), mit laufender ID für Effekte. */
   gameError: { code: ErrorCode; id: number } | null;
   /** Allgemeiner Fehlerhinweis (Toast). */
@@ -60,6 +66,8 @@ export function initialState(init: { code?: string | null; online?: boolean } = 
     catalog: [],
     gameView: null,
     lastSeq: -1,
+    replayPending: false,
+    resultsLive: false,
     gameError: null,
     toast: null,
   };
@@ -83,17 +91,32 @@ function onServer(s: AppState, msg: ServerMessage): AppState {
         // Nach (Re-)Connect beginnt seq neu; gecachte View folgt.
         lastSeq: -1,
         gameView: null,
+        replayPending: true,
       };
     case "catalog":
       return { ...s, catalog: msg.games };
     case "room.state": {
       const room = msg.room;
       const keepView = room.phase === "game" && s.gameView?.gameId === room.selectedGameId;
-      return { ...s, room, gameView: keepView ? s.gameView : null, lastSeq: keepView ? s.lastSeq : -1 };
+      const resultsLive = room.phase === "results" ? s.resultsLive || s.room?.phase === "game" : false;
+      return {
+        ...s,
+        room,
+        gameView: keepView ? s.gameView : null,
+        lastSeq: keepView ? s.lastSeq : -1,
+        // Ohne laufendes Spiel folgt keine gecachte View → nächste View ist live.
+        replayPending: room.phase === "game" ? s.replayPending : false,
+        resultsLive,
+      };
     }
     case "game.view":
       if (msg.seq < s.lastSeq) return s;
-      return { ...s, gameView: { gameId: msg.gameId, seq: msg.seq, view: msg.view }, lastSeq: msg.seq };
+      return {
+        ...s,
+        gameView: { gameId: msg.gameId, seq: msg.seq, view: msg.view, replay: s.replayPending },
+        lastSeq: msg.seq,
+        replayPending: false,
+      };
     case "error":
       if (s.room?.phase === "game" && GAME_VIEW_ERRORS.includes(msg.code)) {
         return { ...s, gameError: { code: msg.code, id: nextId++ } };

@@ -3,9 +3,11 @@ import type { ControllerViewApi, GameControllerView } from "@couchplay/game-sdk/
 import { isSpectator } from "@couchplay/protocol";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { SelfBar } from "../components/common.js";
+import { ConfirmDialog } from "../components/ConfirmDialog.js";
 import { CONTROLLER_VIEWS } from "../games.js";
 import { useApp, useAppState } from "../hooks.js";
 import { errorText, t } from "../i18n/index.js";
+import { clearChunkReloadGuard, reloadOnceForChunkError } from "../lib/once.js";
 import { vibrate } from "../lib/platform.js";
 import { isSelfHost, selectedGame, selfPlayer } from "../state/store.js";
 
@@ -17,16 +19,10 @@ export function GameScreen() {
   const host = isSelfHost(s);
   const spectator = !!s.playerId && isSpectator(room, s.playerId);
   const gameId = room.selectedGameId;
+  const [askAbort, setAskAbort] = useState(false);
 
   const abort = host ? (
-    <button
-      type="button"
-      class="link link--quiet"
-      data-testid="abort-button"
-      onClick={() => {
-        if (confirm(t.game.abortConfirm)) app.send({ t: "game.abort" });
-      }}
-    >
+    <button type="button" class="link link--quiet" data-testid="abort-button" onClick={() => setAskAbort(true)}>
       {t.game.abort}
     </button>
   ) : null;
@@ -35,6 +31,20 @@ export function GameScreen() {
     <main class="screen screen--game">
       {me && <SelfBar player={me} right={abort} />}
       {spectator || !gameId ? <Spectator /> : <GameStage key={gameId} gameId={gameId} />}
+      {askAbort && host && (
+        <ConfirmDialog
+          text={t.game.abortConfirm}
+          confirmLabel={t.game.abortYes}
+          cancelLabel={t.dialog.cancel}
+          onConfirm={() => {
+            setAskAbort(false);
+            // Phase kann sich während des Dialogs geändert haben (Spiel zu Ende) → dann nichts senden.
+            const st = app.store.getState();
+            if (st.room?.phase === "game" && isSelfHost(st)) app.send({ t: "game.abort" });
+          }}
+          onCancel={() => setAskAbort(false)}
+        />
+      )}
     </main>
   );
 }
@@ -87,18 +97,24 @@ function GameStage({ gameId }: { gameId: string }) {
           sendInput: (input) => {
             app.send({ t: "game.input", data: input });
           },
-          vibrate,
+          // Wiederholte (gecachte) View nach Rejoin/Reload: kein erneutes Haptik-Feedback.
+          vibrate: (pattern) => {
+            if (!state().gameView?.replay) vibrate(pattern);
+          },
           getPlayers: () => state().room?.players ?? [],
           getGamePlayerIds: () => state().room?.gamePlayerIds ?? [],
           serverNow: () => app.connection.serverNow(),
         };
+        clearChunkReloadGuard();
         view = mod.default();
         view.mount(el, api);
         viewRef.current = view;
         setStatus("ready");
       })
       .catch(() => {
-        if (!cancelled) setStatus("failed");
+        if (cancelled) return;
+        // Typisch nach neuem Deployment: alter Chunk-Hash existiert nicht mehr → einmal neu laden.
+        if (!reloadOnceForChunkError()) setStatus("failed");
       });
     return () => {
       cancelled = true;

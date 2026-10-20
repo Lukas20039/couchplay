@@ -43,8 +43,9 @@ export function serviceWorker(opts: { source: string; publicDir: string }): Plug
       const version = hash.digest("hex").slice(0, 12);
       const source = readFileSync(opts.source, "utf8")
         .replace('const VERSION = "__VERSION__";', `const VERSION = ${JSON.stringify(version)};`)
+        .replace('const BUILD = "__BUILD__";', `const BUILD = ${JSON.stringify(new Date().toISOString().replace(/\D/g, "").slice(0, 14))};`)
         .replace("const PRECACHE = __PRECACHE__;", `const PRECACHE = ${JSON.stringify(precache)};`);
-      if (source.includes("__VERSION__") || source.includes("__PRECACHE__")) {
+      if (/__(VERSION|PRECACHE|BUILD)__/.test(source)) {
         this.error("sw/service-worker.js: Platzhalter nicht ersetzt");
       }
       this.emitFile({ type: "asset", fileName: "sw.js", source });

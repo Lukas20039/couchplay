@@ -19,6 +19,9 @@ export const de = {
     nameEmpty: "Bitte gib einen Namen ein.",
     nameTooLong: (max: number) => `Höchstens ${max} Zeichen.`,
     avatarLabel: "Dein Tier",
+    nameTakenHint:
+      "Der Name ist in diesem Raum schon vergeben – vielleicht von deinem vorigen Versuch. Dieser Platz wird nach spätestens 2 Minuten frei.",
+    useName: (name: string) => `Als „${name}“ beitreten`,
     submit: "Beitreten",
     joining: "Trete bei …",
     resuming: "Verbinde mit deinem Raum …",
@@ -49,6 +52,7 @@ export const de = {
       min === max ? `Genau ${min} Spieler nötig` : `${min}–${max} Spieler nötig`,
     leave: "Raum verlassen",
     leaveConfirm: "Wirklich den Raum verlassen?",
+    leaveYes: "Verlassen",
     on: "An",
     off: "Aus",
     decrease: "Weniger",
@@ -64,18 +68,26 @@ export const de = {
     spectatorLead: "Diese Runde läuft ohne dich. Schau auf den Fernseher – in der nächsten Runde bist du dabei.",
     abort: "Spiel abbrechen",
     abortConfirm: "Spiel wirklich abbrechen? Alle kehren zur Lobby zurück.",
+    abortYes: "Abbrechen",
   },
 
   results: {
     title: "Ergebnis",
     titleGame: (name: string) => `Ergebnis: ${name}`,
     yourPlace: (rank: number) => `Platz ${rank}`,
+    podium: "Siegertreppchen",
+    botWins: "Der Computer gewinnt",
+    botName: "Computer",
     notRanked: "Du hast diese Runde zugeschaut.",
     points: (score: number) => `${score} Punkte`,
     again: "Nochmal",
     toLobby: "Zur Lobby",
     waitHost: "Der Host entscheidet, wie es weitergeht.",
     unknownPlayer: "Ehemaliger Spieler",
+  },
+
+  dialog: {
+    cancel: "Zurück",
   },
 
   connection: {

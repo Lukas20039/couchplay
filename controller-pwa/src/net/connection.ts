@@ -55,8 +55,15 @@ export interface ConnectionDeps {
 }
 
 const OPEN = 1;
-/** Ohne Verbindungsaufbau bis hierhin gilt der Versuch als gescheitert. */
+/**
+ * Ohne abgeschlossenen Handshake (room.joined bzw. Fehlerantwort) bis hierhin gilt der
+ * Versuch als gescheitert – deckt hängenden Verbindungsaufbau UND hängenden Handshake ab
+ * (Server schließt selbst erst nach HANDSHAKE_TIMEOUT_MS = 10 s).
+ */
 export const CONNECT_TIMEOUT_MS = 8_000;
+/** visibilitychange/focus/pageshow/online kommen auf iOS oft gebündelt: so lange nur eine Prüfung. */
+export const CHECK_THROTTLE_MS = 1_500;
+const CONNECTING = 0;
 /** Antwortet der Server so lange nicht auf ping, wird neu verbunden. */
 export const LIVENESS_TIMEOUT_MS = 4_000;
 /** Regelmäßiger Ping (Uhr-Offset + tote Verbindungen erkennen). */
@@ -91,6 +98,7 @@ export class Connection {
   private closedReason: RoomClosedReason | null = null;
   private offset = 0;
   private ridCounter = 0;
+  private lastCheckAt = -Infinity;
   private readonly now: () => number;
   private readonly random: () => number;
   private readonly setTimer: (fn: () => void, ms: number) => unknown;
@@ -163,11 +171,17 @@ export class Connection {
    * sofort neu aufbauen, offene per ping prüfen (iOS-bfcache / Standby).
    */
   checkAlive(): void {
+    const now = this.now();
+    if (now - this.lastCheckAt < CHECK_THROTTLE_MS) return;
+    this.lastCheckAt = now;
     if (this.status === "reconnecting") {
-      if (!this.ws || this.ws.readyState !== OPEN) this.reconnectNow();
+      // Läuft gerade ein Versuch (CONNECTING oder offen im Handshake), nicht abschießen –
+      // der Handshake-Timeout fängt Hänger ab. Nur die Backoff-Wartezeit abkürzen.
+      if (!this.ws || this.ws.readyState > OPEN) this.reconnectNow();
       return;
     }
     if (this.status !== "joined") return;
+    if (this.ws?.readyState === CONNECTING) return;
     if (!this.ws || this.ws.readyState !== OPEN) {
       this.reconnectNow();
       return;
@@ -195,11 +209,11 @@ export class Connection {
     }
     this.ws = ws;
     this.connectTimer = this.setTimer(() => {
-      if (this.ws === ws && ws.readyState !== OPEN) this.dropSocket(ws);
+      this.connectTimer = null;
+      if (this.ws === ws && this.status !== "joined") this.dropSocket(ws);
     }, CONNECT_TIMEOUT_MS);
     ws.onopen = () => {
       if (this.ws !== ws) return;
-      this.clear("connectTimer");
       const rid = `h${++this.ridCounter}`;
       const hs: ClientMessage =
         mode.kind === "join"
@@ -233,6 +247,7 @@ export class Connection {
     switch (msg.t) {
       case "room.joined": {
         const session = { code: msg.code, playerId: msg.playerId, token: msg.token };
+        this.clear("connectTimer");
         this.deps.saveSession(session);
         this.mode = { kind: "rejoin", session };
         this.attempt = 0;

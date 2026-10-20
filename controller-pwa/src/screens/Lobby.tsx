@@ -4,9 +4,10 @@ import type { GameManifest, Player, SettingField, SettingValue } from "@couchpla
 import { MAX_PLAYERS } from "@couchplay/protocol/constants";
 import { useEffect, useState } from "preact/hooks";
 import { Avatar, SelfBar } from "../components/common.js";
+import { ConfirmDialog } from "../components/ConfirmDialog.js";
 import { useApp, useAppState } from "../hooks.js";
 import { t } from "../i18n/index.js";
-import { defaultSelection, needsPicker, reconcileSelection, startCheck, toggleSelection } from "../lib/participants.js";
+import { AUTO, effectiveSelection, needsPicker, startCheck, toggleSelection, type Selection } from "../lib/participants.js";
 import { isSelfHost, selectedGame, selfPlayer } from "../state/store.js";
 
 export function Lobby() {
@@ -18,15 +19,11 @@ export function Lobby() {
   const game = selectedGame(s);
   const hostPlayer = room.players.find((p) => p.id === room.hostId);
   const limits = room.playerLimits;
-  const [selection, setSelection] = useState<string[]>(() => (limits ? defaultSelection(room.players, limits) : []));
+  const [selection, setSelection] = useState<Selection>(AUTO);
+  const [askLeave, setAskLeave] = useState(false);
 
-  // Spielwechsel → Vorauswahl neu; Spielerliste ändert sich → Auswahl bereinigen.
-  useEffect(() => {
-    if (limits) setSelection(defaultSelection(room.players, limits));
-  }, [room.selectedGameId, limits?.maxPlayers]);
-  useEffect(() => {
-    setSelection((sel) => reconcileSelection(sel, room.players));
-  }, [room.players]);
+  // Spielwechsel → wieder automatische Vorauswahl (füllt bis maxPlayers nach).
+  useEffect(() => setSelection(AUTO), [room.selectedGameId, limits?.maxPlayers]);
 
   return (
     <main class="screen screen--lobby">
@@ -52,14 +49,24 @@ export function Lobby() {
           type="button"
           class="link link--quiet"
           data-testid="leave-button"
-          onClick={() => {
-            if (confirm(t.lobby.leaveConfirm)) app.leave();
-          }}
+          onClick={() => setAskLeave(true)}
         >
           {t.lobby.leave}
         </button>
       </section>
       {host && <StartButton selection={selection} />}
+      {askLeave && (
+        <ConfirmDialog
+          text={t.lobby.leaveConfirm}
+          confirmLabel={t.lobby.leaveYes}
+          cancelLabel={t.dialog.cancel}
+          onConfirm={() => {
+            setAskLeave(false);
+            app.leave();
+          }}
+          onCancel={() => setAskLeave(false)}
+        />
+      )}
     </main>
   );
 }
@@ -85,7 +92,7 @@ function PlayerList({ players, selfId }: { players: readonly Player[]; selfId: s
   );
 }
 
-function StartButton({ selection }: { selection: readonly string[] }) {
+function StartButton({ selection }: { selection: Selection }) {
   const app = useApp();
   const room = useAppState().room!;
   const limits = room.playerLimits;
@@ -115,8 +122,8 @@ function StartButton({ selection }: { selection: readonly string[] }) {
 
 interface HostPanelProps {
   game: GameManifest | null;
-  selection: string[];
-  setSelection: (ids: string[]) => void;
+  selection: Selection;
+  setSelection: (sel: Selection) => void;
 }
 
 function HostPanel({ game, selection, setSelection }: HostPanelProps) {
@@ -125,6 +132,7 @@ function HostPanel({ game, selection, setSelection }: HostPanelProps) {
   const room = s.room!;
   const limits = room.playerLimits;
   const picker = needsPicker(room.players, limits);
+  const chosen = limits ? effectiveSelection(selection, room.players, limits) : [];
 
   return (
     <>
@@ -181,7 +189,7 @@ function HostPanel({ game, selection, setSelection }: HostPanelProps) {
             {room.players
               .filter((p) => p.connected)
               .map((p) => {
-                const on = selection.includes(p.id);
+                const on = chosen.includes(p.id);
                 return (
                   <button
                     key={p.id}
@@ -199,7 +207,7 @@ function HostPanel({ game, selection, setSelection }: HostPanelProps) {
                 );
               })}
           </div>
-          <p class="hint">{t.lobby.participantsCount(selection.length, limits.minPlayers, limits.maxPlayers)}</p>
+          <p class="hint">{t.lobby.participantsCount(chosen.length, limits.minPlayers, limits.maxPlayers)}</p>
         </section>
       )}
 

@@ -29,7 +29,7 @@ describe("Store/Reducer", () => {
     const dropped = reducer(s, { type: "server", msg: { t: "game.view", gameId: "quiz", seq: 3, view: { a: 0 } } });
     expect(dropped).toBe(s);
     s = reducer(s, { type: "server", msg: { t: "game.view", gameId: "quiz", seq: 7, view: { a: 2 } } });
-    expect(s.gameView).toEqual({ gameId: "quiz", seq: 7, view: { a: 2 } });
+    expect(s.gameView).toEqual({ gameId: "quiz", seq: 7, view: { a: 2 }, replay: false });
     // Reconnect: seq beginnt neu, gecachte View (evtl. kleinere seq nach Serverneustart) gilt.
     s = reducer(s, { type: "server", msg: { t: "room.joined", v: 1, code: "042137", playerId: "p1", token: TOKEN } });
     s = reducer(s, { type: "server", msg: { t: "game.view", gameId: "quiz", seq: 2, view: { a: 3 } } });

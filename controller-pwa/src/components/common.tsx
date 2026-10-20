@@ -1,8 +1,8 @@
 // Kleine wiederverwendbare Bausteine.
 import type { Player } from "@couchplay/protocol";
+import { avatarEmoji } from "@couchplay/protocol/constants";
 import type { ComponentChildren } from "preact";
 import { useEffect } from "preact/hooks";
-import { AVATAR_EMOJI } from "../avatars.js";
 import { useApp, useAppState } from "../hooks.js";
 import { errorText, t } from "../i18n/index.js";
 
@@ -29,7 +29,7 @@ export function Brand({ lit }: { lit?: number | null }) {
 export function Avatar({ player, size = "m" }: { player: Pick<Player, "avatar" | "color">; size?: "s" | "m" | "l" }) {
   return (
     <span class={`avatar avatar--${size}`} style={{ "--c": `var(--p${player.color})` }} role="img" aria-label={t.avatars[player.avatar]}>
-      {AVATAR_EMOJI[player.avatar]}
+      {avatarEmoji(player.avatar)}
     </span>
   );
 }
