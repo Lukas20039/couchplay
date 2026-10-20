@@ -54,7 +54,10 @@ export interface GameEndResults {
 
 export interface GameContext<TSettings = SettingsValues, TTvState = unknown, TPlayerView = unknown> {
   readonly gameId: string;
-  /** Teilnehmer bei Spielstart, in Beitrittsreihenfolge. Ändert sich nicht. */
+  /**
+   * NUR die Teilnehmer dieser Runde (lobby.start.playerIds bzw. Server-Default),
+   * in Startreihenfolge. Zuschauer sind nicht enthalten. Ändert sich nicht.
+   */
   readonly players: readonly GamePlayer[];
   /** Validierte Einstellungen (Defaults ergänzt). */
   readonly settings: TSettings;

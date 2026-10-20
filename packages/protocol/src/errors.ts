@@ -41,8 +41,10 @@ export const ERROR_CODES = [
   "INVALID_SETTINGS",
   /** game.input vom Spiel abgelehnt (Schema). */
   "INVALID_INPUT",
-  /** Ziel-Spieler (z. B. bei player.kick) existiert nicht. */
+  /** Ziel-Spieler (z. B. bei player.kick, lobby.start.playerIds) existiert nicht. */
   "PLAYER_NOT_FOUND",
+  /** Ausgewählter Teilnehmer (lobby.start.playerIds) ist gerade getrennt. */
+  "PLAYER_NOT_CONNECTED",
   /** Unerwarteter Serverfehler. */
   "INTERNAL",
 ] as const;

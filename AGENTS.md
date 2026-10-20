@@ -29,7 +29,7 @@ Verbindlich: `docs/PLAN.md` (Entscheidungen, nicht neu verhandeln), `docs/archit
 
 - `package-lock.json` ist gemeinsam. Neue npm-Abhängigkeiten nur, wenn unvermeidbar; im Abschlussbericht nennen.
 - Installation immer mit `npm install --include=dev` (Shell hat `NODE_ENV=production`).
-- Host hat ~1,8 GB RAM: keine parallelen Builds, keine dauerhaft laufenden Watcher/Dev-Server im Vordergrund; gestartete Prozesse wieder beenden.
+- Host hat ~4,9 GB RAM: höchstens 4 Agents parallel; keine parallelen schweren Builds innerhalb eines Agents; keine dauerhaft laufenden Watcher/Dev-Server im Vordergrund liegen lassen, gestartete Prozesse wieder beenden.
 
 ## Qualität – vor „fertig"
 

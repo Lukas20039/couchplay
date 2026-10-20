@@ -18,8 +18,11 @@ Diese Datei und der Code müssen übereinstimmen; Änderungen nur über den Arch
 ```ts
 Player     = { id, name, avatar: AvatarId, color: 0..7, connected: boolean, isHost: boolean }
 RoomState  = { code, phase: "lobby"|"game"|"results", joinUrl, players: Player[] (≤8), hostId: string|null,
-               tvConnected: boolean, selectedGameId: string|null, settings: Record<string, SettingValue>,
-               gamePlayerIds: string[], results: GameResults|null }
+               tvConnected: boolean, selectedGameId: string|null,
+               playerLimits: { minPlayers, maxPlayers } | null,   // des ausgewählten Spiels
+               settings: Record<string, SettingValue>,
+               gamePlayerIds: string[],   // Teilnehmer der laufenden/letzten Runde (Startreihenfolge)
+               results: GameResults|null }
 GameResults = { gameId, ranking: { playerId, score, rank }[], data?: unknown }
 SettingValue = string | number | boolean | string[]
 GameManifest = { id, name, description, version, minPlayers, maxPlayers, botSupport, settings: SettingField[], accentColor? }
@@ -30,6 +33,7 @@ SettingField = { type: "select", key, label, options: {value,label}[], default: 
 ```
 
 - `code`: 6 Ziffern (`/^\d{6}$/`, führende Nullen möglich). `token`/`tvToken`: base64url, 22–64 Zeichen.
+- **Zuschauer:** In Phase `game` ist jeder Spieler mit `id ∉ room.gamePlayerIds` Zuschauer (`isSpectator(room, playerId)`). Er erhält keine `game.view`, darf kein `game.input` senden (`NOT_ALLOWED`) und zeigt einen Zuschauer-Screen. Auch während einer Runde Beitretende sind Zuschauer.
 - `AvatarId`: `fuchs katze hund panda eule frosch tiger einhorn pinguin krake roboter alien`.
 - Name: 1–16 Codepoints nach `normalizeName`, eindeutig im Raum (case-insensitive).
 
@@ -49,7 +53,7 @@ Spalte „Wer/Phase": Berechtigung nach Handshake (`CLIENT_MESSAGE_RULES`). Vers
 | `player.kick` | `playerId` | tv/host · lobby, results | Ziel: `room.closed{kicked}` + Close 4003; alle: `room.state` |
 | `lobby.selectGame` | `gameId` | tv/host · lobby, results | `room.state` (Settings = Defaults, Phase → lobby) |
 | `lobby.updateSettings` | `settings` (Teilmenge) | tv/host · lobby, results | `room.state` oder `INVALID_SETTINGS` |
-| `lobby.start` | – | tv/host · lobby, results | `room.state{phase:"game"}` + erste `game.tv`/`game.view` |
+| `lobby.start` | `playerIds?` (1–8, eindeutig) | tv/host · lobby, results | `room.state{phase:"game", gamePlayerIds}` + erste `game.tv`/`game.view` |
 | `game.input` | `data` (spielspezifisch) | player/host (Teilnehmer) · game | keine (Wirkung über `game.*`), bei Fehler `INVALID_INPUT` |
 | `game.abort` | – | tv/host · game | `room.state{phase:"lobby"}` |
 | `room.toLobby` | – | tv/host · results | `room.state{phase:"lobby"}` |
@@ -69,6 +73,7 @@ Beispiele:
 {"t":"lobby.selectGame","gameId":"quiz"}
 {"t":"lobby.updateSettings","settings":{"rounds":15,"categories":["sport","geografie"]}}
 {"t":"lobby.start","rid":"s1"}
+{"t":"lobby.start","playerIds":["p_k3j9x2","p_8hd02k"]}
 {"t":"game.input","data":{"type":"answer","index":2}}
 {"t":"game.abort"}
 {"t":"room.toLobby"}
@@ -92,6 +97,12 @@ Beispiele:
 
 `seq` ist pro Raum monoton steigend über `game.tv` und `game.view` hinweg; Clients verwerfen Pakete mit kleinerem `seq` als dem zuletzt gesehenen (nach Reconnect zurücksetzen).
 
+**Teilnehmerauswahl (`lobby.start.playerIds`, Regeln = `resolveParticipants`):**
+- fehlt: alle **verbundenen** Spieler in Beitrittsreihenfolge, gekappt auf `maxPlayers` (TicTacToe: die ersten zwei).
+- gesetzt: genau diese Spieler in dieser Reihenfolge. Fehler: unbekannte ID → `PLAYER_NOT_FOUND`, getrennt → `PLAYER_NOT_CONNECTED`, Duplikate → `BAD_MESSAGE`.
+- in beiden Fällen Anzahl außerhalb `[minPlayers, maxPlayers]` → `PLAYER_COUNT`.
+- Host-UI: Ist die Zahl verbundener Spieler > `room.playerLimits.maxPlayers`, Auswahl anbieten.
+
 Beispiele:
 
 ```json
@@ -99,7 +110,7 @@ Beispiele:
 {"t":"room.resumed","v":1,"code":"042137","joinUrl":"https://play.example.org/j/042137"}
 {"t":"room.joined","v":1,"code":"042137","playerId":"p_k3j9x2","token":"q8V0mZ2pYwL4nB7cR1sT6uX9dE3fG5hJ","rid":"j1"}
 {"t":"catalog","games":[{"id":"tictactoe","name":"TicTacToe","description":"Drei in einer Reihe …","version":"0.1.0","minPlayers":1,"maxPlayers":2,"botSupport":true,"accentColor":"#00c2a8","settings":[{"type":"select","key":"difficulty","label":"Computer-Stärke (1 Spieler)","options":[{"value":"leicht","label":"Leicht"},{"value":"mittel","label":"Mittel"},{"value":"unbesiegbar","label":"Unbesiegbar"}],"default":"mittel"}]}]}
-{"t":"room.state","room":{"code":"042137","phase":"lobby","joinUrl":"https://play.example.org/j/042137","players":[{"id":"p_k3j9x2","name":"Anna","avatar":"fuchs","color":0,"connected":true,"isHost":true}],"hostId":"p_k3j9x2","tvConnected":true,"selectedGameId":"tictactoe","settings":{"difficulty":"mittel"},"gamePlayerIds":[],"results":null}}
+{"t":"room.state","room":{"code":"042137","phase":"lobby","joinUrl":"https://play.example.org/j/042137","players":[{"id":"p_k3j9x2","name":"Anna","avatar":"fuchs","color":0,"connected":true,"isHost":true}],"hostId":"p_k3j9x2","tvConnected":true,"selectedGameId":"tictactoe","playerLimits":{"minPlayers":1,"maxPlayers":2},"settings":{"difficulty":"mittel"},"gamePlayerIds":[],"results":null}}
 {"t":"game.tv","gameId":"quiz","seq":12,"state":{"phase":"question","text":"Hauptstadt von Australien?","endsAt":1729411230000}}
 {"t":"game.view","gameId":"quiz","seq":13,"view":{"phase":"answer","choices":4}}
 {"t":"room.closed","reason":"kicked"}
@@ -126,10 +137,11 @@ Beispiele:
 | `INVALID_PHASE` | falsche Raumphase | Lobby-/Spielaktionen |
 | `GAME_NOT_FOUND` | unbekannte `gameId` | selectGame |
 | `NO_GAME_SELECTED` | Start ohne Spiel | start |
-| `PLAYER_COUNT` | Spieleranzahl außerhalb min/max | start |
+| `PLAYER_COUNT` | Teilnehmerzahl außerhalb min/max | start |
 | `INVALID_SETTINGS` | Settings passen nicht zum Manifest | updateSettings |
 | `INVALID_INPUT` | `game.input.data` vom Spielschema abgelehnt | game.input |
-| `PLAYER_NOT_FOUND` | Ziel-Spieler unbekannt | kick |
+| `PLAYER_NOT_FOUND` | Ziel-Spieler unbekannt | kick, start (`playerIds`) |
+| `PLAYER_NOT_CONNECTED` | ausgewählter Teilnehmer getrennt | start (`playerIds`) |
 | `INTERNAL` | Serverfehler / Spiel-Exception | alle |
 
 Bei `room.rejoin`/`room.resume` bedeuten `VERSION_MISMATCH`, `TOKEN_INVALID`, `ROOM_NOT_FOUND` (`SESSION_INVALIDATING_CODES`): gespeicherte Sitzung löschen, nicht erneut versuchen.

@@ -99,9 +99,19 @@ export const RoomStateSchema = z.object({
   hostId: PlayerIdSchema.nullable(),
   tvConnected: z.boolean(),
   selectedGameId: GameIdSchema.nullable(),
+  /**
+   * min/max-Spieler des ausgewählten Spiels (aus dem Manifest), null ohne Auswahl.
+   * Hat der Raum mehr verbundene Spieler als maxPlayers, bietet der Host eine
+   * Teilnehmerauswahl an (lobby.start.playerIds).
+   */
+  playerLimits: z.object({ minPlayers: z.number().int(), maxPlayers: z.number().int() }).nullable(),
   /** Validierte Einstellungen für das ausgewählte Spiel (inkl. Defaults). */
   settings: SettingsValuesSchema,
-  /** Teilnehmer des laufenden/letzten Spiels; leer in der Lobby ohne vorheriges Spiel. */
+  /**
+   * Teilnehmer des laufenden/letzten Spiels (Startreihenfolge); leer in der Lobby ohne
+   * vorheriges Spiel. Zuschauer-Signal: in Phase "game" ist jeder Spieler, dessen ID
+   * hier fehlt, Zuschauer (siehe isSpectator()).
+   */
   gamePlayerIds: z.array(PlayerIdSchema),
   /** Nur in Phase "results" gesetzt. */
   results: GameResultsSchema.nullable(),

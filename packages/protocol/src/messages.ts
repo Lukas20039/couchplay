@@ -16,6 +16,7 @@ import {
   type Actor,
   type RoomPhase,
 } from "./common.js";
+import { MAX_PLAYERS } from "./constants.js";
 import { ERROR_CODES } from "./errors.js";
 
 const rid = { rid: RequestIdSchema.optional() };
@@ -78,8 +79,22 @@ export const LobbyUpdateSettingsSchema = z.object({
   settings: SettingsValuesSchema,
   ...rid,
 });
-/** TV oder Host startet das ausgewählte Spiel (in Phase "results" = Revanche). */
-export const LobbyStartSchema = z.object({ t: z.literal("lobby.start"), ...rid });
+/**
+ * TV oder Host startet das ausgewählte Spiel (in Phase "results" = Revanche).
+ * `playerIds` (optional) = Teilnehmer in gewünschter Reihenfolge; fehlt es, nimmt der
+ * Server alle verbundenen Spieler in Beitrittsreihenfolge, gekappt auf maxPlayers
+ * (Regeln: resolveParticipants()).
+ */
+export const LobbyStartSchema = z.object({
+  t: z.literal("lobby.start"),
+  playerIds: z
+    .array(PlayerIdSchema)
+    .min(1)
+    .max(MAX_PLAYERS)
+    .refine((ids) => new Set(ids).size === ids.length, "Doppelte Spieler-IDs")
+    .optional(),
+  ...rid,
+});
 /** Spieleingabe; `data` wird vom Spiel selbst validiert (GameDefinition.inputSchema). */
 export const GameInputSchema = z.object({ t: z.literal("game.input"), data: z.unknown() });
 /** TV oder Host bricht das laufende Spiel ab → Lobby. */

@@ -6,5 +6,6 @@ export * from "./errors.js";
 export * from "./common.js";
 export * from "./messages.js";
 export * from "./parse.js";
+export * from "./participants.js";
 export * from "./settings.js";
 export * from "./util.js";

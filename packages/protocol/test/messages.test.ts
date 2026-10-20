@@ -26,6 +26,7 @@ const room: RoomState = {
   hostId: "p_1",
   tvConnected: true,
   selectedGameId: "quiz",
+  playerLimits: { minPlayers: 1, maxPlayers: 8 },
   settings: { rounds: 10, categories: ["sport"] },
   gamePlayerIds: [],
   results: null,
@@ -44,6 +45,7 @@ const clientExamples: ClientMessage[] = [
   { t: "lobby.selectGame", gameId: "tictactoe" },
   { t: "lobby.updateSettings", settings: { difficulty: "leicht" } },
   { t: "lobby.start" },
+  { t: "lobby.start", playerIds: ["p_1", "p_3"] },
   { t: "game.input", data: { type: "answer", index: 2 } },
   { t: "game.abort" },
   { t: "room.toLobby" },
@@ -126,6 +128,8 @@ describe("Ungültige Client-Nachrichten", () => {
     ["Version fehlt", JSON.stringify({ t: "room.create" })],
     ["Token zu kurz", JSON.stringify({ t: "room.rejoin", v: 1, code: "123456", playerId: "p", token: "abc" })],
     ["Spiel-ID ungültig", JSON.stringify({ t: "lobby.selectGame", gameId: "Quiz!" })],
+    ["doppelte Teilnehmer", JSON.stringify({ t: "lobby.start", playerIds: ["p1", "p1"] })],
+    ["leere Teilnehmerliste", JSON.stringify({ t: "lobby.start", playerIds: [] })],
     ["Settings-Wert Objekt", JSON.stringify({ t: "lobby.updateSettings", settings: { a: { b: 1 } } })],
   ];
 

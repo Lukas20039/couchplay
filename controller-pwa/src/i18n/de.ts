@@ -25,6 +25,7 @@ export const de = {
     INVALID_SETTINGS: "Ungültige Einstellungen.",
     INVALID_INPUT: "Ungültige Eingabe.",
     PLAYER_NOT_FOUND: "Spieler nicht gefunden.",
+    PLAYER_NOT_CONNECTED: "Spieler ist gerade nicht verbunden.",
     INTERNAL: "Interner Fehler.",
   },
 } as const;
