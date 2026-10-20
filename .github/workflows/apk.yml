@@ -158,7 +158,32 @@ jobs:
           TAG: ${{ github.ref_name }}
           APK: apk/${{ needs.build.outputs.apk-name }}
         run: |
+          set -euo pipefail
+          (cd apk && sha256sum "$(basename "$APK")" > "$(basename "$APK").sha256")
           if ! gh release view "$TAG" > /dev/null 2>&1; then
-            gh release create "$TAG" --verify-tag --generate-notes --title "$TAG"
+            image="ghcr.io/${GH_REPO,,}"
+            version="${TAG#v}"
+            # Installationshinweise vor die automatisch erzeugten Änderungsnotizen setzen.
+            gh release create "$TAG" --verify-tag --generate-notes --title "CouchPlay $TAG"
+            generated=$(gh release view "$TAG" --json body --jq .body)
+            {
+              echo "## Installation"
+              echo
+              echo "**Server (Docker):**"
+              echo '```bash'
+              echo "docker pull ${image}:${version}"
+              echo "docker run -d -p 8080:8080 -e PUBLIC_URL=https://play.example.com ${image}:${version}"
+              echo '```'
+              echo "Details: [docs/deploy.md](https://github.com/${GH_REPO}/blob/${TAG}/docs/deploy.md)"
+              echo
+              echo "**Android TV:** \`$(basename "$APK")\` unten herunterladen und auf dem TV installieren"
+              echo "(z. B. mit der App *Downloader* oder per \`adb install\`). Die Server-Adresse lässt sich"
+              echo "in der App unter *Einstellungen* ändern."
+              echo
+              echo "**Handys:** Kein Download nötig – QR-Code am TV scannen oder die Adresse im Browser öffnen."
+              echo
+              echo "$generated"
+            } > notes.md
+            gh release edit "$TAG" --notes-file notes.md
           fi
-          gh release upload "$TAG" "$APK" --clobber
+          gh release upload "$TAG" "$APK" "$APK.sha256" --clobber
