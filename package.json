@@ -13,6 +13,7 @@
     "packages/game-sdk",
     "games/quiz",
     "games/tictactoe",
+    "games/wortgarten",
     "server",
     "tv-web",
     "controller-pwa",

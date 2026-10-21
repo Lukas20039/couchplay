@@ -9,7 +9,7 @@ describe("tv-web Gerüst", () => {
   });
 
   it("lädt die tv-Views aller eingebauten Spiele", async () => {
-    expect(Object.keys(TV_VIEWS).sort()).toEqual(["quiz", "tictactoe"]);
+    expect(Object.keys(TV_VIEWS).sort()).toEqual(["quiz", "tictactoe", "wortgarten"]);
     for (const load of Object.values(TV_VIEWS)) {
       const mod = await load();
       const view = mod.default();

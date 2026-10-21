@@ -1,0 +1,38 @@
+{
+  "id": "wortgarten",
+  "name": "Wortgarten",
+  "description": "Wörter im Buchstabenraster finden – auch schräg verbunden. Lange und einzigartige Wörter zählen mehr, euer Garten wächst und schaltet Tipps, größere Raster und Modi frei.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#6fbf73",
+  "icon": "🌻",
+  "settings": [
+    {
+      "type": "select",
+      "key": "mode",
+      "label": "Modus",
+      "options": [
+        { "value": "klassisch", "label": "Klassisch" },
+        { "value": "blitz", "label": "Blitz (ab Gartenstufe 5)" },
+        { "value": "langwort", "label": "Langwort (ab Gartenstufe 7)" }
+      ],
+      "default": "klassisch"
+    },
+    {
+      "type": "select",
+      "key": "gridSize",
+      "label": "Raster",
+      "options": [
+        { "value": "auto", "label": "Größtes freigeschaltetes" },
+        { "value": "4", "label": "4 × 4" },
+        { "value": "5", "label": "5 × 5 (ab Gartenstufe 3)" },
+        { "value": "6", "label": "6 × 6 (ab Gartenstufe 6)" }
+      ],
+      "default": "auto"
+    },
+    { "type": "number", "key": "rounds", "label": "Runden", "min": 1, "max": 5, "step": 1, "default": 3 },
+    { "type": "number", "key": "roundSeconds", "label": "Zeit pro Runde (Sekunden)", "min": 60, "max": 180, "step": 30, "default": 120 }
+  ]
+}

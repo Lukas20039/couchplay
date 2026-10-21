@@ -28,7 +28,7 @@ Verbindlich ergänzend zu `docs/PLAN.md`. Protokolldetails: `docs/protocol.md`.
 | `server` | Fastify-HTTP, WS-Endpoint, Raumverwaltung, Rate-Limits, Auslieferung der gebauten Frontends. |
 | `tv-web` | TV-UI (10-Fuß, D-Pad): Start, Code + QR, Lobby, Spielauswahl, Ergebnis, Host-Funktionen per Fernbedienung. |
 | `controller-pwa` | Handy-UI: Code/QR-Join, Name + Avatar, Lobby, Host-Einstellungen, Controller-View des Spiels. |
-| `games/quiz`, `games/tictactoe` | je `manifest.json` (optional `icon`: Emoji für die Katalog-Kachel) + `src/server` + `src/tv` + `src/controller` + `src/shared.ts`. |
+| `games/quiz`, `games/tictactoe`, `games/wortgarten` | je `manifest.json` (optional `icon`: Emoji für die Katalog-Kachel) + `src/server` + `src/tv` + `src/controller` + `src/shared.ts`. |
 | `android-tv` | Kotlin-Shell (kein npm-Workspace). |
 | `e2e` | Playwright-Browser-E2E, später Emulator-E2E. |
 

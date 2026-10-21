@@ -47,6 +47,20 @@ mit Revanche und Serienstand. Der „unbesiegbare“ Computer spielt perfekt –
 |---|---|
 | ![TicTacToe am TV](docs/screenshots/tv-tictactoe.png) | <img src="docs/screenshots/phone-tictactoe.png" width="220" alt="TicTacToe am Handy"> |
 
+### 🌻 Wortgarten · 1–8 Spieler
+
+Gemütliches Wortsuch-Battle: Alle suchen gleichzeitig Wörter im selben Buchstabenraster und wischen
+dafür am Handy über benachbarte Buchstaben – waagrecht, senkrecht und **schräg**. Lange Wörter,
+Goldfelder und schnelle Serien (Combo) bringen Multiplikatoren, Wörter, die sonst niemand gefunden hat,
+zählen doppelt. Am TV wächst dabei für jedes Wort eine Blume im eigenen Beet, die Wörter bleiben bis zur
+Ernte geheim. Mit jedem Spiel wächst der Garten und schaltet nach und nach Tipps, 5 × 5- und 6 × 6-Raster,
+Goldfelder sowie Blitz- und Langwort-Modus frei. Rund 410 000 deutsche Wortformen
+([LanguageTool](https://github.com/languagetool-org/german-pos-dict), CC BY-SA 4.0).
+
+| TV | Handy |
+|---|---|
+| ![Wortgarten am TV](docs/screenshots/tv-wortgarten.png) | <img src="docs/screenshots/phone-wortgarten.png" width="220" alt="Wortgarten am Handy"> |
+
 ### Ergebnis
 
 | TV | Host-Handy in der Lobby |
@@ -183,4 +197,5 @@ signierte APK ließe sich später nicht mehr aktualisieren.
 
 [MIT](LICENSE) © 2026 Lukas Grundtner. Übernommene Agent- und Skill-Dateien unter
 `.claude/` stehen unter ihren eigenen Lizenzen (MIT bzw. Apache 2.0), siehe
-`.claude/SOURCES.txt`.
+`.claude/SOURCES.txt`. Die Wortliste von Wortgarten stammt aus dem LanguageTool-Wörterbuch und steht
+unter CC BY-SA 4.0, siehe [`games/wortgarten/DATA-LICENSE.md`](games/wortgarten/DATA-LICENSE.md).

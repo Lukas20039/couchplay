@@ -2,5 +2,6 @@
 import type { AnyGameDefinition } from "@couchplay/game-sdk";
 import quiz from "@couchplay/game-quiz/server";
 import tictactoe from "@couchplay/game-tictactoe/server";
+import wortgarten from "@couchplay/game-wortgarten/server";
 
-export const BUILTIN_GAMES: readonly AnyGameDefinition[] = [quiz, tictactoe];
+export const BUILTIN_GAMES: readonly AnyGameDefinition[] = [quiz, tictactoe, wortgarten];

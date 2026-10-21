@@ -12,7 +12,7 @@ import type { FastifyInstance } from "fastify";
 describe("Spielregistrierung", () => {
   it("registriert eingebaute Spiele mit eindeutigen IDs", () => {
     const ids = BUILTIN_GAMES.map((g) => g.manifest.id);
-    expect(ids).toEqual(["quiz", "tictactoe"]);
+    expect(ids).toEqual(["quiz", "tictactoe", "wortgarten"]);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
@@ -54,7 +54,7 @@ describe("HTTP", () => {
     const res = await app.inject({ method: "GET", url: "/api/catalog" });
     expect(res.statusCode).toBe(200);
     const body = res.json() as { games: Array<{ id: string; minPlayers: number }> };
-    expect(body.games.map((g) => g.id)).toEqual(["quiz", "tictactoe"]);
+    expect(body.games.map((g) => g.id)).toEqual(["quiz", "tictactoe", "wortgarten"]);
   });
 
   it("liefert Controller unter / mit no-cache und Sicherheitsheadern", async () => {

@@ -5,4 +5,5 @@ import type { ControllerViewFactory, ViewModuleLoader } from "@couchplay/game-sd
 export const CONTROLLER_VIEWS: Record<string, ViewModuleLoader<ControllerViewFactory>> = {
   quiz: () => import("@couchplay/game-quiz/controller"),
   tictactoe: () => import("@couchplay/game-tictactoe/controller"),
+  wortgarten: () => import("@couchplay/game-wortgarten/controller"),
 };

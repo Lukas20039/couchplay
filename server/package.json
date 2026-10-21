@@ -16,6 +16,7 @@
     "@couchplay/game-quiz": "0.1.0",
     "@couchplay/game-sdk": "0.1.0",
     "@couchplay/game-tictactoe": "0.1.0",
+    "@couchplay/game-wortgarten": "0.1.0",
     "@couchplay/protocol": "0.1.0",
     "@fastify/proxy-addr": "^5.1.2",
     "@fastify/static": "^10.1.0",

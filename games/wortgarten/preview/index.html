@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Wortgarten-Preview</title>
+    <style>
+      /* Nachbildung der App-Basis (tv-web / controller-pwa) für die Sichtprüfung. */
+      :root { --p0:#ff4d4d; --p1:#4da6ff; --p2:#4dff88; --p3:#ffd24d; --p4:#c34dff; --p5:#ff9f4d; --p6:#4dfff0; --p7:#ff4dc4; color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #0b0b0f; color: #f5f5f7; }
+      html.tv { font-size: calc(100vh / 60); }
+      /* controller-pwa-Rahmen (vereinfacht): #app scrollt, Screen mit SelfBar + Stage */
+      html.pad body { position: fixed; inset: 0; font: 16px/1.4 system-ui, sans-serif; }
+      html.pad #app { position: absolute; inset: 0; overflow-y: auto; }
+      html.pad .screen { min-height: 100%; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 12px) 20px 0; box-sizing: border-box; }
+      html.pad .selfbar { margin: calc(-12px - env(safe-area-inset-top)) -20px 0; padding: calc(env(safe-area-inset-top) + 14px) 20px 14px; background: var(--p2); color: #120f24; font-weight: 800; font-size: 1.25rem; border-radius: 0 0 28px 28px; }
+      html.pad .stage { flex: 1 0 auto; display: flex; flex-direction: column; margin: 0 -20px; }
+      html.pad .stage__view { flex: 1; display: flex; flex-direction: column; padding: 16px 16px calc(env(safe-area-inset-bottom) + 16px); }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
