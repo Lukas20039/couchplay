@@ -2,6 +2,7 @@ package at.couchplay.tv
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
@@ -57,6 +58,7 @@ class MainActivity : Activity(), NativeBridge.Host {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         createWebView()
         loadApp()
+        checkForUpdate()
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -80,8 +82,38 @@ class MainActivity : Activity(), NativeBridge.Host {
     }
 
     override fun onDestroy() {
+        updateDialog?.dismiss()
+        updateDialog = null
         destroyWebView()
         super.onDestroy()
+    }
+
+    // ---------------------------------------------------------------- Update
+
+    private var updateDialog: AlertDialog? = null
+
+    /** Beim Start im Hintergrund nach einer neuen Version suchen (nur Release-Builds); Fehler still ignorieren. */
+    private fun checkForUpdate() {
+        if (BuildConfig.DEBUG || !Updater.enabled) return
+        Thread({
+            val release = runCatching { Updater.check() }.getOrNull() ?: return@Thread
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed && updateDialog == null && !Updater.isSnoozed(this, release)) showUpdateDialog(release)
+            }
+        }, "couchplay-update-check").start()
+    }
+
+    private fun showUpdateDialog(release: Updater.Release) {
+        updateDialog = AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle(R.string.update_dialog_title)
+            .setMessage(getString(R.string.update_dialog_message, release.versionName, BuildConfig.VERSION_NAME))
+            .setPositiveButton(R.string.update_install) { _, _ ->
+                startActivity(Intent(this, UpdateActivity::class.java).putExtra(UpdateActivity.EXTRA_INSTALL, true))
+            }
+            .setNegativeButton(R.string.update_later) { _, _ -> Updater.snooze(this, release) }
+            .setOnCancelListener { Updater.snooze(this, release) }
+            .setOnDismissListener { updateDialog = null }
+            .show()
     }
 
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")

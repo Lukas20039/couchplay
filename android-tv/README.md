@@ -3,7 +3,7 @@
 **Zuständig:** Agent B (Android-Teil). Eigenständiges Gradle-Projekt, kein npm-Workspace.
 
 Kotlin-Shell für Android TV: Vollbild-WebView, die `${serverUrl}/tv/` (tv-web) lädt.
-Keine AndroidX-Abhängigkeiten (nur Kotlin-Stdlib) → kleine APK (Release ≈ 70 KB).
+Keine AndroidX-Abhängigkeiten (nur Kotlin-Stdlib) → kleine APK (Release ≈ 100 KB).
 
 | | |
 |---|---|
@@ -22,6 +22,7 @@ export ANDROID_HOME=/pfad/zum/Android/Sdk      # oder local.properties: sdk.dir=
 
 - `couchplay.serverUrl` (Default in `gradle.properties`: `http://10.0.2.2:8080` = Host-Rechner aus dem Emulator) → `BuildConfig.SERVER_URL`.
 - Version: `-Pcouchplay.versionName=…` (Default `0.1.0`), `-Pcouchplay.versionCode=…` (Default `1`).
+- Update-Quelle: `-Pcouchplay.updateUrl=…` (Default GitHub-Releases dieses Repos; `-Pcouchplay.updateUrl=` schaltet OTA ab).
 - Release-Signatur nur aus der Umgebung: `ANDROID_KEYSTORE_FILE` (Pfad; CI dekodiert den Keystore selbst), `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` → `app-release.apk`. Nichts gesetzt → **unsigniertes** Release `app-release-unsigned.apk` + Warnung. Teilweise gesetzt → Build-Fehler (nur bei Release-Tasks). Der Build schreibt keinen Keystore.
 - `gradle.properties` begrenzt den Heap (`-Xmx1536m`).
 
@@ -33,4 +34,5 @@ export ANDROID_HOME=/pfad/zum/Android/Sdk      # oder local.properties: sdk.dir=
 - **JS-Brücke `CouchPlayNative`:** `exitApp()`, `openSettings()`, `retry()`. Jeder Aufruf wird im UI-Thread nur ausgeführt, wenn `webView.url` zur Server-Origin gehört oder die eigene Fehlerseite ist (kein AndroidX → kein `addWebMessageListener`).
 - **Fehlerseite:** `assets/error.html` (gestylt, D-Pad-bedienbar) bei Netzwerkfehler oder HTTP ≥ 400 der Hauptseite; „Erneut versuchen“, „Einstellungen“, automatischer Neuversuch nach 15 s.
 - **Einstellungen:** `SettingsActivity` – Server-Adresse (Host wird kleingeschrieben, Standard-Ports entfernt; ohne Schema: `http://` für lokale Adressen wie private IPs/`*.local`/Rechnernamen, sonst `https://`) (SharedPreferences; leer/„Standard verwenden“ = Build-Default). Erreichbar über Fehlerseite, Menü-Taste, Langdruck OK auf der Startseite der Web-App oder den Einstellungen-Button in der Lobby. Nach Änderung lädt die WebView neu.
+- **OTA-Update:** `Updater` liest `couchplay.updateUrl` (Default: GitHub-API `repos/Lukas20039/couchplay/releases/latest`, leer = aus) → `BuildConfig.UPDATE_URL`. Ein Release zählt als neuer, wenn der versionCode aus dem Tag (Formel wie im APK-Workflow) größer ist als der installierte und es `couchplay-tv-*-release.apk` + `.sha256` hat; Drafts/Pre-Releases werden ignoriert. Release-Builds prüfen beim Start im Hintergrund und fragen per Dialog („Später“ = 24 h Ruhe für diese Version); manuell über **Einstellungen → Nach Updates suchen** (`UpdateActivity`, auch in Debug-Builds). Download in den Cache, dann Prüfung von SHA-256, Paketname, versionCode und (ab Android 9) Signaturschlüssel, danach `PackageInstaller`-Session; der Nutzer bestätigt im System-Dialog. Dafür braucht die App `REQUEST_INSTALL_PACKAGES` und ab Android 8 die Freigabe „Unbekannte Apps installieren“ – die `UpdateActivity` führt dorthin. Sicherheit: Android installiert ein Update nur mit demselben Signaturschlüssel; die Prüfsumme schützt nur vor kaputten Downloads. Debug-APKs (anderer Schlüssel) lassen sich nicht per OTA auf Release aktualisieren.
 - **Cleartext-HTTP** ist per `network_security_config` bewusst global erlaubt: Der Server läuft im Heimnetz typischerweise per `http://<LAN-IP>:8080`, eine Host-Liste ist vorab nicht bekannt. Risiko: Im selben Netz kann ein Angreifer (MITM) eine HTTP-TV-UI austauschen; die JS-Brücke kann dann nur Beenden/Einstellungen/Neu laden auslösen. Für Betrieb über das Internet immer `https://` verwenden (Release mit `-Pcouchplay.serverUrl=https://…` bauen).

@@ -4,6 +4,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- OTA-Update: neue APK per PackageInstaller installieren (Nutzer bestätigt im System-Dialog). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Läuft auf Android TV und (ohne Touch-Zwang) auf anderen Geräten. -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -42,5 +44,16 @@
             android:label="@string/settings_title"
             android:theme="@style/Theme.CouchPlay"
             android:windowSoftInputMode="adjustResize|stateHidden" />
+
+        <activity
+            android:name=".UpdateActivity"
+            android:exported="false"
+            android:label="@string/update_title"
+            android:theme="@style/Theme.CouchPlay" />
+
+        <!-- Nur über das eigene PendingIntent erreichbar (Status der Installations-Session). -->
+        <receiver
+            android:name=".UpdateInstallReceiver"
+            android:exported="false" />
     </application>
 </manifest>

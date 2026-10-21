@@ -14,6 +14,13 @@ require(serverUrl.startsWith("http://") || serverUrl.startsWith("https://")) {
     "couchplay.serverUrl muss mit http:// oder https:// beginnen: $serverUrl"
 }
 
+// OTA-Update: GitHub-API „neuestes Release“ (`couchplay.updateUrl`; leer = Updates aus).
+val updateUrl: String = (findProperty("couchplay.updateUrl") as String?)?.trim()
+    ?: "https://api.github.com/repos/Lukas20039/couchplay/releases/latest"
+require(updateUrl.isEmpty() || updateUrl.startsWith("http://") || updateUrl.startsWith("https://")) {
+    "couchplay.updateUrl muss leer sein oder mit http:// bzw. https:// beginnen: $updateUrl"
+}
+
 val appVersionCode: Int = (findProperty("couchplay.versionCode") as String?)?.toIntOrNull() ?: 1
 val appVersionName: String = (findProperty("couchplay.versionName") as String?) ?: "0.1.0"
 
@@ -49,6 +56,7 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         buildConfigField("String", "SERVER_URL", "\"$serverUrl\"")
+        buildConfigField("String", "UPDATE_URL", "\"$updateUrl\"")
     }
 
     buildFeatures {

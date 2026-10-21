@@ -13,4 +13,31 @@
     <string name="error_blocked">Weiterleitung zu einer fremden Adresse blockiert: %1$s</string>
     <string name="error_renderer">Die Anzeige ist wiederholt abgestürzt (zu wenig Speicher?).</string>
     <string name="settings_version">Version %1$s</string>
+    <string name="settings_update">Nach Updates suchen</string>
+
+    <string name="update_title">App-Update</string>
+    <string name="update_checking">Suche nach Updates …</string>
+    <string name="update_current">CouchPlay ist auf dem neuesten Stand (Version %1$s).</string>
+    <string name="update_disabled">Updates sind in dieser Version deaktiviert.</string>
+    <string name="update_available">Version %1$s ist verfügbar.</string>
+    <string name="update_available_detail">Installiert ist Version %1$s. Die Einstellungen bleiben erhalten.</string>
+    <string name="update_install">Jetzt installieren</string>
+    <string name="update_later">Später</string>
+    <string name="update_close">Schließen</string>
+    <string name="update_retry">Erneut versuchen</string>
+    <string name="update_downloading">Lade Version %1$s herunter …</string>
+    <string name="update_installing">Installation wird gestartet …</string>
+    <string name="update_installing_detail">Bitte im folgenden Dialog „Installieren“ wählen. Danach CouchPlay wieder öffnen.</string>
+    <string name="update_done">Update installiert. Bitte CouchPlay neu öffnen.</string>
+    <string name="update_permission">CouchPlay braucht die Erlaubnis, Apps zu installieren.</string>
+    <string name="update_permission_detail">In den Einstellungen bei „Unbekannte Apps installieren“ bzw. „Unbekannte Quellen“ CouchPlay erlauben und dann mit Zurück hierher wechseln.</string>
+    <string name="update_permission_open">Einstellungen öffnen</string>
+    <string name="update_error_network">Keine Verbindung zum Update-Server. Bitte Internetverbindung prüfen.</string>
+    <string name="update_error_checksum">Der Download ist beschädigt (Prüfsumme stimmt nicht).</string>
+    <string name="update_error_signature">Das Update ist anders signiert als die installierte App und kann nicht installiert werden. Bitte die App einmal manuell neu installieren.</string>
+    <string name="update_error_apk">Das Update konnte nicht gelesen werden.</string>
+    <string name="update_error_install">Installation fehlgeschlagen: %1$s</string>
+
+    <string name="update_dialog_title">Update verfügbar</string>
+    <string name="update_dialog_message">CouchPlay %1$s ist verfügbar (installiert: %2$s). Jetzt installieren?</string>
 </resources>

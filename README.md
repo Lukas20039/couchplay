@@ -99,6 +99,11 @@ Auf dem TV z. B. mit der App *Downloader* öffnen oder per `adb install couchpla
 Die App erscheint im Android-TV-Launcher. Die Server-Adresse ist voreingestellt und lässt sich
 in der App unter **Einstellungen** ändern (Menütaste bzw. langer Druck auf OK).
 
+**Updates kommen danach von selbst:** Beim Start prüft die App das neueste GitHub-Release und bietet
+die neue Version an; alternativ *Einstellungen → Nach Updates suchen*. Beim ersten Update fragt
+Android einmalig, ob CouchPlay Apps installieren darf. (Versionen bis 0.1.2 haben das noch nicht und
+müssen einmal von Hand aktualisiert werden.)
+
 <details>
 <summary>Screenshot aus dem Android-TV-Emulator</summary>
 

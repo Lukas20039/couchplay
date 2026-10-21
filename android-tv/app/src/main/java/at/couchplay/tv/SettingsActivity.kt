@@ -1,6 +1,7 @@
 package at.couchplay.tv
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -36,6 +37,10 @@ class SettingsActivity : Activity() {
             finish()
         }
         findViewById<Button>(R.id.cancel).setOnClickListener { finish() }
+        findViewById<Button>(R.id.update).apply {
+            visibility = if (Updater.enabled) View.VISIBLE else View.GONE
+            setOnClickListener { startActivity(Intent(this@SettingsActivity, UpdateActivity::class.java)) }
+        }
         // Fokus zuerst auf „Speichern“: OK übernimmt, Pfeil hoch bearbeitet die Adresse.
         findViewById<Button>(R.id.save).requestFocus()
     }
