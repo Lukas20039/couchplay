@@ -11,6 +11,7 @@ import java.util.Locale
 object ServerConfig {
     private const val PREFS = "couchplay"
     private const val KEY_SERVER_URL = "server_url"
+    private const val KEY_LAST_WORKING_URL = "last_working_url"
 
     /** Pfad der TV-Web-UI auf dem Server (entspricht TV_PATH im Protokoll-Paket). */
     const val TV_PATH = "/tv/"
@@ -20,6 +21,15 @@ object ServerConfig {
     fun serverUrl(context: Context): String {
         val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_SERVER_URL, null)
         return stored?.let { normalize(it) } ?: defaultUrl
+    }
+
+    /** Adresse, unter der die TV-Oberfläche zuletzt erfolgreich geladen wurde (oder null). */
+    fun lastWorkingUrl(context: Context): String? =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LAST_WORKING_URL, null)
+
+    fun setLastWorkingUrl(context: Context, url: String) {
+        if (lastWorkingUrl(context) == url) return
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_LAST_WORKING_URL, url).apply()
     }
 
     /** Speichert eine Adresse; null/leer = Standard. Gibt false bei ungültiger Eingabe zurück. */

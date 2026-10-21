@@ -8,7 +8,10 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.TextUtils
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowInsets
@@ -22,6 +25,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import android.widget.TextView
 
 /**
  * Vollbild-WebView, die `${serverUrl}/tv/` lädt. D-Pad-Navigation macht die Web-App;
@@ -49,11 +53,33 @@ class MainActivity : Activity(), NativeBridge.Host {
     /** true, sobald die Web-App (nicht die Fehlerseite) fertig geladen ist. */
     private var webAppReady = false
 
+    /** „Verbinde mit …“ über der WebView, bis der Server die erste Seite liefert. */
+    private lateinit var loadingView: TextView
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    /** Server antwortet nicht (z. B. falsche Adresse im LAN → TCP-Timeout erst nach Minuten). */
+    private val loadTimeout = Runnable {
+        if (!showingError && !webAppReady) {
+            webView?.stopLoading()
+            showError(getString(R.string.error_timeout, LOAD_TIMEOUT_MS / 1000))
+        }
+    }
+
+    /** Für diese Adresse wurden die Einstellungen nach einem Fehler schon automatisch geöffnet. */
+    private var settingsAutoOpenedFor: String? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         container = FrameLayout(this).apply { setBackgroundColor(Color.parseColor("#120F24")) }
         setContentView(container)
+        loadingView = TextView(this).apply {
+            setTextColor(Color.parseColor("#AAA1D2"))
+            textSize = 22f
+            gravity = Gravity.CENTER
+            setPadding(96, 0, 96, 0)
+        }
         // CDP-Zugriff (Emulator-E2E) nur in Debug-Builds.
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         createWebView()
@@ -82,6 +108,7 @@ class MainActivity : Activity(), NativeBridge.Host {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(loadTimeout)
         updateDialog?.dismiss()
         updateDialog = null
         destroyWebView()
@@ -141,6 +168,9 @@ class MainActivity : Activity(), NativeBridge.Host {
         wv.addJavascriptInterface(NativeBridge(this), NativeBridge.NAME)
         wv.webViewClient = Client()
         container.addView(wv, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        // Ladehinweis immer über der (neuen) WebView.
+        container.removeView(loadingView)
+        container.addView(loadingView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
         wv.requestFocus()
         webView = wv
     }
@@ -160,6 +190,10 @@ class MainActivity : Activity(), NativeBridge.Host {
         allowedOrigin = Origin.of(server)
         showingError = false
         webAppReady = false
+        loadingView.text = getString(R.string.loading, server)
+        loadingView.visibility = View.VISIBLE
+        handler.removeCallbacks(loadTimeout)
+        handler.postDelayed(loadTimeout, LOAD_TIMEOUT_MS)
         webView?.loadUrl(server + ServerConfig.TV_PATH)
     }
 
@@ -168,6 +202,15 @@ class MainActivity : Activity(), NativeBridge.Host {
         if (showingError) return
         showingError = true
         webAppReady = false
+        handler.removeCallbacks(loadTimeout)
+        loadingView.visibility = View.GONE
+        // Noch nie mit dieser Adresse verbunden (Erststart, Tippfehler): gleich die Adresse abfragen.
+        // Pro Adresse nur einmal, damit „Abbrechen“ nicht in eine Schleife führt.
+        val server = loadedServerUrl
+        if (server != null && server != ServerConfig.lastWorkingUrl(this) && settingsAutoOpenedFor != server) {
+            settingsAutoOpenedFor = server
+            startActivity(Intent(this, SettingsActivity::class.java).putExtra(SettingsActivity.EXTRA_UNREACHABLE, server))
+        }
         val template = assets.open("error.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
         val html = template
             .replace("{{SERVER}}", TextUtils.htmlEncode(loadedServerUrl ?: ServerConfig.serverUrl(this)))
@@ -184,7 +227,9 @@ class MainActivity : Activity(), NativeBridge.Host {
     override fun isTrustedPage(): Boolean {
         if (isFinishing || isDestroyed) return false
         val url = webView?.url ?: return false
-        if (showingError && url == ERROR_BASE_URL) return true
+        // Eigene Fehlerseite gilt, solange sie angezeigt wird – auch während ein neuer Versuch im
+        // Hintergrund lädt (sonst wären „Einstellungen“/„Erneut versuchen“ bis zum Timeout tot).
+        if (url == ERROR_BASE_URL) return true
         return !showingError && isServerUrl(Uri.parse(url))
     }
 
@@ -207,9 +252,22 @@ class MainActivity : Activity(), NativeBridge.Host {
             return true
         }
 
+        override fun onPageCommitVisible(view: WebView, url: String) {
+            // Server hat geantwortet und die Seite ist sichtbar → kein Timeout mehr.
+            if (!showingError && url != ERROR_BASE_URL) {
+                handler.removeCallbacks(loadTimeout)
+                loadingView.visibility = View.GONE
+            }
+        }
+
         override fun onPageFinished(view: WebView, url: String) {
             webAppReady = !showingError && url != ERROR_BASE_URL && url != "about:blank"
-            if (webAppReady) renderCrashes = 0
+            if (webAppReady) {
+                renderCrashes = 0
+                handler.removeCallbacks(loadTimeout)
+                loadingView.visibility = View.GONE
+                loadedServerUrl?.let { ServerConfig.setLastWorkingUrl(this@MainActivity, it) }
+            }
             view.requestFocus()
         }
 
@@ -244,7 +302,10 @@ class MainActivity : Activity(), NativeBridge.Host {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         when (event.keyCode) {
             KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> {
-                if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) onBackKey()
+                if (event.action == KeyEvent.ACTION_UP && !event.isCanceled) {
+                    // Langer Druck auf Zurück = Einstellungen (viele TV-Fernbedienungen haben keine Menütaste).
+                    if (event.eventTime - event.downTime >= LONG_PRESS_MS) openSettings() else onBackKey()
+                }
                 return true
             }
             KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_SETTINGS -> {
@@ -326,5 +387,10 @@ class MainActivity : Activity(), NativeBridge.Host {
         private const val ERROR_BASE_URL = "file:///android_asset/error.html"
 
         private const val MAX_RENDER_CRASHES = 3
+
+        /** So lange darf der Server bis zur ersten sichtbaren Seite brauchen. */
+        private const val LOAD_TIMEOUT_MS = 15_000L
+
+        private const val LONG_PRESS_MS = 800L
     }
 }

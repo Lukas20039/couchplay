@@ -97,7 +97,8 @@ stehen in [`docs/deploy.md`](docs/deploy.md). Fürs Heimnetz ohne Domain reicht 
 Die signierte APK hängt an jedem [Release](https://github.com/Lukas20039/couchplay/releases).
 Auf dem TV z. B. mit der App *Downloader* öffnen oder per `adb install couchplay-tv-*.apk`.
 Die App erscheint im Android-TV-Launcher. Die Server-Adresse ist voreingestellt und lässt sich
-in der App unter **Einstellungen** ändern (Menütaste bzw. langer Druck auf OK).
+in der App unter **Einstellungen** ändern (langer Druck auf Zurück, Menütaste oder langer Druck auf OK).
+Ist der Server beim ersten Start nicht erreichbar, fragt die App die Adresse direkt ab.
 
 **Updates kommen danach von selbst:** Beim Start prüft die App das neueste GitHub-Release und bietet
 die neue Version an; alternativ *Einstellungen → Nach Updates suchen*. Beim ersten Update fragt

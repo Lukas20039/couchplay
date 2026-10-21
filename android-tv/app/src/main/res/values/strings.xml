@@ -14,6 +14,9 @@
     <string name="error_renderer">Die Anzeige ist wiederholt abgestürzt (zu wenig Speicher?).</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_update">Nach Updates suchen</string>
+    <string name="settings_unreachable">Unter %1$s ist kein CouchPlay-Server erreichbar. Bitte die Adresse deines Servers eingeben, z. B. 192.168.1.10:8080.</string>
+    <string name="loading">Verbinde mit %1$s …\n\nLange auf Zurück drücken für die Einstellungen.</string>
+    <string name="error_timeout">Keine Antwort nach %1$d Sekunden.</string>
 
     <string name="update_title">App-Update</string>
     <string name="update_checking">Suche nach Updates …</string>

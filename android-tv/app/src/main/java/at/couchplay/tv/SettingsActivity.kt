@@ -41,16 +41,31 @@ class SettingsActivity : Activity() {
             visibility = if (Updater.enabled) View.VISIBLE else View.GONE
             setOnClickListener { startActivity(Intent(this@SettingsActivity, UpdateActivity::class.java)) }
         }
-        // Fokus zuerst auf „Speichern“: OK übernimmt, Pfeil hoch bearbeitet die Adresse.
-        findViewById<Button>(R.id.save).requestFocus()
+        val unreachable = intent.getStringExtra(EXTRA_UNREACHABLE)
+        if (unreachable != null) {
+            // Aus MainActivity nach einem Verbindungsfehler: gleich die Adresse bearbeiten lassen.
+            error.text = getString(R.string.settings_unreachable, unreachable)
+            error.visibility = View.VISIBLE
+            input.requestFocus()
+            input.setSelection(input.text.length)
+        } else {
+            // Fokus zuerst auf „Speichern“: OK übernimmt, Pfeil hoch bearbeitet die Adresse.
+            findViewById<Button>(R.id.save).requestFocus()
+        }
     }
 
     private fun save() {
         if (ServerConfig.setServerUrl(this, input.text.toString())) {
             finish()
         } else {
+            error.setText(R.string.settings_invalid)
             error.visibility = View.VISIBLE
             input.requestFocus()
         }
+    }
+
+    companion object {
+        /** Adresse, die gerade nicht erreichbar war (öffnet die Einstellungen mit Hinweis und Fokus auf der Eingabe). */
+        const val EXTRA_UNREACHABLE = "at.couchplay.tv.extra.UNREACHABLE"
     }
 }
