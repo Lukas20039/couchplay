@@ -18,6 +18,13 @@ export const JOIN_PATH_PREFIX = "/j/";
 /** Pfad der TV-Web-UI (wird von der Android-WebView geladen). */
 export const TV_PATH = "/tv/";
 
+/**
+ * Erkennung im Heimnetz: Die Android-TV-App fragt Geräte im eigenen Subnetz unter diesem Pfad ab.
+ * Antwort: `{ service: DISCOVERY_SERVICE, protocol: PROTOCOL_VERSION, publicUrl: string | null }`.
+ */
+export const DISCOVERY_PATH = "/api/discover";
+export const DISCOVERY_SERVICE = "couchplay";
+
 export const MIN_PLAYERS = 1;
 export const MAX_PLAYERS = 8;
 

@@ -41,6 +41,7 @@ Verbindlich ergänzend zu `docs/PLAN.md`. Protokolldetails: `docs/protocol.md`.
 | Route | Inhalt |
 |---|---|
 | `GET /healthz` | `{ ok: true }` (Docker-Healthcheck) |
+| `GET /api/discover` | `{ service: "couchplay", protocol, publicUrl }` – Erkennung durch die Android-TV-App im Heimnetz |
 | `GET /tv/*` | `tv-web/dist` (Vite `base: "/tv/"`) |
 | `GET /j/:code` | `controller-pwa/dist/index.html` (Code aus Pfad, `parseJoinPath`) |
 | `GET /*` | `controller-pwa/dist` (SPA-Fallback auf `index.html`) |

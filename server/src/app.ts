@@ -2,6 +2,7 @@
 // WebSocket-Gateway /ws und Raumverwaltung. Graceful Shutdown über app.close().
 import { join } from "node:path";
 import type { AnyGameDefinition } from "@couchplay/game-sdk";
+import { DISCOVERY_PATH, DISCOVERY_SERVICE, PROTOCOL_VERSION } from "@couchplay/protocol/constants";
 import Fastify, { type FastifyInstance } from "fastify";
 import { GameCatalog } from "./catalog.js";
 import { configWarnings, type ServerConfig } from "./config.js";
@@ -99,6 +100,12 @@ export async function buildApp(config: ServerConfig, options: AppOptions = {}): 
       return { ok: true, rooms: rooms.size, connections: gateway.connectionCount };
     }
     return { ok: true };
+  });
+
+  // Erkennung durch die TV-App im Heimnetz. publicUrl = bevorzugte Adresse (z. B. hinter HTTPS-Proxy).
+  app.get(DISCOVERY_PATH, { logLevel: "warn" }, async (_req, reply) => {
+    reply.header("Cache-Control", "no-store");
+    return { service: DISCOVERY_SERVICE, protocol: PROTOCOL_VERSION, publicUrl: config.publicUrl };
   });
 
   app.get("/api/catalog", async (_req, reply) => {

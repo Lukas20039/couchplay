@@ -50,6 +50,13 @@ describe("HTTP", () => {
     expect(res.headers["cache-control"]).toBe("no-store");
   });
 
+  it("meldet sich unter /api/discover für die TV-App", async () => {
+    const res = await app.inject({ method: "GET", url: "/api/discover" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ service: "couchplay", protocol: 1, publicUrl: null });
+    expect(res.headers["cache-control"]).toBe("no-store");
+  });
+
   it("liefert den Spielkatalog unter /api/catalog", async () => {
     const res = await app.inject({ method: "GET", url: "/api/catalog" });
     expect(res.statusCode).toBe(200);

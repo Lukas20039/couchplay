@@ -92,6 +92,15 @@
                 android:text="@string/settings_save" />
 
             <Button
+                android:id="@+id/search"
+                style="@style/CouchPlayButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:nextFocusUp="@id/server_url"
+                android:text="@string/discovery_button" />
+
+            <Button
                 android:id="@+id/reset"
                 style="@style/CouchPlayButton"
                 android:layout_width="wrap_content"
@@ -109,6 +118,15 @@
                 android:nextFocusUp="@id/server_url"
                 android:text="@string/settings_cancel" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/search_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/cp_muted"
+            android:textSize="18sp"
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="wrap_content"

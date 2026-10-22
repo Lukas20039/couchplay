@@ -23,6 +23,12 @@ object ServerConfig {
         return stored?.let { normalize(it) } ?: defaultUrl
     }
 
+    /** Weder eine Adresse eingetragen noch je verbunden (Erststart) → im Heimnetz suchen. */
+    fun isUnconfigured(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return !prefs.contains(KEY_SERVER_URL) && lastWorkingUrl(context) == null
+    }
+
     /** Adresse, unter der die TV-Oberfläche zuletzt erfolgreich geladen wurde (oder null). */
     fun lastWorkingUrl(context: Context): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_LAST_WORKING_URL, null)

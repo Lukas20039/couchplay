@@ -16,6 +16,13 @@
     <string name="settings_update">Nach Updates suchen</string>
     <string name="settings_unreachable">Unter %1$s ist kein CouchPlay-Server erreichbar. Bitte die Adresse deines Servers eingeben, z. B. 192.168.1.10:8080.</string>
     <string name="loading">Verbinde mit %1$s …\n\nLange auf Zurück drücken für die Einstellungen.</string>
+    <string name="discovery_searching">Suche CouchPlay im Netzwerk …\n\nLange auf Zurück drücken für die Einstellungen.</string>
+    <string name="discovery_button">Im Netzwerk suchen</string>
+    <string name="discovery_running">Suche CouchPlay-Server im Netzwerk …</string>
+    <string name="discovery_none">Kein CouchPlay-Server im Netzwerk gefunden. Läuft er außerhalb (z. B. im Internet), bitte die Adresse eintippen.</string>
+    <string name="discovery_one">Gefunden: %1$s – mit „Speichern“ übernehmen.</string>
+    <string name="discovery_many">Mehrere Server gefunden – bitte einen auswählen.</string>
+    <string name="discovery_pick">CouchPlay-Server auswählen</string>
     <string name="error_timeout">Keine Antwort nach %1$d Sekunden.</string>
 
     <string name="update_title">App-Update</string>

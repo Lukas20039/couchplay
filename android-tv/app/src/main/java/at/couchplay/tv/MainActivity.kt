@@ -69,6 +69,13 @@ class MainActivity : Activity(), NativeBridge.Host {
     /** Für diese Adresse wurden die Einstellungen nach einem Fehler schon automatisch geöffnet. */
     private var settingsAutoOpenedFor: String? = null
 
+    /** Laufende Suche nach Servern im Heimnetz. */
+    private var discovery: Discovery.Search? = null
+
+    /** Für diese Adresse wurde nach einem Fehler schon gesucht; Ergebnis in lastFound. */
+    private var discoveryTriedFor: String? = null
+    private var lastFound: List<String> = emptyList()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -83,7 +90,8 @@ class MainActivity : Activity(), NativeBridge.Host {
         // CDP-Zugriff (Emulator-E2E) nur in Debug-Builds.
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         createWebView()
-        loadApp()
+        // Noch nie verbunden und keine Adresse eingetragen: erst im Heimnetz suchen.
+        if (ServerConfig.isUnconfigured(this)) searchThenLoad() else loadApp()
         checkForUpdate()
     }
 
@@ -109,10 +117,61 @@ class MainActivity : Activity(), NativeBridge.Host {
 
     override fun onDestroy() {
         handler.removeCallbacks(loadTimeout)
+        discovery?.cancel()
+        discovery = null
         updateDialog?.dismiss()
         updateDialog = null
         destroyWebView()
         super.onDestroy()
+    }
+
+    // ---------------------------------------------------------------- Suche im Heimnetz
+
+    /** Ergebnis kommt auf dem UI-Thread, nur solange die Activity lebt. */
+    private fun discover(done: (List<String>) -> Unit) {
+        discovery?.cancel()
+        discovery = Discovery.start(this) { found ->
+            runOnUiThread {
+                discovery = null
+                if (!isFinishing && !isDestroyed) done(found)
+            }
+        }
+    }
+
+    private fun searchThenLoad() {
+        loadingView.text = getString(R.string.discovery_searching)
+        loadingView.visibility = View.VISIBLE
+        discover { found ->
+            // Inzwischen in den Einstellungen eine Adresse gesetzt → die hat Vorrang.
+            if (found.size == 1 && ServerConfig.isUnconfigured(this)) ServerConfig.setServerUrl(this, found[0])
+            loadApp()
+            discoveryTriedFor = loadedServerUrl
+            lastFound = found
+        }
+    }
+
+    /**
+     * Server unter `server` nicht erreichbar: genau ein anderer CouchPlay-Server im Netz → dorthin
+     * wechseln (z. B. neue IP per DHCP). Sonst beim ersten Verbindungsversuch die Einstellungen
+     * mit den Funden öffnen.
+     */
+    private fun onUnreachable(server: String, neverConnected: Boolean, found: List<String>) {
+        if (!showingError || loadedServerUrl != server) return // inzwischen neu geladen
+        val others = found.filter { it != server }
+        if (others.size == 1 && found.size == 1) {
+            ServerConfig.setServerUrl(this, others[0])
+            loadApp()
+            return
+        }
+        if (neverConnected && settingsAutoOpenedFor != server) {
+            // Pro Adresse nur einmal, damit „Abbrechen“ nicht in eine Schleife führt.
+            settingsAutoOpenedFor = server
+            startActivity(
+                Intent(this, SettingsActivity::class.java)
+                    .putExtra(SettingsActivity.EXTRA_UNREACHABLE, server)
+                    .putStringArrayListExtra(SettingsActivity.EXTRA_FOUND, ArrayList(others)),
+            )
+        }
     }
 
     // ---------------------------------------------------------------- Update
@@ -204,12 +263,20 @@ class MainActivity : Activity(), NativeBridge.Host {
         webAppReady = false
         handler.removeCallbacks(loadTimeout)
         loadingView.visibility = View.GONE
-        // Noch nie mit dieser Adresse verbunden (Erststart, Tippfehler): gleich die Adresse abfragen.
-        // Pro Adresse nur einmal, damit „Abbrechen“ nicht in eine Schleife führt.
+        // Im Heimnetz nach dem Server suchen (einmal pro Adresse); noch nie mit dieser Adresse
+        // verbunden (Erststart, Tippfehler) → danach gleich die Adresse abfragen.
         val server = loadedServerUrl
-        if (server != null && server != ServerConfig.lastWorkingUrl(this) && settingsAutoOpenedFor != server) {
-            settingsAutoOpenedFor = server
-            startActivity(Intent(this, SettingsActivity::class.java).putExtra(SettingsActivity.EXTRA_UNREACHABLE, server))
+        if (server != null) {
+            val neverConnected = server != ServerConfig.lastWorkingUrl(this)
+            if (discoveryTriedFor == server) {
+                onUnreachable(server, neverConnected, lastFound)
+            } else {
+                discoveryTriedFor = server
+                discover { found ->
+                    lastFound = found
+                    onUnreachable(server, neverConnected, found)
+                }
+            }
         }
         val template = assets.open("error.html").bufferedReader(Charsets.UTF_8).use { it.readText() }
         val html = template
