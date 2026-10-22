@@ -8,6 +8,7 @@
   "botSupport": false,
   "accentColor": "#6fbf73",
   "icon": "🌻",
+  "progressKey": "couchplay.wortgarten.xp",
   "settings": [
     {
       "type": "select",
@@ -15,8 +16,8 @@
       "label": "Modus",
       "options": [
         { "value": "klassisch", "label": "Klassisch" },
-        { "value": "blitz", "label": "Blitz (ab Gartenstufe 5)" },
-        { "value": "langwort", "label": "Langwort (ab Gartenstufe 7)" }
+        { "value": "blitz", "label": "Blitz", "minProgress": 420 },
+        { "value": "langwort", "label": "Langwort", "minProgress": 950 }
       ],
       "default": "klassisch"
     },
@@ -27,8 +28,8 @@
       "options": [
         { "value": "auto", "label": "Größtes freigeschaltetes" },
         { "value": "4", "label": "4 × 4" },
-        { "value": "5", "label": "5 × 5 (ab Gartenstufe 3)" },
-        { "value": "6", "label": "6 × 6 (ab Gartenstufe 6)" }
+        { "value": "5", "label": "5 × 5", "minProgress": 120 },
+        { "value": "6", "label": "6 × 6", "minProgress": 650 }
       ],
       "default": "auto"
     },

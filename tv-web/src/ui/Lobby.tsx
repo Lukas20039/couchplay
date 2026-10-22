@@ -66,7 +66,7 @@ export function Lobby(props: { state: AppState; room: RoomState }) {
 
       <section class="settings-panel" aria-label={t.settings.heading}>
         <h2>{t.settings.heading}</h2>
-        <SettingsPanel game={game} values={room.settings} />
+        <SettingsPanel game={game} values={room.settings} progress={(game && room.progress[game.id]) || 0} />
       </section>
 
       <section class="start-bar">

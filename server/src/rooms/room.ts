@@ -10,6 +10,7 @@ import {
   defaultSettings,
   nameKey,
   normalizeName,
+  relockSettings,
   resolveParticipants,
   validateSettings,
   type Actor,
@@ -18,6 +19,7 @@ import {
   type GameResults,
   type Player,
   type PlayerId,
+  type ProgressValues,
   type RoomClosedReason,
   type RoomPhase,
   type RoomState,
@@ -65,6 +67,8 @@ interface PlayerRecord {
   /** Letzte bekannte IP (für Kick-Sperre während der Gnadenfrist). */
   lastIpKey: string;
   graceTimer: NodeJS.Timeout | null;
+  /** Zuletzt per player.progress gemeldeter Fortschritt je Spiel. */
+  progress: ProgressValues;
 }
 
 export interface RoomDeps {
@@ -169,7 +173,27 @@ export class Room {
       settings: { ...this.settings },
       gamePlayerIds: [...this.gamePlayerIds],
       results: this.results,
+      progress: this.roomProgress(),
     };
+  }
+
+  /** Höchster Fortschritt aller Spieler im Raum (auch während der Gnadenfrist) je Spiel. */
+  private roomProgress(): ProgressValues {
+    const out: ProgressValues = {};
+    for (const p of this.players) {
+      for (const [gameId, v] of Object.entries(p.progress)) out[gameId] = Math.max(out[gameId] ?? 0, v);
+    }
+    return out;
+  }
+
+  private progressOf(gameId: string): number {
+    return this.roomProgress()[gameId] ?? 0;
+  }
+
+  /** Nach Fortschrittsverlust (Spieler weg) nicht mehr freigeschaltete Settings zurücksetzen. */
+  private relock(): void {
+    const def = this.selectedGameId ? this.deps.catalog.get(this.selectedGameId) : undefined;
+    if (def) this.settings = relockSettings(def.manifest.settings, this.settings, this.progressOf(def.manifest.id));
   }
 
   // -------------------------------------------------------------------------
@@ -286,6 +310,7 @@ export class Room {
       conn,
       lastIpKey: conn.ipKey,
       graceTimer: null,
+      progress: {},
     };
     this.players.push(player);
     if (this.hostId === null) this.hostId = player.id;
@@ -357,6 +382,8 @@ export class Room {
       this.hostId = next?.id ?? null;
     }
     if (this.session && this.gamePlayerIds.includes(playerId)) this.session.playerLeft(playerId);
+    // Während des Spiels bleiben die gestarteten Settings; beim nächsten Lobby-Wechsel greift relock().
+    if (this.phase !== "game") this.relock();
     this.broadcastState();
   }
 
@@ -412,6 +439,22 @@ export class Room {
     return undefined;
   }
 
+  /** player.progress: nur Spiele mit progressKey; ersetzt die bisherigen Werte des Spielers. */
+  updateProgress(playerId: PlayerId, input: ProgressValues): HandlerResult {
+    const player = this.players.find((p) => p.id === playerId);
+    if (!player) return fail("NOT_IN_ROOM", "Nicht im Raum");
+    const next: ProgressValues = {};
+    for (const [gameId, v] of Object.entries(input)) {
+      if (v > 0 && this.deps.catalog.get(gameId)?.manifest.progressKey) next[gameId] = v;
+    }
+    const before = JSON.stringify(this.roomProgress());
+    player.progress = next;
+    if (JSON.stringify(this.roomProgress()) === before) return undefined; // keine Änderung → kein Broadcast
+    this.relock();
+    this.broadcastState();
+    return undefined;
+  }
+
   // -------------------------------------------------------------------------
   // Lobby
   // -------------------------------------------------------------------------
@@ -430,7 +473,7 @@ export class Room {
   updateSettings(input: SettingsValues): HandlerResult {
     const def = this.selectedGameId ? this.deps.catalog.get(this.selectedGameId) : undefined;
     if (!def) return fail("INVALID_SETTINGS", "Kein Spiel ausgewählt");
-    const result = validateSettings(def.manifest.settings, input, this.settings);
+    const result = validateSettings(def.manifest.settings, input, this.settings, this.progressOf(def.manifest.id));
     if (!result.ok) {
       return fail("INVALID_SETTINGS", result.errors.map((e) => `${e.key}: ${e.message}`).join("; "));
     }
@@ -444,6 +487,7 @@ export class Room {
     if (!def) return fail("NO_GAME_SELECTED", "Kein Spiel ausgewählt");
     const participants = resolveParticipants(this.snapshot().players, def.manifest, requested);
     if (!participants.ok) return fail(participants.code, participants.message);
+    this.relock();
 
     // parseSettings läuft im SDK außerhalb des Crash-Guards → vorab prüfen, bevor die Phase wechselt.
     try {
@@ -525,6 +569,7 @@ export class Room {
     this.session = null;
     this.tvCache = null;
     this.viewCache.clear();
+    this.relock();
   }
 
   private finishGame(results: GameResults, log: FastifyBaseLogger): void {

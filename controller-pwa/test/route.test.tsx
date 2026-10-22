@@ -128,6 +128,7 @@ describe("Join-Seiten (gerendert)", () => {
           settings: {},
           gamePlayerIds: [],
           results: null,
+          progress: {},
         },
       });
     });

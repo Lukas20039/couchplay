@@ -343,6 +343,11 @@ export class Gateway {
         if (!rate.ok) return { code: "RATE_LIMITED", message: "Zu viele Profiländerungen", retryAfterMs: rate.retryAfterMs };
         return playerId ? room.updatePlayer(playerId, msg.name, msg.avatar) : undefined;
       }
+      case "player.progress": {
+        const rate = conn.updateBucket.take();
+        if (!rate.ok) return { code: "RATE_LIMITED", message: "Zu viele Fortschrittsmeldungen", retryAfterMs: rate.retryAfterMs };
+        return playerId ? room.updateProgress(playerId, msg.progress) : undefined;
+      }
       case "player.kick":
         return room.kick(msg.playerId);
       case "lobby.selectGame":

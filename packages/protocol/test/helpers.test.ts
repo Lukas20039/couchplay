@@ -15,7 +15,10 @@ import {
   normalizeName,
   parseJoinPath,
   reconnectDelayMs,
+  relockSettings,
   sanitizeRoomCodeInput,
+  unlockedFields,
+  unlockedOptions,
   validateSettings,
   type SettingField,
 } from "../src/index.js";
@@ -144,5 +147,54 @@ describe("Reconnect-Backoff", () => {
     expect(reconnectDelayMs(1, mid)).toBe(1000);
     expect(reconnectDelayMs(20, mid)).toBe(RECONNECT_BACKOFF_MAX_MS);
     expect(reconnectDelayMs(0, () => 0)).toBe(400);
+  });
+});
+
+describe("Freischaltungen (minProgress)", () => {
+  const locked: SettingField[] = [
+    {
+      type: "select",
+      key: "mode",
+      label: "Modus",
+      options: [{ value: "normal", label: "N" }, { value: "blitz", label: "B", minProgress: 100 }],
+      default: "normal",
+    },
+    {
+      type: "multiselect",
+      key: "packs",
+      label: "Pakete",
+      options: [{ value: "a", label: "A" }, { value: "b", label: "B", minProgress: 50 }],
+      default: ["a"],
+    },
+  ];
+
+  it("zeigt nur freigeschaltete Optionen", () => {
+    expect(unlockedOptions((locked[0] as { options: { value: string }[] }).options, 99).map((o) => o.value)).toEqual(["normal"]);
+    expect(unlockedOptions((locked[0] as { options: { value: string }[] }).options, 100).map((o) => o.value)).toEqual(["normal", "blitz"]);
+  });
+
+  it("Formular: Auswahl mit nur einer freien Option entfällt", () => {
+    expect(unlockedFields(locked, 60).map((f) => f.key)).toEqual(["packs"]);
+    expect(unlockedFields(locked, 0).map((f) => f.key)).toEqual(["packs"]);
+    expect(unlockedFields(locked, 100)).toEqual(locked);
+  });
+
+  it("lehnt gesperrte Optionen ab, ohne Fortschritt ist alles erlaubt", () => {
+    expect(validateSettings(locked, { mode: "blitz" }, undefined, 10).ok).toBe(false);
+    expect(validateSettings(locked, { packs: ["a", "b"] }, undefined, 10).ok).toBe(false);
+    expect(validateSettings(locked, { mode: "blitz" }, undefined, 100).ok).toBe(true);
+    expect(validateSettings(locked, { mode: "blitz" }).ok).toBe(true);
+  });
+
+  it("setzt gesperrte Werte auf den Default zurück", () => {
+    expect(relockSettings(locked, { mode: "blitz", packs: ["a", "b"] }, 60)).toEqual({ mode: "normal", packs: ["a", "b"] });
+    expect(relockSettings(locked, { mode: "blitz", packs: ["a", "b"] }, 0)).toEqual({ mode: "normal", packs: ["a"] });
+  });
+
+  it("Manifest: Default-Option darf nicht gesperrt sein", () => {
+    const base = { id: "demo", name: "Demo", description: "", version: "1.0.0", minPlayers: 1, maxPlayers: 2, botSupport: false };
+    expect(GameManifestSchema.safeParse({ ...base, progressKey: "demo.xp", settings: locked }).success).toBe(true);
+    const bad = [{ ...locked[0]!, default: "blitz" }];
+    expect(GameManifestSchema.safeParse({ ...base, settings: bad }).success).toBe(false);
   });
 });

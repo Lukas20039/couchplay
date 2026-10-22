@@ -62,6 +62,7 @@ export function player(id: string, extra: Partial<Player> = {}): Player {
 
 export function room(extra: Partial<RoomState> = {}): RoomState {
   return {
+    progress: {},
     code: "042137",
     phase: "lobby",
     joinUrl: "http://localhost/j/042137",

@@ -55,6 +55,7 @@ export const ttt: GameManifest = {
 
 export function room(extra: Partial<RoomState> = {}): RoomState {
   return {
+    progress: {},
     code: "042137",
     phase: "lobby",
     joinUrl: "http://192.168.1.5:8080/j/042137",

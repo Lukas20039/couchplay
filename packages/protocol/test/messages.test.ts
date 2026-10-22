@@ -30,6 +30,7 @@ const room: RoomState = {
   settings: { rounds: 10, categories: ["sport"] },
   gamePlayerIds: [],
   results: null,
+  progress: { wortgarten: 420 },
 };
 
 /** Ein gültiges Beispiel pro Client-Nachrichtentyp (muss docs/protocol.md entsprechen). */
@@ -41,6 +42,7 @@ const clientExamples: ClientMessage[] = [
   { t: "room.leave" },
   { t: "room.close" },
   { t: "player.update", name: "Anni" },
+  { t: "player.progress", progress: { wortgarten: 420 } },
   { t: "player.kick", playerId: "p_2" },
   { t: "lobby.selectGame", gameId: "tictactoe" },
   { t: "lobby.updateSettings", settings: { difficulty: "leicht" } },

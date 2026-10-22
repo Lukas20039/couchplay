@@ -44,7 +44,8 @@ export const t = {
   level: (n: number) => `Gartenstufe ${n}`,
   xpProgress: (xp: number, next: number) => `${fmt(xp)} / ${fmt(next)} Erfahrung`,
   xpMax: (xp: number) => `${fmt(xp)} Erfahrung · höchste Stufe`,
-  nextUnlock: (title: string, missing: number) => `Noch ${fmt(missing)} bis: ${title}`,
+  /** Bewusst ohne Namen: Freischaltungen sieht man erst, wenn sie erreicht sind. */
+  nextUnlock: (missing: number) => `🎁 Noch ${fmt(missing)} bis zur nächsten Überraschung`,
 
   // Intro
   introSub: "Findet Wörter im Buchstabenraster.",

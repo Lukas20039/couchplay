@@ -1,7 +1,10 @@
 import { createRng } from "@couchplay/game-sdk";
 import { describe, expect, it } from "vitest";
+import manifest from "../manifest.json" with { type: "json" };
 import {
   LEVELS,
+  MODE_UNLOCK,
+  XP_STORAGE_KEY,
   basePoints,
   comboMultiplier,
   isAdjacent,
@@ -152,5 +155,21 @@ describe("Raster", () => {
     expect(big.board.letters).toHaveLength(36);
     expect(big.board.gold).toEqual([]);
     expect(big.solution.words.size).toBeGreaterThanOrEqual(150);
+  });
+});
+
+describe("Manifest-Freischaltungen", () => {
+  const xpOf = (unlock: string | null): number => (unlock === null ? 0 : LEVELS.find((l) => l.unlock === unlock)!.xp);
+  const options = (key: string) =>
+    (manifest.settings.find((f) => f.key === key) as { options: Array<{ value: string; minProgress?: number }> }).options;
+
+  it("Lobby liest denselben Speicher wie der Controller", () => {
+    expect(manifest.progressKey).toBe(XP_STORAGE_KEY);
+  });
+
+  it("minProgress der Modi und Raster passt zu den Gartenstufen", () => {
+    for (const o of options("mode")) expect(o.minProgress ?? 0).toBe(xpOf(MODE_UNLOCK[o.value as keyof typeof MODE_UNLOCK]));
+    const grid: Record<string, string | null> = { auto: null, "4": null, "5": "grid5", "6": "grid6" };
+    for (const o of options("gridSize")) expect(o.minProgress ?? 0).toBe(xpOf(grid[o.value]!));
   });
 });

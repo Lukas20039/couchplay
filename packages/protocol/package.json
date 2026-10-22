@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./constants": "./src/constants.ts",
     "./errors": "./src/errors.ts",
+    "./settings": "./src/settings.ts",
     "./util": "./src/util.ts"
   },
   "scripts": {

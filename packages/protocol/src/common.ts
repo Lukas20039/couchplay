@@ -74,6 +74,13 @@ export type SettingValue = z.infer<typeof SettingValueSchema>;
 export const SettingsValuesSchema = z.record(z.string(), SettingValueSchema);
 export type SettingsValues = z.infer<typeof SettingsValuesSchema>;
 
+/** Obergrenze für gemeldeten Spielfortschritt (Schutz vor Unsinn). */
+export const MAX_PROGRESS = 1_000_000_000;
+export const ProgressValueSchema = z.number().int().min(0).max(MAX_PROGRESS);
+/** Höchster gemeldeter Fortschritt je Spiel-ID (siehe player.progress). */
+export const ProgressValuesSchema = z.record(GameIdSchema, ProgressValueSchema);
+export type ProgressValues = z.infer<typeof ProgressValuesSchema>;
+
 export const RankingEntrySchema = z.object({
   playerId: PlayerIdSchema,
   score: z.number(),
@@ -115,6 +122,8 @@ export const RoomStateSchema = z.object({
   gamePlayerIds: z.array(PlayerIdSchema),
   /** Nur in Phase "results" gesetzt. */
   results: GameResultsSchema.nullable(),
+  /** Höchster Fortschritt der Spieler im Raum je Spiel (player.progress); fehlt = 0. */
+  progress: ProgressValuesSchema,
 });
 export type RoomState = z.infer<typeof RoomStateSchema>;
 
@@ -124,7 +133,15 @@ export type RoomState = z.infer<typeof RoomStateSchema>;
 // ---------------------------------------------------------------------------
 
 const SettingKeySchema = z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,31}$/);
-const OptionSchema = z.object({ value: z.string().min(1), label: z.string().min(1) });
+const OptionSchema = z.object({
+  value: z.string().min(1),
+  label: z.string().min(1),
+  /**
+   * Option erst ab diesem Spielfortschritt freigeschaltet (siehe Manifest `progressKey`).
+   * Gesperrte Optionen zeigen TV und Handy nicht an, der Server lehnt sie ab.
+   */
+  minProgress: ProgressValueSchema.optional(),
+});
 
 const SelectFieldSchema = z.object({
   type: z.literal("select"),
@@ -170,6 +187,12 @@ export type SettingField = z.infer<typeof SettingFieldSchema>;
 // Spiel-Manifest (Inhalt von games/<id>/manifest.json)
 // ---------------------------------------------------------------------------
 
+function hasLockedDefault(field: SettingField): boolean {
+  if (field.type !== "select" && field.type !== "multiselect") return false;
+  const defaults = Array.isArray(field.default) ? field.default : [field.default];
+  return field.options.some((o) => (o.minProgress ?? 0) > 0 && defaults.includes(o.value));
+}
+
 export const GameManifestSchema = z
   .object({
     id: GameIdSchema,
@@ -181,6 +204,12 @@ export const GameManifestSchema = z
     /** true = Spiel stellt selbst Bot-Gegner, wenn Menschen fehlen (z. B. TicTacToe 1 Spieler). */
     botSupport: z.boolean(),
     settings: z.array(SettingFieldSchema),
+    /**
+     * localStorage-Schlüssel, unter dem die Handys den Fortschritt (ganze Zahl ≥ 0) dieses Spiels
+     * speichern. Sie melden ihn in Lobby/Ergebnissen per player.progress; Optionen mit
+     * `minProgress` werden erst ab diesem Wert angezeigt.
+     */
+    progressKey: z.string().min(1).max(64).optional(),
     /** Icon für die Katalog-Kachel: Emoji, wird nur als Text gerendert (nie als HTML). */
     icon: z.string().min(1).max(16).optional(),
     /** Akzentfarbe für Katalog-Kachel (#rrggbb). */
@@ -192,5 +221,6 @@ export const GameManifestSchema = z
   .refine((m) => m.minPlayers <= m.maxPlayers, { message: "minPlayers > maxPlayers" })
   .refine((m) => new Set(m.settings.map((s) => s.key)).size === m.settings.length, {
     message: "Doppelte Settings-Keys",
-  });
+  })
+  .refine((m) => m.settings.every((f) => !hasLockedDefault(f)), { message: "Default-Option darf nicht gesperrt sein" });
 export type GameManifest = z.infer<typeof GameManifestSchema>;

@@ -2,6 +2,7 @@
 // Teilnehmerauswahl und Start-Button.
 import type { GameManifest, Player, SettingField, SettingValue } from "@couchplay/protocol";
 import { MAX_PLAYERS } from "@couchplay/protocol/constants";
+import { unlockedFields } from "@couchplay/protocol/settings";
 import { useEffect, useState } from "preact/hooks";
 import { Avatar, SelfBar } from "../components/common.js";
 import { ConfirmDialog } from "../components/ConfirmDialog.js";
@@ -155,6 +156,8 @@ function HostPanel({ game, selection, setSelection }: HostPanelProps) {
   const limits = room.playerLimits;
   const picker = needsPicker(room.players, limits);
   const chosen = limits ? effectiveSelection(selection, room.players, limits) : [];
+  // Noch nicht freigeschaltete Optionen (Manifest minProgress) bleiben unsichtbar.
+  const settingFields = game ? unlockedFields(game.settings, room.progress[game.id] ?? 0) : [];
 
   return (
     <>
@@ -185,14 +188,14 @@ function HostPanel({ game, selection, setSelection }: HostPanelProps) {
         </div>
       </section>
 
-      {game && game.settings.length > 0 && (
+      {settingFields.length > 0 && (
         <section class="panel" aria-labelledby="settings-h" data-testid="host-settings">
           <h2 id="settings-h" class="subtitle">
             {t.lobby.settings}
           </h2>
-          {game.settings.map((f) => (
+          {settingFields.map((f) => (
             <SettingControl
-              key={`${game.id}:${f.key}`}
+              key={`${game!.id}:${f.key}`}
               field={f}
               value={room.settings[f.key] ?? f.default}
               onChange={(v) => app.send({ t: "lobby.updateSettings", settings: { [f.key]: v } })}

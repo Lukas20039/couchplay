@@ -24,18 +24,22 @@ RoomState  = { code, phase: "lobby"|"game"|"results", joinUrl, players: Player[]
                playerLimits: { minPlayers, maxPlayers } | null,   // des ausgewählten Spiels
                settings: Record<string, SettingValue>,
                gamePlayerIds: string[],   // Teilnehmer der laufenden/letzten Runde (Startreihenfolge)
-               results: GameResults|null }
+               results: GameResults|null,
+               progress: Record<gameId, number> }   // höchster gemeldeter Fortschritt im Raum (player.progress), fehlt = 0
 GameResults = { gameId, ranking: { playerId, score, rank }[], data?: unknown }
 SettingValue = string | number | boolean | string[]
 GameManifest = { id, name, description, version, minPlayers, maxPlayers, botSupport, settings: SettingField[],
+                 progressKey?,   // localStorage-Schlüssel des Fortschritts (ganze Zahl ≥ 0) auf dem Handy
                  icon?,          // Emoji, 1–16 Zeichen, nur als Text rendern
                  accentColor? }  // #rrggbb
-SettingField = { type: "select", key, label, options: {value,label}[], default: string }
+SettingOption = { value, label, minProgress? }   // erst ab diesem Fortschritt freigeschaltet
+SettingField = { type: "select", key, label, options: SettingOption[], default: string }
              | { type: "multiselect", key, label, options, default: string[], minSelected?, maxSelected? }
              | { type: "number", key, label, min, max, step?, default: number }
              | { type: "toggle", key, label, default: boolean }
 ```
 
+- **Freischaltungen:** Optionen mit `minProgress > room.progress[gameId]` sind gesperrt. TV und Handy zeigen sie nicht an (`unlockedFields()` aus `@couchplay/protocol/settings`; Auswahlfelder mit nur einer freien Option entfallen ganz). `lobby.updateSettings` mit gesperrter Option → `INVALID_SETTINGS`. Sinkt der Fortschritt (Spieler geht), setzt der Server gesperrte Werte auf den Default zurück. Default-Optionen dürfen nie gesperrt sein (Manifest-Prüfung).
 - `code`: 6 Ziffern (`/^\d{6}$/`, führende Nullen möglich). `token`/`tvToken`: base64url, 22–64 Zeichen.
 - **Zuschauer:** In Phase `game` ist jeder Spieler mit `id ∉ room.gamePlayerIds` Zuschauer (`isSpectator(room, playerId)`). Er erhält keine `game.view`, darf kein `game.input` senden (`NOT_ALLOWED`) und zeigt einen Zuschauer-Screen. Auch während einer Runde Beitretende sind Zuschauer.
 - `AvatarId`: `fuchs katze hund panda eule frosch tiger einhorn pinguin krake roboter alien`. Darstellung ausschließlich über `AVATAR_EMOJI` / `avatarEmoji(id)` aus `@couchplay/protocol/constants` (Fallback `AVATAR_FALLBACK_EMOJI` 🙂). Bots/Computer-Gegner: `BOT_EMOJI` 🖥️ (nicht 🤖 – das ist der Avatar „roboter“).
@@ -54,6 +58,7 @@ Spalte „Wer/Phase": Berechtigung nach Handshake (`CLIENT_MESSAGE_RULES`). Vers
 | `room.leave` | – | player/host · alle | `room.closed{left}` an sich selbst |
 | `room.close` | – | tv · alle | `room.closed{closed_by_tv}` an alle |
 | `player.update` | `name?, avatar?` | player/host · lobby, results | `room.state` |
+| `player.progress` | `progress: Record<gameId, number>` (≤ 32) | player/host · lobby, results | `room.state`, falls sich `room.progress` ändert. Ersetzt die Werte des Spielers; nur Spiele mit `progressKey`, Rate-Limit wie `player.update` |
 | `player.kick` | `playerId` | tv/host · lobby, results | Ziel: `room.closed{kicked}` + Close 4003; alle: `room.state` |
 | `lobby.selectGame` | `gameId` | tv/host · lobby, results | `room.state` (Settings = Defaults, Phase → lobby) |
 | `lobby.updateSettings` | `settings` (Teilmenge) | tv/host · lobby, results | `room.state` oder `INVALID_SETTINGS` |
@@ -75,6 +80,7 @@ Beispiele:
 {"t":"player.update","name":"Anni","avatar":"eule"}
 {"t":"player.kick","playerId":"p_8hd02k"}
 {"t":"lobby.selectGame","gameId":"quiz"}
+{"t":"player.progress","progress":{"wortgarten":420}}
 {"t":"lobby.updateSettings","settings":{"rounds":15,"categories":["sport","geografie"]}}
 {"t":"lobby.start","rid":"s1"}
 {"t":"lobby.start","playerIds":["p_k3j9x2","p_8hd02k"]}
@@ -114,7 +120,7 @@ Beispiele:
 {"t":"room.resumed","v":1,"code":"042137","joinUrl":"https://play.example.org/j/042137"}
 {"t":"room.joined","v":1,"code":"042137","playerId":"p_k3j9x2","token":"q8V0mZ2pYwL4nB7cR1sT6uX9dE3fG5hJ","rid":"j1"}
 {"t":"catalog","games":[{"id":"tictactoe","name":"TicTacToe","description":"Drei in einer Reihe …","version":"0.1.0","minPlayers":1,"maxPlayers":2,"botSupport":true,"accentColor":"#00c2a8","settings":[{"type":"select","key":"difficulty","label":"Computer-Stärke (1 Spieler)","options":[{"value":"leicht","label":"Leicht"},{"value":"mittel","label":"Mittel"},{"value":"unbesiegbar","label":"Unbesiegbar"}],"default":"mittel"}]}]}
-{"t":"room.state","room":{"code":"042137","phase":"lobby","joinUrl":"https://play.example.org/j/042137","players":[{"id":"p_k3j9x2","name":"Anna","avatar":"fuchs","color":0,"connected":true,"isHost":true}],"hostId":"p_k3j9x2","tvConnected":true,"selectedGameId":"tictactoe","playerLimits":{"minPlayers":1,"maxPlayers":2},"settings":{"difficulty":"mittel"},"gamePlayerIds":[],"results":null}}
+{"t":"room.state","room":{"code":"042137","phase":"lobby","joinUrl":"https://play.example.org/j/042137","players":[{"id":"p_k3j9x2","name":"Anna","avatar":"fuchs","color":0,"connected":true,"isHost":true}],"hostId":"p_k3j9x2","tvConnected":true,"selectedGameId":"tictactoe","playerLimits":{"minPlayers":1,"maxPlayers":2},"settings":{"difficulty":"mittel"},"gamePlayerIds":[],"results":null,"progress":{}}}
 {"t":"game.tv","gameId":"quiz","seq":12,"state":{"phase":"question","text":"Hauptstadt von Australien?","endsAt":1729411230000}}
 {"t":"game.view","gameId":"quiz","seq":13,"view":{"phase":"answer","choices":4}}
 {"t":"room.closed","reason":"kicked"}

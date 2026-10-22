@@ -2,6 +2,7 @@
 import { MAX_MESSAGE_BYTES, PROTOCOL_VERSION, WS_CLOSE } from "@couchplay/protocol";
 import { afterEach, describe, expect, it } from "vitest";
 import { TestClient, createRoom, joinPlayer, sleep, startServer, type TestServer } from "./helpers.js";
+import { testGame } from "./fixtures/test-game.js";
 
 let server: TestServer;
 afterEach(async () => {
@@ -379,5 +380,59 @@ describe("Protokoll-Durchsetzung", () => {
     const c = await TestClient.connect(server.wsUrl, { origin: "http://localhost:5173" });
     c.close();
     await expect(TestClient.connect(server.wsUrl.replace("/ws", "/nicht-ws"))).rejects.toThrow(/404/);
+  });
+});
+
+describe("Freischaltungen (player.progress)", () => {
+  const unlockGame = {
+    ...testGame,
+    manifest: {
+      ...testGame.manifest,
+      id: "unlockgame",
+      progressKey: "cp.unlockgame.xp",
+      settings: [
+        ...testGame.manifest.settings,
+        {
+          type: "select" as const,
+          key: "mode",
+          label: "Modus",
+          options: [{ value: "normal", label: "Normal" }, { value: "blitz", label: "Blitz", minProgress: 100 }],
+          default: "normal",
+        },
+      ],
+    },
+  };
+
+  it("Raum zeigt das Maximum, gesperrte Optionen werden abgelehnt und nach Verlust zurückgesetzt", async () => {
+    server = await startServer({ options: { games: [testGame, unlockGame] } });
+    const { tv, code } = await createRoom(server);
+    const host = await joinPlayer(server, code, "Anna");
+    const pro = await joinPlayer(server, code, "Ben");
+    tv.send({ t: "lobby.selectGame", gameId: "unlockgame" });
+    await tv.state((r) => r.selectedGameId === "unlockgame");
+
+    tv.send({ t: "lobby.updateSettings", settings: { mode: "blitz" } });
+    await tv.error("INVALID_SETTINGS");
+
+    // Spiele ohne progressKey und unbekannte Spiele werden ignoriert.
+    host.client.send({ t: "player.progress", progress: { unlockgame: 30, testgame: 500, fremd: 7 } });
+    expect((await tv.state((r) => r.progress.unlockgame === 30)).progress).toEqual({ unlockgame: 30 });
+    pro.client.send({ t: "player.progress", progress: { unlockgame: 150 } });
+    expect((await tv.state((r) => r.progress.unlockgame === 150)).progress).toEqual({ unlockgame: 150 });
+
+    tv.send({ t: "lobby.updateSettings", settings: { mode: "blitz" } });
+    await tv.state((r) => r.settings.mode === "blitz");
+
+    pro.client.send({ t: "room.leave" });
+    const after = await tv.state((r) => r.players.length === 1 && r.progress.unlockgame !== 150 && r.selectedGameId !== null);
+    expect(after.progress).toEqual({ unlockgame: 30 });
+    expect(after.settings.mode).toBe("normal");
+  });
+
+  it("TV darf keinen Fortschritt melden", async () => {
+    server = await startServer();
+    const { tv } = await createRoom(server);
+    tv.send({ t: "player.progress", progress: {} });
+    await tv.error("NOT_ALLOWED");
   });
 });

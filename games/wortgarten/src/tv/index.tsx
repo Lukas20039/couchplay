@@ -51,7 +51,6 @@ function Grid({ board, cls = "" }: { board: Board; cls?: string }) {
 }
 
 function LevelCard({ level, title }: { level: LevelInfo; title?: string }) {
-  const next = level.nextUnlock ? UNLOCK_LABELS[level.nextUnlock] : null;
   return (
     <div class="wg-level">
       {title && <p class="wg-level-title">{title}</p>}
@@ -62,11 +61,7 @@ function LevelCard({ level, title }: { level: LevelInfo; title?: string }) {
       <div class="wg-bar" aria-hidden="true">
         <span style={{ transform: `scaleX(${levelShare(level)})` }} />
       </div>
-      {next && level.nextXp !== null && (
-        <p class="wg-dim">
-          {next.icon} {t.nextUnlock(next.title, level.nextXp - level.xp)}
-        </p>
-      )}
+      {level.nextUnlock && level.nextXp !== null && <p class="wg-dim">{t.nextUnlock(level.nextXp - level.xp)}</p>}
     </div>
   );
 }

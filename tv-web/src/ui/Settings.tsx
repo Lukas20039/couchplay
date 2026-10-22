@@ -2,6 +2,7 @@
 // Bedienung: OK auf einer Zeile → Schalter wechselt direkt, sonst Auswahlliste als Overlay.
 import { useState } from "preact/hooks";
 import type { GameManifest, SettingField, SettingsValues, SettingValue } from "@couchplay/protocol";
+import { unlockedFields } from "@couchplay/protocol/settings";
 import { t } from "../i18n/index.js";
 import { fill } from "../lib/format.js";
 import { Overlay } from "./common.js";
@@ -59,18 +60,20 @@ export function toggleMulti(field: Extract<SettingField, { type: "multiselect" }
   return next.sort((a, b) => order.indexOf(a) - order.indexOf(b));
 }
 
-export function SettingsPanel(props: { game: GameManifest | null; values: SettingsValues }) {
+/** `progress` = Fortschritt des Raums für dieses Spiel; noch gesperrte Optionen werden nicht gezeigt. */
+export function SettingsPanel(props: { game: GameManifest | null; values: SettingsValues; progress: number }) {
   const api = useApi();
   const [open, setOpen] = useState<string | null>(null);
   const { game, values } = props;
   if (!game) return <p class="muted">{t.settings.noGame}</p>;
-  if (game.settings.length === 0) return <p class="muted">{t.settings.none}</p>;
-  const openField = game.settings.find((f) => f.key === open) ?? null;
+  const fields = unlockedFields(game.settings, props.progress);
+  if (fields.length === 0) return <p class="muted">{t.settings.none}</p>;
+  const openField = fields.find((f) => f.key === open) ?? null;
   const update = (key: string, value: SettingValue): void => api.send({ t: "lobby.updateSettings", settings: { [key]: value } });
 
   return (
     <div class="settings" data-testid="settings">
-      {game.settings.map((field) => (
+      {fields.map((field) => (
         <button
           key={field.key}
           class={`setting-row ${field.type === "toggle" ? "setting-toggle" : ""}`}

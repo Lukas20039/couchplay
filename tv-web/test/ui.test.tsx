@@ -44,6 +44,32 @@ describe("Lobby", () => {
     expect(q(el, "setting")?.textContent).toContain("Leicht");
   });
 
+  it("zeigt gesperrte Optionen erst ab dem nötigen Fortschritt", () => {
+    const locked = {
+      ...ttt,
+      progressKey: "ttt.xp",
+      settings: [
+        ...ttt.settings,
+        {
+          type: "select" as const,
+          key: "mode",
+          label: "Modus",
+          options: [{ value: "normal", label: "Normal" }, { value: "turbo", label: "Turbo", minProgress: 50 }],
+          default: "normal",
+        },
+      ],
+    };
+    const keys = (progress: number) => {
+      const rr = { ...r, progress: { tictactoe: progress } };
+      const { el } = mount(<Lobby state={{ ...state, catalog: [quiz, locked], room: rr }} room={rr} />);
+      const out = [...el.querySelectorAll<HTMLElement>('[data-testid="setting"]')].map((b) => b.dataset.settingKey);
+      document.body.innerHTML = "";
+      return out;
+    };
+    expect(keys(49)).toEqual(["difficulty"]);
+    expect(keys(50)).toEqual(["difficulty", "mode"]);
+  });
+
   it("Kachel wählt Spiel, Start sendet lobby.start", () => {
     const { el, sent } = mount(<Lobby state={state} room={r} />);
     el.querySelector<HTMLElement>('[data-game-id="quiz"]')!.click();

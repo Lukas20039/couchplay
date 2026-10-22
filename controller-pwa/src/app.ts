@@ -1,5 +1,5 @@
 // Verdrahtet Store, Verbindung und Browser-Ereignisse. Komponenten sprechen nur mit `AppController`.
-import type { ClientMessage } from "@couchplay/protocol";
+import type { ClientMessage, GameManifest, ProgressValues } from "@couchplay/protocol";
 import { WS_PATH, type AvatarId } from "@couchplay/protocol/constants";
 import { Connection, type WebSocketFactory, type WebSocketLike } from "./net/connection.js";
 import { suggestName } from "./lib/names.js";
@@ -33,6 +33,23 @@ export interface AppOptions {
   bindWindow?: boolean;
 }
 
+/** Gespeicherter Fortschritt je Spiel mit `progressKey` (localStorage, ganze Zahl > 0). */
+export function readProgress(catalog: readonly GameManifest[], storage: Pick<Storage, "getItem"> | undefined = globalThis.localStorage): ProgressValues {
+  const out: ProgressValues = {};
+  for (const g of catalog) {
+    if (!g.progressKey) continue;
+    let raw: string | null = null;
+    try {
+      raw = storage?.getItem(g.progressKey) ?? null;
+    } catch {
+      // Speicher gesperrt (privater Modus) → kein Fortschritt.
+    }
+    const v = Number.parseInt(raw ?? "", 10);
+    if (Number.isFinite(v) && v > 0) out[g.id] = Math.min(v, 1_000_000_000);
+  }
+  return out;
+}
+
 export function wsUrl(loc: Pick<Location, "protocol" | "host"> = location): string {
   return `${loc.protocol === "https:" ? "wss:" : "ws:"}//${loc.host}${WS_PATH}`;
 }
@@ -49,6 +66,18 @@ export function createApp(opts: AppOptions = {}): AppController {
   /** Beim automatischen Beitritt wird NAME_TAKEN genau einmal mit einem Vorschlag wiederholt. */
   let autoRetried = false;
   let lastAvatar: AvatarId | null = null;
+  /** Zuletzt an diese Verbindung gemeldeter Fortschritt (JSON); null = noch nichts gemeldet. */
+  let sentProgress: string | null = null;
+
+  /** In Lobby/Ergebnissen den gespeicherten Fortschritt melden (Spiele speichern ihn am Spielende). */
+  const reportProgress = (): void => {
+    const st = store.getState();
+    if (!st.playerId || (st.room?.phase !== "lobby" && st.room?.phase !== "results")) return;
+    const progress = readProgress(st.catalog);
+    const json = JSON.stringify(progress);
+    if (json === sentProgress || (sentProgress === null && json === "{}")) return;
+    if (connection.send({ t: "player.progress", progress })) sentProgress = json;
+  };
 
   const connection = new Connection({
     url: opts.url ?? wsUrl(),
@@ -58,7 +87,11 @@ export function createApp(opts: AppOptions = {}): AppController {
     events: {
       message: (msg) => {
         store.dispatch({ type: "server", msg });
-        if (msg.t === "room.joined") resetUrl();
+        if (msg.t === "room.joined") {
+          resetUrl();
+          sentProgress = null;
+        }
+        if (msg.t === "room.state") reportProgress();
       },
       status: (status) => store.dispatch({ type: "status", status }),
       joinError: (code) => {

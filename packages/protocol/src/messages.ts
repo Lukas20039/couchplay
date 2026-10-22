@@ -7,6 +7,7 @@ import {
   GameManifestSchema,
   PlayerIdSchema,
   PlayerNameInputSchema,
+  ProgressValuesSchema,
   ProtocolVersionSchema,
   RequestIdSchema,
   RoomCodeSchema,
@@ -69,6 +70,15 @@ export const PlayerUpdateSchema = z.object({
   avatar: AvatarIdSchema.optional(),
   ...rid,
 });
+/**
+ * Handy meldet seinen gespeicherten Fortschritt je Spiel (Manifest `progressKey`), in Lobby und
+ * Ergebnissen. Ersetzt die zuvor gemeldeten Werte dieses Spielers; der Raum zeigt das Maximum.
+ */
+export const PlayerProgressSchema = z.object({
+  t: z.literal("player.progress"),
+  progress: ProgressValuesSchema.refine((p) => Object.keys(p).length <= 32, "Zu viele Spiele"),
+  ...rid,
+});
 /** TV oder Host entfernt einen Spieler. */
 export const PlayerKickSchema = z.object({ t: z.literal("player.kick"), playerId: PlayerIdSchema, ...rid });
 /** TV oder Host wählt ein Spiel aus dem Katalog. Settings werden auf Defaults gesetzt. */
@@ -112,6 +122,7 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   RoomLeaveSchema,
   RoomCloseSchema,
   PlayerUpdateSchema,
+  PlayerProgressSchema,
   PlayerKickSchema,
   LobbySelectGameSchema,
   LobbyUpdateSettingsSchema,
@@ -144,6 +155,7 @@ export const CLIENT_MESSAGE_RULES: Record<
   "room.leave": { actors: ["player", "host"], phases: ["lobby", "game", "results"] },
   "room.close": { actors: ["tv"], phases: ["lobby", "game", "results"] },
   "player.update": { actors: ["player", "host"], phases: ["lobby", "results"] },
+  "player.progress": { actors: ["player", "host"], phases: ["lobby", "results"] },
   "player.kick": { actors: ["tv", "host"], phases: ["lobby", "results"] },
   "lobby.selectGame": { actors: ["tv", "host"], phases: ["lobby", "results"] },
   "lobby.updateSettings": { actors: ["tv", "host"], phases: ["lobby", "results"] },
