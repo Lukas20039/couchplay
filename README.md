@@ -74,6 +74,19 @@ klassische (5 Schiffe) oder große Flotte (10 Schiffe), Zusatzschuss nach Treffe
 |---|---|
 | ![Schiffe versenken am TV](docs/screenshots/tv-schiffe.png) | <img src="docs/screenshots/phone-schiffe.png" width="220" alt="Schiffe versenken am Handy"> |
 
+### 🧱 Blockblast · 1–8 Spieler (Vorschau)
+
+Block-Puzzle im Versus-Modus: Alle spielen gleichzeitig am eigenen 8 × 8-Feld und ziehen Teile aus ihrer
+Hand (drei Stück) aufs Brett – volle Reihen und Spalten verschwinden, Serien geben Combo-Multiplikatoren.
+Alle bekommen dieselbe Teile-Reihenfolge, entscheidend ist also nur, wie man legt. Wer mehrere Linien auf
+einmal oder eine Combo schafft, schickt dem Führenden Steine aufs Feld. Wer kein Teil mehr unterbringt, ist
+raus; nach 2, 3 oder 5 Minuten gewinnt die höchste Punktzahl. Am TV laufen alle Bretter live mit.
+Noch ein Proof of Concept (siehe [`games/blockblast/README.md`](games/blockblast/README.md)).
+
+| TV | Handy |
+|---|---|
+| ![Blockblast am TV](docs/screenshots/tv-blockblast.png) | <img src="docs/screenshots/phone-blockblast.png" width="220" alt="Blockblast am Handy: Teil wird aufs Feld gezogen"> |
+
 ### Ergebnis
 
 | TV | Host-Handy in der Lobby |
@@ -152,7 +165,7 @@ Nichts installieren: QR-Code am TV scannen. Optional über *Teilen → Zum Home-
 | [`tv-web/`](tv-web) | TV-Oberfläche (Preact), komplett per Fernbedienung bedienbar |
 | [`controller-pwa/`](controller-pwa) | Handy-Controller als PWA |
 | [`android-tv/`](android-tv) | Android-TV-App (Kotlin) |
-| [`games/quiz/`](games/quiz), [`games/tictactoe/`](games/tictactoe) | die Spiele |
+| [`games/quiz/`](games/quiz), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
 | [`packages/protocol/`](packages/protocol) | WebSocket-Protokoll (zod-Schemas) |
 | [`packages/game-sdk/`](packages/game-sdk) | Schnittstelle und Laufzeit für Spiele |
 | [`e2e/`](e2e) | End-to-End-Tests im Browser und im Android-TV-Emulator |
