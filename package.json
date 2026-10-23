@@ -14,6 +14,7 @@
     "games/quiz",
     "games/tictactoe",
     "games/schiffe",
+    "games/blockblast",
     "games/wortgarten",
     "server",
     "tv-web",

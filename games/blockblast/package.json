@@ -1,0 +1,27 @@
+{
+  "name": "@couchplay/game-blockblast",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./manifest.json": "./manifest.json",
+    "./server": "./src/server/index.ts",
+    "./tv": "./src/tv/index.tsx",
+    "./controller": "./src/controller/index.tsx",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@couchplay/game-sdk": "0.1.0",
+    "@couchplay/protocol": "0.1.0",
+    "preact": "^10.29.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "happy-dom": "^21.0.0"
+  }
+}

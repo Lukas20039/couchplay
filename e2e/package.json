@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@couchplay/protocol": "0.1.0",
-    "@couchplay/game-wortgarten": "0.1.0"
+    "@couchplay/game-wortgarten": "0.1.0",
+    "@couchplay/game-blockblast": "0.1.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",

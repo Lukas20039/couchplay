@@ -7,4 +7,5 @@ export const CONTROLLER_VIEWS: Record<string, ViewModuleLoader<ControllerViewFac
   tictactoe: () => import("@couchplay/game-tictactoe/controller"),
   wortgarten: () => import("@couchplay/game-wortgarten/controller"),
   schiffe: () => import("@couchplay/game-schiffe/controller"),
+  blockblast: () => import("@couchplay/game-blockblast/controller"),
 };

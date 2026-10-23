@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@couchplay/game-quiz": "0.1.0",
+    "@couchplay/game-blockblast": "0.1.0",
     "@couchplay/game-schiffe": "0.1.0",
     "@couchplay/game-sdk": "0.1.0",
     "@couchplay/game-tictactoe": "0.1.0",

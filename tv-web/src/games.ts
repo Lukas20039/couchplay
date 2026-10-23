@@ -7,4 +7,5 @@ export const TV_VIEWS: Record<string, ViewModuleLoader<TvViewFactory>> = {
   tictactoe: () => import("@couchplay/game-tictactoe/tv"),
   wortgarten: () => import("@couchplay/game-wortgarten/tv"),
   schiffe: () => import("@couchplay/game-schiffe/tv"),
+  blockblast: () => import("@couchplay/game-blockblast/tv"),
 };

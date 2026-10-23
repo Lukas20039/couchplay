@@ -1,0 +1,25 @@
+{
+  "id": "blockblast",
+  "name": "Blockblast",
+  "description": "Blöcke legen, Reihen sprengen, Gegner mit Steinen eindecken – alle gleichzeitig am eigenen 8 × 8-Feld.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#ff8a3d",
+  "icon": "🧱",
+  "settings": [
+    {
+      "type": "select",
+      "key": "duration",
+      "label": "Spielzeit",
+      "options": [
+        { "value": "120", "label": "2 Minuten" },
+        { "value": "180", "label": "3 Minuten" },
+        { "value": "300", "label": "5 Minuten" }
+      ],
+      "default": "180"
+    },
+    { "type": "toggle", "key": "attacks", "label": "Angriffe (Steine zum Gegner schicken)", "default": true }
+  ]
+}
