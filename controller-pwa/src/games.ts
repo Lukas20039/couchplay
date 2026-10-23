@@ -6,4 +6,5 @@ export const CONTROLLER_VIEWS: Record<string, ViewModuleLoader<ControllerViewFac
   quiz: () => import("@couchplay/game-quiz/controller"),
   tictactoe: () => import("@couchplay/game-tictactoe/controller"),
   wortgarten: () => import("@couchplay/game-wortgarten/controller"),
+  schiffe: () => import("@couchplay/game-schiffe/controller"),
 };

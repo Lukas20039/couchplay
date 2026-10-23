@@ -61,6 +61,19 @@ Goldfelder sowie Blitz- und Langwort-Modus frei. Rund 410 000 deutsche Wortforme
 |---|---|
 | ![Wortgarten am TV](docs/screenshots/tv-wortgarten.png) | <img src="docs/screenshots/phone-wortgarten.png" width="220" alt="Wortgarten am Handy"> |
 
+### 🚢 Schiffe versenken · 1–2 Spieler
+
+Der Klassiker, wie gemacht für CouchPlay: Jeder stellt seine Flotte **geheim am Handy** auf (antippen,
+verschieben, drehen oder zufällig verteilen), dann wird abwechselnd gefeuert. Am TV sehen alle beide
+Gewässer mit Treffern, Wasser und versenkten Schiffen – die Flotten selbst erst, wenn sie versenkt sind
+oder das Spiel entschieden ist. Allein gegen den Computer (leicht, mittel oder schwer – der schwere
+rechnet mit einer Wahrscheinlichkeitskarte) oder zu zweit, mit Revanche und Serienstand. Einstellbar:
+klassische (5 Schiffe) oder große Flotte (10 Schiffe), Zusatzschuss nach Treffer und ob sich Schiffe berühren dürfen.
+
+| TV | Handy |
+|---|---|
+| ![Schiffe versenken am TV](docs/screenshots/tv-schiffe.png) | <img src="docs/screenshots/phone-schiffe.png" width="220" alt="Schiffe versenken am Handy"> |
+
 ### Ergebnis
 
 | TV | Host-Handy in der Lobby |

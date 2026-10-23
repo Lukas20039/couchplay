@@ -1,0 +1,36 @@
+{
+  "id": "schiffe",
+  "name": "Schiffe versenken",
+  "description": "Flotte geheim am Handy aufstellen, dann abwechselnd feuern – zu zweit oder allein gegen den Computer.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 2,
+  "botSupport": true,
+  "accentColor": "#2f9bff",
+  "icon": "🚢",
+  "settings": [
+    {
+      "type": "select",
+      "key": "difficulty",
+      "label": "Computer-Stärke (1 Spieler)",
+      "options": [
+        { "value": "leicht", "label": "Leicht" },
+        { "value": "mittel", "label": "Mittel" },
+        { "value": "schwer", "label": "Schwer" }
+      ],
+      "default": "mittel"
+    },
+    {
+      "type": "select",
+      "key": "fleet",
+      "label": "Flotte",
+      "options": [
+        { "value": "klassisch", "label": "Klassisch (5 Schiffe)" },
+        { "value": "gross", "label": "Groß (10 Schiffe)" }
+      ],
+      "default": "klassisch"
+    },
+    { "type": "toggle", "key": "extraShot", "label": "Nach Treffer nochmal schießen", "default": true },
+    { "type": "toggle", "key": "touching", "label": "Schiffe dürfen sich berühren", "default": false }
+  ]
+}

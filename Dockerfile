@@ -22,6 +22,7 @@ COPY packages/game-sdk/package.json packages/game-sdk/
 COPY games/quiz/package.json games/quiz/
 COPY games/tictactoe/package.json games/tictactoe/
 COPY games/wortgarten/package.json games/wortgarten/
+COPY games/schiffe/package.json games/schiffe/
 COPY server/package.json server/
 COPY tv-web/package.json tv-web/
 COPY controller-pwa/package.json controller-pwa/
@@ -49,6 +50,7 @@ COPY --from=build /app/packages/game-sdk/package.json packages/game-sdk/
 COPY --from=build /app/games/quiz/package.json games/quiz/
 COPY --from=build /app/games/tictactoe/package.json games/tictactoe/
 COPY --from=build /app/games/wortgarten/package.json games/wortgarten/
+COPY --from=build /app/games/schiffe/package.json games/schiffe/
 COPY --from=build /app/server/package.json server/
 COPY --from=build /app/tv-web/package.json tv-web/
 COPY --from=build /app/controller-pwa/package.json controller-pwa/
