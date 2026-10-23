@@ -1,5 +1,7 @@
 // Wurzelkomponente: wählt den Bildschirm nach Verbindungs- und Raumphase.
 import { useEffect, useMemo, useState } from "preact/hooks";
+import { music } from "./audio/index.js";
+import { trackFor } from "./audio/music.js";
 import { exitApp, hasNative, openNativeSettings } from "./lib/native.js";
 import { tvNav } from "./nav/navigator.js";
 import type { TvClient } from "./net/client.js";
@@ -61,6 +63,22 @@ export function App(props: { store: Store; client: TvClient }) {
     autoSelected.add(room.code);
     client.send({ t: "lobby.selectGame", gameId: first.id });
   }, [state.room, state.catalog, state.conn.status]);
+
+  // Hintergrundmusik passend zum Bildschirm; Autoplay-Sperre löst die erste Taste/Berührung.
+  const track = state.fatal ? null : trackFor(state.room);
+  useEffect(() => music().setTrack(track), [track]);
+  useEffect(() => {
+    const unlock = (): void => music().unlock();
+    const visible = (): void => music().setSuspended(document.visibilityState === "hidden");
+    window.addEventListener("keydown", unlock, true);
+    window.addEventListener("pointerdown", unlock, true);
+    document.addEventListener("visibilitychange", visible);
+    return () => {
+      window.removeEventListener("keydown", unlock, true);
+      window.removeEventListener("pointerdown", unlock, true);
+      document.removeEventListener("visibilitychange", visible);
+    };
+  }, []);
 
   // Nach jedem Render: Fokus sicherstellen (neue Bildschirme, entfernte Elemente).
   useEffect(() => {

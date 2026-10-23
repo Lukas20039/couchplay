@@ -11,6 +11,11 @@ export const de = {
     retryNow: "Erneut versuchen",
     settings: "Einstellungen",
   },
+  music: {
+    /** Knopf in der Lobby, schaltet Aus → Leise → Mittel → Laut weiter. */
+    button: "Musik: {level}",
+    levels: ["Aus", "Leise", "Mittel", "Laut"],
+  },
   status: {
     online: "Verbunden",
     connecting: "Verbinde …",

@@ -87,6 +87,13 @@ Noch ein Proof of Concept (siehe [`games/blockblast/README.md`](games/blockblast
 |---|---|
 | ![Blockblast am TV](docs/screenshots/tv-blockblast.png) | <img src="docs/screenshots/phone-blockblast.png" width="220" alt="Blockblast am Handy: Teil wird aufs Feld gezogen"> |
 
+### 🎵 Musik
+
+Der Fernseher spielt Hintergrundmusik: ein eigenes Stück für die Lobby, jedes Spiel und den
+Ergebnis-Bildschirm, mit weichen Übergängen. Die Handys bleiben stumm. Lautstärke in der Lobby über
+**„Musik: …“** (Aus, Leise, Mittel, Laut), die Einstellung merkt sich der Fernseher. Alle Stücke sind
+CC0 ([Herkunft](tv-web/public/music/CREDITS.md)).
+
 ### Ergebnis
 
 | TV | Host-Handy in der Lobby |
@@ -231,3 +238,5 @@ signierte APK ließe sich später nicht mehr aktualisieren.
 `.claude/` stehen unter ihren eigenen Lizenzen (MIT bzw. Apache 2.0), siehe
 `.claude/SOURCES.txt`. Die Wortliste von Wortgarten stammt aus dem LanguageTool-Wörterbuch und steht
 unter CC BY-SA 4.0, siehe [`games/wortgarten/DATA-LICENSE.md`](games/wortgarten/DATA-LICENSE.md).
+Die Hintergrundmusik stammt von OpenGameArt.org und steht unter CC0, Titel und Urheber siehe
+[`tv-web/public/music/CREDITS.md`](tv-web/public/music/CREDITS.md).

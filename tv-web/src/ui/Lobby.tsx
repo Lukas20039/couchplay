@@ -4,6 +4,7 @@ import type { GameManifest, Player, RoomState } from "@couchplay/protocol";
 import { plural, t } from "../i18n/index.js";
 import { MAX_PLAYERS } from "@couchplay/protocol/constants";
 import { avatarEmoji, displayUrl, fallbackJoinUrl, fill, gameIcon, playerColorVar, splitRoomCode, urlHost } from "../lib/format.js";
+import { useMusicLevel } from "../audio/index.js";
 import { hasNative, openNativeSettings } from "../lib/native.js";
 import { selectedGame, startCheck, type StartCheck } from "../state/selectors.js";
 import type { AppState } from "../state/store.js";
@@ -47,6 +48,7 @@ export function Lobby(props: { state: AppState; room: RoomState }) {
           <h2>{t.catalog.heading}</h2>
           <div class="section-tools">
             <StatusPill conn={state.conn} />
+            <MusicButton />
             {hasNative() && (
               <button class="btn btn-quiet" data-nav="top" onClick={openNativeSettings}>
                 {t.start.settings}
@@ -97,6 +99,15 @@ export function RoomCode(props: { code: string }) {
       <span class="code-group">{digits(a)}</span>
       <span class="code-group">{digits(b)}</span>
     </div>
+  );
+}
+
+function MusicButton() {
+  const [level, next] = useMusicLevel();
+  return (
+    <button class="btn btn-quiet" data-nav="top" data-testid="music-button" data-level={level} onClick={next}>
+      {level === 0 ? "🔇" : "🎵"} {fill(t.music.button, { level: t.music.levels[level]! })}
+    </button>
   );
 }
 
