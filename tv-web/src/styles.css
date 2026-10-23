@@ -365,16 +365,46 @@ button {
 /* Katalog */
 .catalog {
   grid-area: catalog;
+  /* Grid-Element nicht auf Inhaltsbreite wachsen lassen – sonst ragt die Kachelreihe aus dem Bildschirm. */
+  min-width: 0;
 }
+/* Mehr Spiele als Platz: die Reihe scrollt in sich (per Fokus), der Bildschirm bleibt stehen. */
 .tiles {
   display: flex;
-  padding: 0.9rem 0 0.9rem 0.9rem;
-  margin-left: -0.9rem;
+  padding: 1.2rem;
+  margin: -0.3rem -1.2rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+}
+.tiles::-webkit-scrollbar {
+  display: none;
+}
+/* Weitere Spiele links/rechts außerhalb: Kante ausblenden (Klassen setzt GameCatalog beim Scrollen). */
+.tiles.more-right {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 6rem), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 6rem), transparent);
+}
+.tiles.more-left {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6rem);
+  mask-image: linear-gradient(to right, transparent, #000 6rem);
+}
+.tiles.more-left.more-right {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6rem, #000 calc(100% - 6rem), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 6rem, #000 calc(100% - 6rem), transparent);
+}
+.tiles::after {
+  /* Abstand hinter der letzten Kachel (Padding-Right wird in Flex-Scrollern sonst ignoriert). */
+  content: "";
+  flex: none;
+  width: 0.1rem;
 }
 .tile {
   display: flex;
+  flex: none;
   align-items: center;
-  width: 30rem;
+  width: 25.5rem;
   height: 10.5rem;
   padding: 0 2rem 0 2.2rem;
   margin-right: 2.4rem;

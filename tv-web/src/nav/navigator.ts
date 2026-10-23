@@ -116,8 +116,10 @@ export class Navigator {
   }
 
   focus(el: HTMLElement): void {
-    el.focus();
-    if (typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "nearest", inline: "nearest" });
+    // preventScroll + eigenes Scrollen: focus()/scrollIntoView() verschieben sonst auch Container mit
+    // overflow:hidden (z. B. den ganzen Bildschirm) – dann wären Code und QR aus dem Bild.
+    el.focus({ preventScroll: true });
+    revealInScrollers(el);
     this.remember(el);
   }
 
@@ -203,3 +205,37 @@ export class Navigator {
 
 /** Gemeinsame Instanz der App. */
 export const tvNav = new Navigator(typeof document !== "undefined" ? document : (undefined as unknown as Document));
+
+/** Rand (px), damit der Fokusrahmen nach dem Scrollen sichtbar bleibt. */
+const REVEAL_MARGIN = 24;
+
+/** Rand eines Containers: `data-reveal-rem` (z. B. bei ausgeblendeten Kanten), sonst REVEAL_MARGIN. */
+function revealMargin(p: HTMLElement): number {
+  const rem = Number(p.getAttribute("data-reveal-rem"));
+  if (!rem) return REVEAL_MARGIN;
+  return rem * (parseFloat(getComputedStyle(document.documentElement).fontSize) || 16);
+}
+
+/**
+ * Scrollt nur echte Scroll-Container (overflow auto/scroll) so weit, dass `el` darin sichtbar ist –
+ * wie scrollIntoView({block:"nearest", inline:"nearest"}), aber ohne overflow:hidden-Vorfahren.
+ */
+export function revealInScrollers(el: HTMLElement): void {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const cs = getComputedStyle(p);
+    const sx = /(auto|scroll)/.test(cs.overflowX) && p.scrollWidth > p.clientWidth;
+    const sy = /(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight;
+    if (!sx && !sy) continue;
+    const e = el.getBoundingClientRect();
+    const c = p.getBoundingClientRect();
+    const m = revealMargin(p);
+    if (sx) {
+      if (e.left < c.left + m) p.scrollLeft -= c.left + m - e.left;
+      else if (e.right > c.right - m) p.scrollLeft += e.right - (c.right - m);
+    }
+    if (sy) {
+      if (e.top < c.top + m) p.scrollTop -= c.top + m - e.top;
+      else if (e.bottom > c.bottom - m) p.scrollTop += e.bottom - (c.bottom - m);
+    }
+  }
+}

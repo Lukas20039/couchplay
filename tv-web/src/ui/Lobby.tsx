@@ -1,5 +1,5 @@
 // Lobby: Beitritts-Karte (Code, QR, URL), Spielkatalog, Spielerliste, Einstellungen, Start.
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import type { GameManifest, Player, RoomState } from "@couchplay/protocol";
 import { plural, t } from "../i18n/index.js";
 import { MAX_PLAYERS } from "@couchplay/protocol/constants";
@@ -113,9 +113,26 @@ function MusicButton() {
 
 function GameCatalog(props: { games: readonly GameManifest[]; selectedId: string | null; autoFocus: boolean }) {
   const api = useApi();
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+  // Ausblenden an der Kante nur, wenn dort noch Spiele liegen.
+  const measure = (): void => {
+    const el = ref.current;
+    if (!el) return;
+    const left = el.scrollLeft > 4;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    if (left !== more.left || right !== more.right) setMore({ left, right });
+  };
+  useEffect(measure);
   if (props.games.length === 0) return <p class="muted">{t.catalog.empty}</p>;
   return (
-    <div class="tiles" data-testid="game-catalog">
+    <div
+      ref={ref}
+      class={`tiles ${more.left ? "more-left" : ""} ${more.right ? "more-right" : ""}`}
+      data-testid="game-catalog"
+      data-reveal-rem="6.5"
+      onScroll={measure}
+    >
       {props.games.map((g, i) => {
         const selected = g.id === props.selectedId;
         const auto = props.autoFocus && (selected || (props.selectedId === null && i === 0));
