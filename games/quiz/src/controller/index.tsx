@@ -3,10 +3,11 @@
 // Die richtige Antwort kennt das Handy erst in der Phase "reveal" (Server sendet sie erst dann).
 import type { ControllerComponentProps } from "@couchplay/game-sdk/preact";
 import { preactControllerView } from "@couchplay/game-sdk/preact";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { t, errorText } from "../i18n/de.js";
 import type { QuizInput, QuizPlayerView } from "../shared.js";
 import { Shape, ensureStyles, shapeLabel } from "../ui/common.js";
+import { loadSeen, packSeen, rememberSeen } from "../seen.js";
 import { CONTROLLER_CSS } from "./styles.js";
 
 type V<P extends QuizPlayerView["phase"]> = Extract<QuizPlayerView, { phase: P }>;
@@ -166,6 +167,19 @@ export function QuizController({ view, api, error }: Props) {
     return () => clearInterval(id);
   }, [ticking, api]);
 
+  // Gedächtnis: einmal je Spiel die schon gesehenen Fragen melden, jede neue Frage merken.
+  const reported = useRef(false);
+  const hasView = view !== null;
+  useEffect(() => {
+    if (!hasView || reported.current) return;
+    reported.current = true;
+    api.sendInput({ type: "seen", ids: packSeen(loadSeen(storage())) });
+  }, [hasView]);
+  const questionId = view?.phase === "question" ? view.questionId : null;
+  useEffect(() => {
+    if (questionId) rememberSeen(storage(), questionId);
+  }, [questionId]);
+
   let body;
   switch (view?.phase) {
     case "question":
@@ -206,3 +220,11 @@ export function QuizController({ view, api, error }: Props) {
 }
 
 export default preactControllerView<QuizPlayerView, QuizInput>(QuizController);
+
+function storage(): Storage | null {
+  try {
+    return globalThis.localStorage ?? null;
+  } catch {
+    return null;
+  }
+}

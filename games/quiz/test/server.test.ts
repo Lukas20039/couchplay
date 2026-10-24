@@ -489,3 +489,58 @@ describe("Quiz – Einstellungen", () => {
     }
   });
 });
+
+describe("Gedächtnis je Spieler", () => {
+  /** Spielt eine Runde durch und liefert die IDs der gestellten Fragen. */
+  function playedIds(h: H): string[] {
+    const ids: string[] = [];
+    h.advance(TIMING.introMs);
+    while (phase(h) !== "final") {
+      const s = tv(h);
+      if (s.phase === "question") {
+        ids.push(ALL_QUESTIONS.find((x) => x.text === s.text)!.id);
+        h.advance(10_000);
+      } else afterReveal(h);
+    }
+    return ids;
+  }
+  const settings = { rounds: 10, categories: ["technik"], answerSeconds: 10 };
+  const technik = QUESTIONS_BY_CATEGORY.technik.map((q) => q.id);
+  const pack = (ids: string[]) => ({ tec: ids.map((id) => Number(id.split("-")[1])) });
+
+  it("Handy bekommt die Frage-ID und kann sie als gesehen melden", () => {
+    const h = setup(1, settings);
+    h.advance(TIMING.introMs);
+    const v = h.lastView("p1")!;
+    expect(v.phase === "question" && v.questionId).toMatch(/^tec-\d+$/);
+    expect(h.input("p1", { type: "seen", ids: { tec: [1, 2, 3] } })).toEqual({ ok: true });
+  });
+
+  it("vermeidet Fragen, die irgendein Teilnehmer schon gesehen hat", () => {
+    const h = setup(2, settings, 3);
+    // p1 kennt die erste, p2 die zweite Hälfte bis auf 15 Fragen.
+    const half = Math.floor(technik.length / 2);
+    const unseen = new Set(technik.slice(technik.length - 15));
+    h.input("p1", { type: "seen", ids: pack(technik.slice(0, half)) });
+    h.input("p2", { type: "seen", ids: pack(technik.slice(half, technik.length - 15)) });
+    for (const id of playedIds(h)) expect(unseen.has(id), id).toBe(true);
+  });
+
+  it("sind alle bekannt, kommen zuerst die, die die wenigsten kennen", () => {
+    const h = setup(2, settings, 4);
+    const fewer = new Set(technik.slice(0, 20));
+    h.input("p1", { type: "seen", ids: pack(technik) });
+    h.input("p2", { type: "seen", ids: pack(technik.slice(20)) });
+    for (const id of playedIds(h)) expect(fewer.has(id), id).toBe(true);
+  });
+
+  it("Gegangene zählen nicht mehr; ungültige Meldungen lehnt das Schema ab", () => {
+    const h = setup(2, settings, 5);
+    h.input("p2", { type: "seen", ids: pack(technik.slice(10)) });
+    h.leave("p2");
+    expect(playedIds(h).some((id) => !technik.slice(0, 10).includes(id))).toBe(true);
+    const h2 = setup(1, settings);
+    expect(h2.input("p1", { type: "seen", ids: { TEC: [1] } }).ok).toBe(false);
+    expect(h2.input("p1", { type: "seen", ids: { tec: Array.from({ length: 1001 }, (_, i) => i % 999) } }).ok).toBe(false);
+  });
+});

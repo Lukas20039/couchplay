@@ -28,7 +28,9 @@ ganz ohne App-Installation am Handy. Vorbild: Netflix Games und Jackbox.
 
 ### 🧠 Allgemeinwissen-Quiz · 1–8 Spieler
 
-370 deutsche Fragen in 8 Kategorien. Frage und Countdown am TV, vier farbige Antworttasten am
+Rund 1 570 deutsche Fragen in 8 Kategorien (je ca. 195, leicht bis schwer). Jedes Handy merkt sich,
+welche Fragen es schon gesehen hat – gestellt werden bevorzugt Fragen, die noch keiner der Mitspieler
+kennt, auch über Räume und Server-Neustarts hinweg. Frage und Countdown am TV, vier farbige Antworttasten am
 Handy – Farbe **und** Form, damit es auch bei Farbenblindheit funktioniert. Wer schneller
 richtig antwortet, bekommt mehr Punkte. Nach jeder Frage Auflösung und Zwischenstand,
 am Ende ein Podium.

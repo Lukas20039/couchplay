@@ -12,9 +12,9 @@ const norm = (s: string): string =>
     .trim();
 
 describe("Fragenkatalog", () => {
-  it("hat mindestens 320 Fragen und je Kategorie mindestens 40", () => {
-    expect(ALL_QUESTIONS.length).toBeGreaterThanOrEqual(320);
-    for (const cat of CATEGORY_IDS) expect(QUESTIONS_BY_CATEGORY[cat].length, cat).toBeGreaterThanOrEqual(40);
+  it("hat mindestens 1500 Fragen und je Kategorie mindestens 190", () => {
+    expect(ALL_QUESTIONS.length).toBeGreaterThanOrEqual(1500);
+    for (const cat of CATEGORY_IDS) expect(QUESTIONS_BY_CATEGORY[cat].length, cat).toBeGreaterThanOrEqual(190);
   });
 
   it("deckt genau die Kategorien des Manifests ab", () => {

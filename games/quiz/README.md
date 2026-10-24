@@ -9,8 +9,13 @@ Host wählt Kategorien, Fragenanzahl (5–30) und Antwortzeit (10–30 s) – si
 `intro` (5 s) → je Frage: `question` (Antwortzeit) → `reveal` (7 s) → `standings` (6 s) → … →
 nach der letzten Auflösung `final` (Podium, 12 s) → `ctx.end({ ranking, data })`.
 
-- Fragen per `ctx.rng` gezogen: Kategorien reihum, keine Wiederholung, Antworten gemischt.
-  Bei Revanche werden Fragen der Vorrunde (`ctx.previous.data.questionIds`) gemieden.
+- Fragen per `ctx.rng` gezogen, und zwar erst, wenn sie dran sind (`createDeck`): Kategorien reihum,
+  keine Wiederholung, Antworten gemischt. Innerhalb der Kategorie gewinnt die Frage mit der kleinsten
+  Strafe: +2 je aktivem Teilnehmer, der sie schon gesehen hat, +1 wenn sie in der Vorrunde dieses Raums
+  dran war (`ctx.previous.data.questionIds`); Gleichstand = zufällig.
+- **Gedächtnis je Handy** (`src/seen.ts`): Das Handy speichert die IDs gesehener Fragen im localStorage
+  (`couchplay.quiz.seen`, die letzten 1000) und meldet sie beim ersten View kompakt als
+  `{ type: "seen", ids: { geo: [1, 17], … } }`; der Player-View der Frage enthält `questionId`.
 - Punkte: richtig = `round(1000 × (0,5 + 0,5 × Restzeit/Antwortzeit))`, sonst 0. Eine Antwort pro Frage.
 - Frage endet vorzeitig, wenn alle **verbundenen** aktiven Spieler geantwortet haben.
 - Getrennte Spieler behalten Punkte und spielen nach Rejoin weiter; wer das Spiel verlässt,
@@ -21,7 +26,7 @@ Zeiten: `TIMING` in `src/constants.ts`. Typen der Zustände: `src/shared.ts`.
 
 ## Fragen (`src/data/`)
 
-370 Fragen in 8 Kategorien (je 45–48), Tupel `[id, Schwierigkeit 1–3, Frage, RICHTIG, falsch, falsch, falsch]`,
+1 570 Fragen in 8 Kategorien (je 195–198, Schwierigkeit ca. 40 % leicht / 42 % mittel / 18 % schwer), Tupel `[id, Schwierigkeit 1–3, Frage, RICHTIG, falsch, falsch, falsch]`,
 beim Laden mit zod validiert (`schema.ts`: eindeutige Antworten, Längenlimits Frage ≤ 120, Antwort ≤ 40).
 Zeitstabil formuliert (keine Amtsinhaber, Rekorde, Bevölkerungszahlen).
 

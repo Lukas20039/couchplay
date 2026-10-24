@@ -4,12 +4,20 @@
 import type { AvatarId, PlayerId } from "@couchplay/protocol";
 import { z } from "zod";
 import { ANSWER_COUNT, type CategoryId } from "./constants.js";
+import { SEEN_MAX } from "./seen.js";
 
 export { ANSWER_COUNT, CATEGORY_IDS, MAX_POINTS, TIMING, pointsForCorrect, type CategoryId } from "./constants.js";
 
 /** Eingaben vom Handy (game.input.data). */
 export const QuizInputSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("answer"), index: z.number().int().min(0).max(ANSWER_COUNT - 1) }),
+  /** Schon gesehene Fragen dieses Handys (seen.ts, packSeen) – für die Auswahl neuer Fragen. */
+  z.object({
+    type: z.literal("seen"),
+    ids: z
+      .record(z.string().regex(/^[a-z]{2,8}$/), z.array(z.number().int().min(0).max(999)).max(SEEN_MAX))
+      .refine((r) => Object.keys(r).length <= 20 && Object.values(r).reduce((n, a) => n + a.length, 0) <= SEEN_MAX, "Zu viele"),
+  }),
 ]);
 export type QuizInput = z.infer<typeof QuizInputSchema>;
 
@@ -96,6 +104,8 @@ export type QuizPlayerView =
   | (ViewBase & {
       phase: "question";
       index: number;
+      /** Katalog-ID der Frage (das Handy merkt sie sich als gesehen). */
+      questionId: string;
       category: CategoryId;
       answers: string[];
       endsAt: number;

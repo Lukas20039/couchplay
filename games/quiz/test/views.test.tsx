@@ -80,6 +80,18 @@ describe("TV-View", () => {
 });
 
 describe("Controller-View", () => {
+  it("meldet einmal die gesehenen Fragen und merkt sich die aktuelle", async () => {
+    localStorage.setItem("couchplay.quiz.seen", JSON.stringify(["ges-07", "geo-120"]));
+    const { sendInput, view } = mountController(CONTROLLER_SAMPLES.question!);
+    await new Promise((r) => setTimeout(r, 30));
+    view.update({ ...CONTROLLER_SAMPLES.question!, endsAt: 1 } as QuizPlayerView);
+    await new Promise((r) => setTimeout(r, 30));
+    const seen = sendInput.mock.calls.map(([i]) => i).filter((i) => i.type === "seen");
+    expect(seen).toEqual([{ type: "seen", ids: { ges: [7], geo: [120] } }]);
+    expect(JSON.parse(localStorage.getItem("couchplay.quiz.seen")!)).toEqual(["ges-07", "geo-120", "geo-01"]);
+    localStorage.clear();
+  });
+
   it("vier Buttons mit Form und Text; Tippen sendet genau eine Antwort und sperrt", async () => {
     const { el, sendInput } = mountController(CONTROLLER_SAMPLES.question!);
     const buttons = el.querySelectorAll<HTMLButtonElement>("button.qz-btn");
@@ -89,8 +101,8 @@ describe("Controller-View", () => {
     buttons[2]!.click();
     await Promise.resolve();
     await new Promise((r) => setTimeout(r, 60));
-    expect(sendInput).toHaveBeenCalledTimes(1);
-    expect(sendInput).toHaveBeenCalledWith({ type: "answer", index: 2 });
+    const answers = sendInput.mock.calls.map(([i]) => i).filter((i) => i.type === "answer");
+    expect(answers).toEqual([{ type: "answer", index: 2 }]);
     expect(el.textContent).toContain("Antwort gesperrt");
     expect(el.querySelectorAll("button.qz-btn")).toHaveLength(0);
   });

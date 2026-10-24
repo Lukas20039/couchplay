@@ -76,8 +76,8 @@ const base = { total: 10, score: 3105, rank: 3, playerCount: 6 };
 
 export const CONTROLLER_SAMPLES: Record<string, QuizPlayerView> = {
   intro: { ...base, score: 0, rank: 1, phase: "intro", endsAt: NOW + 3_400 },
-  question: { ...base, phase: "question", index: Q.index, category: Q.category, answers: Q.answers, endsAt: NOW + 12_300, durationMs: 20_000, choice: null },
-  locked: { ...base, phase: "question", index: Q.index, category: Q.category, answers: Q.answers, endsAt: NOW + 12_300, durationMs: 20_000, choice: 2 },
+  question: { ...base, phase: "question", index: Q.index, questionId: "geo-01", category: Q.category, answers: Q.answers, endsAt: NOW + 12_300, durationMs: 20_000, choice: null },
+  locked: { ...base, phase: "question", index: Q.index, questionId: "geo-01", category: Q.category, answers: Q.answers, endsAt: NOW + 12_300, durationMs: 20_000, choice: 2 },
   correct: { ...base, phase: "reveal", index: Q.index, answers: Q.answers, choice: 1, correctIndex: 1, correct: true, points: 875 },
   wrong: { ...base, score: 3890, rank: 2, phase: "reveal", index: Q.index, answers: Q.answers, choice: 0, correctIndex: 1, correct: false, points: 0 },
   standings: { ...base, phase: "standings", index: Q.index, previousRank: 4 },

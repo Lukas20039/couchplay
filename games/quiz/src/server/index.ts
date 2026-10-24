@@ -1,6 +1,9 @@
 // Serverlogik Allgemeinwissen-Quiz (server-authoritative).
 // Ablauf: intro → (question → reveal → standings)* → final → ctx.end().
 // Nach der letzten Auflösung folgt direkt das Finale statt eines Zwischenstands.
+// Jede Frage wird erst gezogen, wenn sie dran ist: bevorzugt eine, die keiner der Teilnehmer
+// schon gesehen hat (Handys melden ihre gesehenen Fragen im Intro, seen.ts), dann die am
+// wenigsten bekannte; Fragen der Vorrunde im selben Raum zählen zusätzlich.
 import { defineGame, type GameContext, type TimerId } from "@couchplay/game-sdk";
 import type { PlayerId, SettingsValues } from "@couchplay/protocol";
 import manifest from "../../manifest.json" with { type: "json" };
@@ -19,7 +22,8 @@ import {
   type QuizSettings,
   type QuizTvState,
 } from "../shared.js";
-import { drawQuestions, type RoundQuestion } from "./questions.js";
+import { unpackSeen } from "../seen.js";
+import { createDeck, type RoundQuestion } from "./questions.js";
 import { rankScores } from "./ranking.js";
 
 type Ctx = GameContext<QuizSettings, QuizTvState, QuizPlayerView>;
@@ -65,14 +69,18 @@ export default defineGame<QuizSettings, QuizInput, QuizTvState, QuizPlayerView>(
   parseSettings: parseQuizSettings,
   createGame(ctx) {
     const { settings } = ctx;
-    const questions: RoundQuestion[] = drawQuestions(
-      QUESTIONS_BY_CATEGORY,
-      settings.categories,
-      settings.rounds,
-      ctx.rng,
-      previousQuestionIds(ctx),
-    );
-    const total = questions.length;
+    const deck = createDeck(QUESTIONS_BY_CATEGORY, settings.categories, ctx.rng);
+    const questions: RoundQuestion[] = [];
+    const total = Math.min(settings.rounds, deck.size);
+    const previousIds = previousQuestionIds(ctx);
+    /** Gesehene Fragen je Teilnehmer (vom Handy gemeldet). */
+    const seenBy = new Map<PlayerId, Set<string>>();
+    /** Je Teilnehmer, der sie kennt, +2; aus der Vorrunde dieses Raums +1. */
+    const penalty = (id: string): number => {
+      let n = previousIds.has(id) ? 1 : 0;
+      for (const [pid, seen] of seenBy) if (!state(pid).left && seen.has(id)) n += 2;
+      return n;
+    };
     const durationMs = settings.answerSeconds * 1000;
 
     const players = new Map<PlayerId, PlayerState>(
@@ -197,6 +205,7 @@ export default defineGame<QuizSettings, QuizInput, QuizTvState, QuizPlayerView>(
             ...b,
             phase,
             index,
+            questionId: q.id,
             category: q.category,
             answers: [...q.answers],
             endsAt,
@@ -234,6 +243,9 @@ export default defineGame<QuizSettings, QuizInput, QuizTvState, QuizPlayerView>(
     // ---------------------------------------------------------------- Phasen
 
     const startQuestion = (i: number): void => {
+      const q = deck.next(penalty);
+      if (!q) return showFinal(); // kann wegen total ≤ deck.size nicht passieren
+      questions.push(q);
       index = i;
       answers = new Map();
       phase = "question";
@@ -316,7 +328,11 @@ export default defineGame<QuizSettings, QuizInput, QuizTvState, QuizPlayerView>(
 
     return {
       onPlayerInput(playerId, input) {
-        if (input.type !== "answer") return;
+        if (input.type === "seen") {
+          // Jederzeit erlaubt (auch nach Reconnect); ersetzt die vorige Meldung dieses Handys.
+          seenBy.set(playerId, new Set(unpackSeen(input.ids)));
+          return;
+        }
         // Nur während der Frage, nur einmal, nur für aktive Teilnehmer.
         if (phase !== "question" || answers.has(playerId) || state(playerId).left) return;
         const remaining = endsAt - ctx.now();
