@@ -1,0 +1,32 @@
+{
+  "id": "kennstdu",
+  "name": "Wie gut kennst du mich?",
+  "description": "Reihum ist eine Person dran: Sie beantwortet Fragen über sich, alle anderen raten ihre Antwort.",
+  "version": "0.1.0",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#ff5fbf",
+  "icon": "💬",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "alltag", "label": "Alltag" },
+        { "value": "essen", "label": "Essen & Trinken" },
+        { "value": "freizeit", "label": "Freizeit & Hobbys" },
+        { "value": "reisen", "label": "Reisen" },
+        { "value": "persoenlichkeit", "label": "Persönlichkeit" },
+        { "value": "waswaerewenn", "label": "Was wäre wenn …" },
+        { "value": "erinnerungen", "label": "Kindheit & Erinnerungen" },
+        { "value": "entweder", "label": "Entweder – oder" }
+      ],
+      "default": ["alltag", "essen", "freizeit", "reisen", "persoenlichkeit", "waswaerewenn", "erinnerungen", "entweder"],
+      "minSelected": 1
+    },
+    { "type": "number", "key": "turns", "label": "Fragen pro Person", "min": 1, "max": 4, "step": 1, "default": 2 },
+    { "type": "number", "key": "answerSeconds", "label": "Antwortzeit (Sekunden)", "min": 15, "max": 45, "step": 5, "default": 25 }
+  ]
+}

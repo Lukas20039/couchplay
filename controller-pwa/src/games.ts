@@ -8,4 +8,5 @@ export const CONTROLLER_VIEWS: Record<string, ViewModuleLoader<ControllerViewFac
   wortgarten: () => import("@couchplay/game-wortgarten/controller"),
   schiffe: () => import("@couchplay/game-schiffe/controller"),
   blockblast: () => import("@couchplay/game-blockblast/controller"),
+  kennstdu: () => import("@couchplay/game-kennstdu/controller"),
 };

@@ -17,6 +17,7 @@ export const TRACKS: Record<string, Track> = {
   wortgarten: { file: "wortgarten.mp3", overlap: 4 },
   schiffe: { file: "schiffe.mp3", overlap: 3 },
   blockblast: { file: "blockblast.mp3", overlap: 0.8 },
+  kennstdu: { file: "kennstdu.mp3", overlap: 1.5 },
 };
 
 /** Lautstärkestufen: Aus, Leise, Mittel, Laut. */

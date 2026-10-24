@@ -53,7 +53,7 @@ describe("trackFor", () => {
   });
 
   it("jedes eingebaute Spiel hat ein Stück", () => {
-    for (const id of ["quiz", "tictactoe", "wortgarten", "schiffe", "blockblast"]) expect(TRACKS[id]).toBeDefined();
+    for (const id of ["quiz", "tictactoe", "wortgarten", "schiffe", "blockblast", "kennstdu"]) expect(TRACKS[id]).toBeDefined();
   });
 
   it("Lautstärkestufe aus dem Speicher, sonst Mittel", () => {

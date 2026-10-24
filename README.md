@@ -39,6 +39,18 @@ am Ende ein Podium.
 |---|---|---|
 | ![Quizfrage](docs/screenshots/tv-quiz-question.png) | ![Auflösung](docs/screenshots/tv-quiz-reveal.png) | <img src="docs/screenshots/phone-quiz.png" width="180" alt="Antworttasten"> <img src="docs/screenshots/phone-quiz-correct.png" width="180" alt="Richtig beantwortet"> |
 
+### 💬 Wie gut kennst du mich? · 2–8 Spieler
+
+Das Kennenlernspiel: Reihum ist eine Person dran und beantwortet am Handy ehrlich eine Frage über sich –
+„Wie mag Anna Pommes am liebsten?“ –, alle anderen raten gleichzeitig, was sie gewählt hat. Richtig
+geraten bringt 100 Punkte, die Person selbst bekommt 50 für jeden, der sie richtig einschätzt. 640 Fragen
+in 8 Kategorien (Alltag, Essen & Trinken, Freizeit, Reisen, Persönlichkeit, Was wäre wenn …, Kindheit &
+Erinnerungen, Entweder – oder); wie beim Quiz merkt sich jedes Handy, welche Fragen es schon hatte.
+
+| TV | Handy |
+|---|---|
+| ![Wie gut kennst du mich? am TV](docs/screenshots/tv-kennstdu.png) | <img src="docs/screenshots/phone-kennstdu.png" width="220" alt="Raten am Handy"> |
+
 ### ⭕ TicTacToe · 1–2 Spieler
 
 Allein gegen den Computer (leicht, mittel oder unbesiegbar) oder zu zweit Handy gegen Handy,
@@ -174,7 +186,7 @@ Nichts installieren: QR-Code am TV scannen. Optional über *Teilen → Zum Home-
 | [`tv-web/`](tv-web) | TV-Oberfläche (Preact), komplett per Fernbedienung bedienbar |
 | [`controller-pwa/`](controller-pwa) | Handy-Controller als PWA |
 | [`android-tv/`](android-tv) | Android-TV-App (Kotlin) |
-| [`games/quiz/`](games/quiz), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
+| [`games/quiz/`](games/quiz), [`games/kennstdu/`](games/kennstdu), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
 | [`packages/protocol/`](packages/protocol) | WebSocket-Protokoll (zod-Schemas) |
 | [`packages/game-sdk/`](packages/game-sdk) | Schnittstelle und Laufzeit für Spiele |
 | [`e2e/`](e2e) | End-to-End-Tests im Browser und im Android-TV-Emulator |

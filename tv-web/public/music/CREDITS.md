@@ -11,6 +11,7 @@ Für CouchPlay auf −16 LUFS normalisiert und als MP3 (96 kbit/s) neu kodiert; 
 | `wortgarten.mp3` | Wortgarten | Town Theme RPG | cynicmusic | https://opengameart.org/content/town-theme-rpg |
 | `schiffe.mp3` | Schiffe versenken | Battle Theme A | cynicmusic | https://opengameart.org/content/battle-theme-a |
 | `blockblast.mp3` | Blockblast | Awake! (megaWall) | cynicmusic | https://opengameart.org/content/awake-megawall-10 |
+| `kennstdu.mp3` | Wie gut kennst du mich? | Buy Something! (Shop Theme) | CleytonKauffman | https://opengameart.org/content/shop-theme |
 | `results.mp3` | Ergebnis | Retro Game Music Pack – Ending | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
 
 Lizenz geprüft am 23.10.2026 (Projektseite „License(s): CC0“, bei Juhani Junkala zusätzlich INFO.txt im Paket).
