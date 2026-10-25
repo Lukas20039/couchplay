@@ -73,7 +73,7 @@ test.describe("Wortgarten", () => {
 
     // Ernte nach Ablauf der Runde
     await expect(tv.tid("wg-tv")).toHaveAttribute("data-phase", "roundEnd", { timeout: 70_000 });
-    await expect(tv.page.locator(".wg-word.is-unique", { hasText: onlyBen.word })).toBeVisible();
+    await expect(tv.page.locator(".wg-word.is-unique", { hasText: new RegExp(`^★ ${onlyBen.word}\\s*\\d`) })).toBeVisible();
     await expect(tv.page.locator(".wg-word.is-shared", { hasText: shared.word })).toHaveCount(2);
     await lab.shot(tv.page, "wortgarten-tv-harvest");
 

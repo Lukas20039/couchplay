@@ -27,6 +27,9 @@ COPY games/blockblast/package.json games/blockblast/
 COPY games/kennstdu/package.json games/kennstdu/
 COPY games/zeichnen/package.json games/zeichnen/
 COPY games/schaetzen/package.json games/schaetzen/
+COPY games/wuerdeeher/package.json games/wuerdeeher/
+COPY games/flunkern/package.json games/flunkern/
+COPY games/sortiert/package.json games/sortiert/
 COPY server/package.json server/
 COPY tv-web/package.json tv-web/
 COPY controller-pwa/package.json controller-pwa/
@@ -59,6 +62,9 @@ COPY --from=build /app/games/blockblast/package.json games/blockblast/
 COPY --from=build /app/games/kennstdu/package.json games/kennstdu/
 COPY --from=build /app/games/zeichnen/package.json games/zeichnen/
 COPY --from=build /app/games/schaetzen/package.json games/schaetzen/
+COPY --from=build /app/games/wuerdeeher/package.json games/wuerdeeher/
+COPY --from=build /app/games/flunkern/package.json games/flunkern/
+COPY --from=build /app/games/sortiert/package.json games/sortiert/
 COPY --from=build /app/server/package.json server/
 COPY --from=build /app/tv-web/package.json tv-web/
 COPY --from=build /app/controller-pwa/package.json controller-pwa/

@@ -14,6 +14,9 @@ Für CouchPlay auf −16 LUFS normalisiert und als MP3 (96 kbit/s) neu kodiert; 
 | `kennstdu.mp3` | Wie gut kennst du mich? | Buy Something! (Shop Theme) | CleytonKauffman | https://opengameart.org/content/shop-theme |
 | `zeichnen.mp3` | Zeichnen & Raten | Chiptune Adventures – Stage 2 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/4-chiptunes-adventure |
 | `schaetzen.mp3` | Schätzen! | Retro Game Music Pack – Level 2 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
+| `sortiert.mp3` | Sortiert! | Retro Game Music Pack – Level 1 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
+| `flunkern.mp3` | Flunkern | Chiptune Adventures – Stage Select | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/4-chiptunes-adventure |
+| `wuerdeeher.mp3` | Wer würde eher …? | Retro Game Music Pack – Level 3 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
 | `results.mp3` | Ergebnis | Retro Game Music Pack – Ending | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
 
 Lizenz geprüft am 23.10.2026 bzw. 25.10.2026 (Projektseite „License(s): CC0“, bei Juhani Junkala zusätzlich INFO.txt im Paket).

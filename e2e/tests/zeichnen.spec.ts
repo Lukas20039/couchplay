@@ -19,7 +19,9 @@ test.describe("Zeichnen & Raten", () => {
 
     for (let round = 0; round < 2; round++) {
       await expect(tv.tid("zg-tv")).toHaveAttribute("data-phase", "choose", { timeout: 20_000 });
-      const aDraws = await a.tid("zg-option-0").isVisible().catch(() => false);
+      // Warten, bis eines der Handys die Begriffsauswahl zeigt (der TV kann früher umschalten).
+      await expect.poll(async () => (await a.tid("zg-option-0").isVisible()) || (await b.tid("zg-option-0").isVisible())).toBe(true);
+      const aDraws = await a.tid("zg-option-0").isVisible();
       const [drawer, guesser]: [PhonePage, PhonePage] = aDraws ? [a, b] : [b, a];
       await expect(drawer.tid("zg-option-0")).toBeVisible();
       await drawer.tid("zg-option-0").click();

@@ -1,0 +1,31 @@
+{
+  "id": "flunkern",
+  "name": "Flunkern",
+  "description": "Kuriose Fragen, erfundene Antworten: Denk dir eine glaubwürdige Lüge aus, leg die anderen rein – und finde selbst die Wahrheit.",
+  "version": "0.1.0",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#ff8a3d",
+  "icon": "🤥",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "kurioses", "label": "Kurioses Wissen" },
+        { "value": "tiere", "label": "Tiere & Natur" },
+        { "value": "woerter", "label": "Wörter & Namen" },
+        { "value": "geschichte", "label": "Geschichte & Erfindungen" },
+        { "value": "welt", "label": "Länder & Gesetze" },
+        { "value": "essen", "label": "Essen & Trinken" }
+      ],
+      "default": ["kurioses", "tiere", "woerter", "geschichte", "welt", "essen"],
+      "minSelected": 1
+    },
+    { "type": "number", "key": "rounds", "label": "Runden", "min": 3, "max": 12, "step": 1, "default": 7 },
+    { "type": "number", "key": "writeSeconds", "label": "Zeit zum Lügen (Sekunden)", "min": 30, "max": 120, "step": 15, "default": 60 },
+    { "type": "number", "key": "chooseSeconds", "label": "Zeit zum Wählen (Sekunden)", "min": 15, "max": 40, "step": 5, "default": 20 }
+  ]
+}

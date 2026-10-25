@@ -11,4 +11,7 @@ export const CONTROLLER_VIEWS: Record<string, ViewModuleLoader<ControllerViewFac
   kennstdu: () => import("@couchplay/game-kennstdu/controller"),
   schaetzen: () => import("@couchplay/game-schaetzen/controller"),
   zeichnen: () => import("@couchplay/game-zeichnen/controller"),
+  sortiert: () => import("@couchplay/game-sortiert/controller"),
+  flunkern: () => import("@couchplay/game-flunkern/controller"),
+  wuerdeeher: () => import("@couchplay/game-wuerdeeher/controller"),
 };

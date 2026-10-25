@@ -1,0 +1,31 @@
+{
+  "id": "sortiert",
+  "name": "Sortiert!",
+  "description": "Was ist älter, teurer, schneller, beliebter? Bringt Konsolen, Filme, Tiere & Co. am Handy in die richtige Reihenfolge – jede Karte am richtigen Platz bringt Punkte.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#3ddc97",
+  "icon": "📊",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "zeit", "label": "Zeitstrahl (Jahre)" },
+        { "value": "geld", "label": "Preise & Kosten" },
+        { "value": "verkauf", "label": "Meistverkauft" },
+        { "value": "groesse", "label": "Größe & Gewicht" },
+        { "value": "mengen", "label": "Mengen & Zahlen" },
+        { "value": "tempo", "label": "Tempo & Dauer" }
+      ],
+      "default": ["zeit", "geld", "verkauf", "groesse", "mengen", "tempo"],
+      "minSelected": 1
+    },
+    { "type": "number", "key": "rounds", "label": "Runden", "min": 5, "max": 15, "step": 1, "default": 8 },
+    { "type": "number", "key": "itemsPerRound", "label": "Karten pro Runde", "min": 4, "max": 6, "step": 1, "default": 4 },
+    { "type": "number", "key": "answerSeconds", "label": "Sortierzeit (Sekunden)", "min": 20, "max": 60, "step": 5, "default": 35 }
+  ]
+}

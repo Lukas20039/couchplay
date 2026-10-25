@@ -75,6 +75,43 @@ Allgemeinwissen-Quiz.
 |---|---|
 | ![Schätzen am TV](docs/screenshots/tv-schaetzen.png) | <img src="docs/screenshots/phone-schaetzen.png" width="220" alt="Ziffernfeld am Handy"> |
 
+### 📊 Sortiert! · 1–8 Spieler
+
+Bring 4–6 Dinge in die richtige Reihenfolge – nicht nur nach Jahreszahlen, sondern auch nach Preis,
+Verkaufszahlen, Größe, Kalorien oder Tempo: „Welche Konsole wurde am häufigsten verkauft?“, „Was
+kostet beim Monopoly am meisten?“. Am Handy tippt man die Karten der Reihe nach an. Punkte gibt es je
+Karte am richtigen Platz, halbe für knapp daneben und einen Bonus für die perfekte Reihenfolge. Am TV
+baut sich die Lösung mit allen Werten Karte für Karte auf. 150 Sets in 6 Kategorien: Zeitstrahl, Preise &
+Kosten, Meistverkauft, Größe & Gewicht, Mengen & Zahlen, Tempo & Dauer.
+
+| Auflösung am TV | Handy |
+|---|---|
+| ![Sortiert am TV](docs/screenshots/tv-sortiert.png) | <img src="docs/screenshots/phone-sortiert.png" width="220" alt="Karten sortieren am Handy"> |
+
+### 🤥 Flunkern · 2–8 Spieler
+
+Das Bluff-Spiel: Zu einer kuriosen Frage („Wie hieß Google ursprünglich?“) denkt sich jeder am Handy
+eine glaubwürdige Lüge aus. Danach stehen alle Lügen und die Wahrheit gemischt da – wer die Wahrheit
+findet, bekommt 500 Punkte, für jeden, der auf die eigene Lüge reinfällt, gibt es 250. Lügen, die zu nah
+an der Wahrheit sind, lehnt das Spiel ab; bei wenigen Spielern füllen Hauslügen auf. Die Auflösung deckt
+am TV Lüge für Lüge auf, wer wen reingelegt hat – die Wahrheit kommt zuletzt. Die letzte Runde zählt
+doppelt. 240 geprüfte Fragen in 6 Kategorien.
+
+| Auflösung am TV | Handy |
+|---|---|
+| ![Flunkern am TV](docs/screenshots/tv-flunkern.png) | <img src="docs/screenshots/phone-flunkern.png" width="220" alt="Lüge schreiben am Handy"> |
+
+### 🙋 Wer würde eher …? · 3–8 Spieler
+
+Der lockere Einstieg in den Abend: „Wer würde eher eine Nacht im Baumarkt verbringen?“ Alle stimmen am
+Handy für einen Mitspieler (auch sich selbst), der TV zählt die Stimmen aus und krönt den Gewinner.
+Punkte bekommt, wer mit der Mehrheit lag – also die Gruppe gut einschätzt. Im Finale bekommt jeder
+seinen Titel. Abstimmung offen oder anonym, 300 Aussagen in 6 Kategorien.
+
+| Auflösung am TV | Handy |
+|---|---|
+| ![Wer würde eher am TV](docs/screenshots/tv-wuerdeeher.png) | <img src="docs/screenshots/phone-wuerdeeher.png" width="220" alt="Abstimmen am Handy"> |
+
 ### ⭕ TicTacToe · 1–2 Spieler
 
 Allein gegen den Computer (leicht, mittel oder unbesiegbar) oder zu zweit Handy gegen Handy,
@@ -226,7 +263,7 @@ Nichts installieren: QR-Code am TV scannen. Optional über *Teilen → Zum Home-
 | [`tv-web/`](tv-web) | TV-Oberfläche (Preact), komplett per Fernbedienung bedienbar |
 | [`controller-pwa/`](controller-pwa) | Handy-Controller als PWA |
 | [`android-tv/`](android-tv) | Android-TV-App (Kotlin) |
-| [`games/quiz/`](games/quiz), [`games/kennstdu/`](games/kennstdu), [`games/zeichnen/`](games/zeichnen), [`games/schaetzen/`](games/schaetzen), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
+| [`games/quiz/`](games/quiz), [`games/kennstdu/`](games/kennstdu), [`games/zeichnen/`](games/zeichnen), [`games/schaetzen/`](games/schaetzen), [`games/sortiert/`](games/sortiert), [`games/flunkern/`](games/flunkern), [`games/wuerdeeher/`](games/wuerdeeher), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
 | [`packages/protocol/`](packages/protocol) | WebSocket-Protokoll (zod-Schemas) |
 | [`packages/game-sdk/`](packages/game-sdk) | Schnittstelle und Laufzeit für Spiele |
 | [`e2e/`](e2e) | End-to-End-Tests im Browser und im Android-TV-Emulator |

@@ -1,0 +1,40 @@
+{
+  "id": "wuerdeeher",
+  "name": "Wer würde eher …?",
+  "description": "Wer würde eher eine Nacht im Baumarkt verbringen? Alle zeigen heimlich auf jemanden – wer mit der Mehrheit liegt, punktet.",
+  "version": "0.1.0",
+  "minPlayers": 3,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#c86bff",
+  "icon": "🙋",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "alltag", "label": "Alltag" },
+        { "value": "abenteuer", "label": "Abenteuer & Mut" },
+        { "value": "peinlich", "label": "Peinlich, aber harmlos" },
+        { "value": "zukunft", "label": "Zukunft & Was-wäre-wenn" },
+        { "value": "essen", "label": "Essen & Genuss" },
+        { "value": "chaos", "label": "Chaos & Schusseligkeit" }
+      ],
+      "default": ["alltag", "abenteuer", "peinlich", "zukunft", "essen", "chaos"],
+      "minSelected": 1
+    },
+    { "type": "number", "key": "rounds", "label": "Runden", "min": 5, "max": 20, "step": 1, "default": 10 },
+    { "type": "number", "key": "voteSeconds", "label": "Abstimmzeit (Sekunden)", "min": 10, "max": 40, "step": 5, "default": 20 },
+    {
+      "type": "select",
+      "key": "anonymous",
+      "label": "Stimmen",
+      "options": [
+        { "value": "offen", "label": "Offen – man sieht, wer wen gewählt hat" },
+        { "value": "anonym", "label": "Anonym – nur die Anzahl zählt" }
+      ],
+      "default": "offen"
+    }
+  ]
+}
