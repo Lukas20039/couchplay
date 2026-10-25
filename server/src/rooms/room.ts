@@ -2,12 +2,16 @@
 // Spielsitzung und Cache der letzten game.tv/game.view (für Reconnects).
 // Berechtigungen (Rolle × Phase) prüft das Gateway vorher per CLIENT_MESSAGE_RULES.
 import { createGameSession, randomSeed, systemClock, type GameLogger, type GameSession } from "@couchplay/game-sdk";
+import { randomInt } from "node:crypto";
 import {
   MAX_PLAYERS,
   PLAYER_COLOR_COUNT,
   PROTOCOL_VERSION,
   WS_CLOSE,
   defaultSettings,
+  eveningFinished,
+  scoreEveningRound,
+  teamKey,
   nameKey,
   normalizeName,
   relockSettings,
@@ -16,6 +20,9 @@ import {
   type Actor,
   type AvatarId,
   type ErrorCode,
+  type Evening,
+  type EveningRound,
+  type EveningStanding,
   type GameResults,
   type Player,
   type PlayerId,
@@ -71,6 +78,29 @@ interface PlayerRecord {
   progress: ProgressValues;
 }
 
+/** Spieleabend (serverseitig); room.state.evening wird daraus berechnet. */
+interface EveningRecord {
+  games: string[];
+  teams: PlayerId[][] | null;
+  teamsLocked: boolean;
+  doubleFinal: boolean;
+  rounds: EveningRound[];
+  /** Abend-Punkte je Wertungsschlüssel (Spieler-ID bzw. team:<n>). */
+  points: Map<string, number>;
+  /** Name/Avatar gewerteter Spieler – bleiben in der Tabelle, auch wenn sie gehen. */
+  names: Map<PlayerId, { name: string; avatar: AvatarId }>;
+}
+
+/** Fisher-Yates mit Krypto-Zufall (Teams auslosen). */
+function shuffled<T>(items: readonly T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    [out[i], out[j]] = [out[j] as T, out[i] as T];
+  }
+  return out;
+}
+
 export interface RoomDeps {
   code: string;
   joinUrl: string;
@@ -106,6 +136,9 @@ export class Room {
   private results: GameResults | null = null;
   private readonly lastResults = new Map<string, GameResults>();
   private session: GameSession | null = null;
+  /** Aktuell überspringbare Wartezeit der Session (room.state.skipId). */
+  private skipId: number | null = null;
+  private evening: EveningRecord | null = null;
   /** Wird bei Start/Ende/Absturz/Abbruch erhöht; veraltete Sink-Aufrufe werden ignoriert. */
   private run = 0;
   private seq = 0;
@@ -174,6 +207,41 @@ export class Room {
       gamePlayerIds: [...this.gamePlayerIds],
       results: this.results,
       progress: this.roomProgress(),
+      skipId: this.phase === "game" ? this.skipId : null,
+      evening: this.eveningSnapshot(),
+    };
+  }
+
+  private eveningSnapshot(): Evening | null {
+    const e = this.evening;
+    if (!e) return null;
+    const keys: string[] = e.teams
+      ? e.teams.map((_, i) => teamKey(i))
+      : [...new Set([...this.players.map((p) => p.id), ...e.points.keys()])];
+    const entries = keys.map((key) => {
+      const entry: EveningStanding = { key, points: e.points.get(key) ?? 0, rank: 1 };
+      if (!e.teams) {
+        const p = this.players.find((x) => x.id === key) ?? e.names.get(key);
+        if (p) {
+          entry.name = p.name;
+          entry.avatar = p.avatar;
+        }
+      }
+      return entry;
+    });
+    // Stabile Sortierung: Punkte absteigend, sonst Team-/Beitrittsreihenfolge.
+    entries.sort((a, b) => b.points - a.points);
+    entries.forEach((x, i) => {
+      const prev = entries[i - 1];
+      x.rank = prev && prev.points === x.points ? prev.rank : i + 1;
+    });
+    return {
+      games: [...e.games],
+      teams: e.teams ? e.teams.map((t) => [...t]) : null,
+      teamsLocked: e.teamsLocked,
+      doubleFinal: e.doubleFinal,
+      rounds: e.rounds,
+      standings: entries,
     };
   }
 
@@ -314,6 +382,7 @@ export class Room {
     };
     this.players.push(player);
     if (this.hostId === null) this.hostId = player.id;
+    this.addToSmallestTeam(player.id);
     conn.binding = { room: this, role: "player", playerId: player.id };
     this.log.info({ playerId: player.id }, "Spieler beigetreten");
     // Während einer Runde Beitretende sind Zuschauer → keine gecachte game.view.
@@ -376,6 +445,7 @@ export class Room {
     const [player] = this.players.splice(idx, 1);
     if (player?.graceTimer) clearTimeout(player.graceTimer);
     this.viewCache.delete(playerId);
+    if (this.evening?.teams) this.evening.teams = this.evening.teams.map((t) => t.filter((id) => id !== playerId));
     if (this.hostId === playerId) {
       // Am längsten anwesender Spieler (Beitrittsreihenfolge), verbundene bevorzugt.
       const next = this.players.find((p) => p.connected) ?? this.players[0];
@@ -464,6 +534,9 @@ export class Room {
     if (!def) return fail("GAME_NOT_FOUND", `Spiel ${gameId} unbekannt`);
     this.selectedGameId = gameId;
     this.settings = defaultSettings(def.manifest.settings);
+    // Spieleabend: Auswahl ersetzt das anstehende Spiel des Plans.
+    const e = this.evening;
+    if (e && !eveningFinished(e)) e.games[e.rounds.length] = gameId;
     this.phase = "lobby";
     this.results = null;
     this.broadcastState();
@@ -485,6 +558,8 @@ export class Room {
   start(requested: readonly PlayerId[] | undefined): HandlerResult {
     const def = this.selectedGameId ? this.deps.catalog.get(this.selectedGameId) : undefined;
     if (!def) return fail("NO_GAME_SELECTED", "Kein Spiel ausgewählt");
+    if (this.evening && this.phase === "results") return fail("NOT_ALLOWED", "Im Spieleabend gibt es keine Revanche");
+    if (this.evening && eveningFinished(this.evening)) return fail("NOT_ALLOWED", "Der Spieleabend ist vorbei");
     const participants = resolveParticipants(this.snapshot().players, def.manifest, requested);
     if (!participants.ok) return fail(participants.code, participants.message);
     this.relock();
@@ -505,6 +580,7 @@ export class Room {
     });
 
     const run = ++this.run;
+    if (this.evening) this.evening.teamsLocked = true;
     this.phase = "game";
     this.gamePlayerIds = participants.playerIds;
     this.results = null;
@@ -552,6 +628,11 @@ export class Room {
             if (run !== this.run) return;
             this.crashGame(error, gameLog);
           },
+          skippable: (skipId) => {
+            if (run !== this.run) return;
+            this.skipId = skipId;
+            this.broadcastState();
+          },
         },
       });
     } catch (error) {
@@ -567,6 +648,7 @@ export class Room {
   private resetGameState(): void {
     this.run++;
     this.session = null;
+    this.skipId = null;
     this.tvCache = null;
     this.viewCache.clear();
     this.relock();
@@ -577,6 +659,7 @@ export class Room {
     this.phase = "results";
     this.results = results;
     this.lastResults.set(results.gameId, results);
+    this.scoreEvening(results);
     log.info("Spiel beendet");
     this.broadcastState();
   }
@@ -604,10 +687,114 @@ export class Room {
   }
 
   toLobby(): HandlerResult {
+    // Spieleabend: weiter zum nächsten Spiel des Plans.
+    const e = this.evening;
+    const next = e && !eveningFinished(e) ? e.games[e.rounds.length] : undefined;
+    if (next && this.deps.catalog.get(next)) return this.selectGame(next);
     this.phase = "lobby";
     this.results = null;
     this.broadcastState();
     return undefined;
+  }
+
+  /** game.skip: aktuelle Wartezeit beenden; veraltete IDs (Doppelklick) still ignorieren. */
+  skip(skipId: number): HandlerResult {
+    if (!this.session) return fail("INVALID_PHASE", "Kein laufendes Spiel");
+    this.session.skip(skipId);
+    return undefined;
+  }
+
+  // -------------------------------------------------------------------------
+  // Spieleabend
+  // -------------------------------------------------------------------------
+
+  startEvening(games: readonly string[], teamCount: number, doubleFinal: boolean): HandlerResult {
+    const unknown = games.find((id) => !this.deps.catalog.get(id));
+    if (unknown) return fail("GAME_NOT_FOUND", `Spiel ${unknown} unbekannt`);
+    if (teamCount > 0 && this.players.length < teamCount) {
+      return fail("PLAYER_COUNT", `${teamCount} Teams brauchen mindestens ${teamCount} Spieler`);
+    }
+    this.evening = {
+      games: [...games],
+      teams: teamCount > 0 ? Array.from({ length: teamCount }, () => []) : null,
+      teamsLocked: false,
+      doubleFinal,
+      rounds: [],
+      points: new Map(),
+      names: new Map(),
+    };
+    this.dealTeams();
+    this.log.info({ games, teams: teamCount }, "Spieleabend gestartet");
+    return this.selectGame(games[0] as string);
+  }
+
+  /** Alle Spieler zufällig und gleichmäßig auf die Teams verteilen. */
+  private dealTeams(): void {
+    const e = this.evening;
+    if (!e?.teams) return;
+    const teams: PlayerId[][] = e.teams.map(() => []);
+    shuffled(this.players.map((p) => p.id)).forEach((id, i) => teams[i % teams.length]?.push(id));
+    // Teamreihenfolge im Raum stabil halten (Beitrittsreihenfolge innerhalb des Teams).
+    const order = new Map(this.players.map((p, i) => [p.id, i]));
+    e.teams = teams.map((t) => t.sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0)));
+  }
+
+  private addToSmallestTeam(playerId: PlayerId): void {
+    const teams = this.evening?.teams;
+    if (!teams || teams.some((t) => t.includes(playerId))) return;
+    let best = 0;
+    teams.forEach((t, i) => {
+      if (t.length < (teams[best]?.length ?? 0)) best = i;
+    });
+    teams[best]?.push(playerId);
+  }
+
+  setTeam(actorId: PlayerId | null, playerId: PlayerId, team: number): HandlerResult {
+    const e = this.evening;
+    if (!e?.teams) return fail("INVALID_PHASE", "Kein Spieleabend mit Teams");
+    if (e.teamsLocked) return fail("INVALID_PHASE", "Die Teams stehen schon fest");
+    // Spieler (nicht Host) dürfen nur sich selbst einteilen.
+    if (actorId !== null && actorId !== playerId && actorId !== this.hostId) return fail("NOT_ALLOWED", "Nur das eigene Team wählbar");
+    if (!this.players.some((p) => p.id === playerId)) return fail("PLAYER_NOT_FOUND", "Spieler unbekannt");
+    if (team >= e.teams.length) return fail("BAD_MESSAGE", "Team gibt es nicht");
+    e.teams = e.teams.map((t) => t.filter((id) => id !== playerId));
+    e.teams[team]?.push(playerId);
+    this.broadcastState();
+    return undefined;
+  }
+
+  shuffleTeams(): HandlerResult {
+    const e = this.evening;
+    if (!e?.teams) return fail("INVALID_PHASE", "Kein Spieleabend mit Teams");
+    if (e.teamsLocked) return fail("INVALID_PHASE", "Die Teams stehen schon fest");
+    this.dealTeams();
+    this.broadcastState();
+    return undefined;
+  }
+
+  endEvening(): HandlerResult {
+    if (!this.evening) return fail("INVALID_PHASE", "Kein Spieleabend");
+    this.evening = null;
+    this.log.info("Spieleabend beendet");
+    this.broadcastState();
+    return undefined;
+  }
+
+  /** Beendetes Spiel in die Abendwertung übernehmen. */
+  private scoreEvening(results: GameResults): void {
+    const e = this.evening;
+    if (!e || eveningFinished(e)) return;
+    const double = e.doubleFinal && e.rounds.length === e.games.length - 1;
+    const awards = scoreEveningRound(results.ranking, e.teams, double);
+    for (const a of awards) e.points.set(a.key, (e.points.get(a.key) ?? 0) + a.points);
+    if (!e.teams) {
+      for (const r of results.ranking) {
+        const p = this.players.find((x) => x.id === r.playerId);
+        if (p) e.names.set(p.id, { name: p.name, avatar: p.avatar });
+      }
+    }
+    e.games[e.rounds.length] = results.gameId;
+    e.rounds.push({ gameId: results.gameId, double, awards });
   }
 
   input(playerId: PlayerId, data: unknown): HandlerResult {

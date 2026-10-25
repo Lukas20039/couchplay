@@ -362,6 +362,16 @@ export class Gateway {
         return room.abortGame();
       case "room.toLobby":
         return room.toLobby();
+      case "game.skip":
+        return room.skip(msg.skipId);
+      case "evening.start":
+        return room.startEvening(msg.games, msg.teams, msg.doubleFinal);
+      case "evening.setTeam":
+        return room.setTeam(playerId, msg.playerId, msg.team);
+      case "evening.shuffle":
+        return room.shuffleTeams();
+      case "evening.end":
+        return room.endEvening();
     }
   }
 

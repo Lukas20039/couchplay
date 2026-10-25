@@ -184,7 +184,8 @@ export default defineGame<BlockblastSettings, BlockblastInput, BlockblastTvState
           left: s.left,
         })),
       };
-      const cd = ctx.timers.countdown(END_DELAY_MS, () => ctx.end({ ranking: ranking(), data }));
+      // Reine Ergebnisanzeige → TV/Host dürfen sie überspringen.
+      const cd = ctx.timers.countdown(END_DELAY_MS, () => ctx.end({ ranking: ranking(), data }), { skippable: true });
       endsAt = cd.endsAt;
       durationMs = END_DELAY_MS;
       publish();
@@ -218,6 +219,7 @@ export default defineGame<BlockblastSettings, BlockblastInput, BlockblastTvState
     };
 
     const start = (): void => {
+      if (phase !== "countdown") return;
       phase = "playing";
       const cd = ctx.timers.countdown(settings.durationMs, finish);
       clock = cd.id;
@@ -227,7 +229,8 @@ export default defineGame<BlockblastSettings, BlockblastInput, BlockblastTvState
     };
 
     {
-      const cd = ctx.timers.countdown(COUNTDOWN_MS, start);
+      // Start-Countdown ist reine Wartezeit (noch keine Züge möglich) → überspringbar.
+      const cd = ctx.timers.countdown(COUNTDOWN_MS, start, { skippable: true });
       clock = cd.id;
       endsAt = cd.endsAt;
     }

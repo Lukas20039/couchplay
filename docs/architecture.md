@@ -28,7 +28,7 @@ Verbindlich ergänzend zu `docs/PLAN.md`. Protokolldetails: `docs/protocol.md`.
 | `server` | Fastify-HTTP, WS-Endpoint, Raumverwaltung, Rate-Limits, Auslieferung der gebauten Frontends. |
 | `tv-web` | TV-UI (10-Fuß, D-Pad): Start, Code + QR, Lobby, Spielauswahl, Ergebnis, Host-Funktionen per Fernbedienung. |
 | `controller-pwa` | Handy-UI: Code/QR-Join, Name + Avatar, Lobby, Host-Einstellungen, Controller-View des Spiels. |
-| `games/quiz`, `games/kennstdu`, `games/tictactoe`, `games/wortgarten`, `games/schiffe`, `games/blockblast` | je `manifest.json` (optional `icon`: Emoji für die Katalog-Kachel) + `src/server` + `src/tv` + `src/controller` + `src/shared.ts`. |
+| `games/quiz`, `games/kennstdu`, `games/zeichnen`, `games/schaetzen`, `games/tictactoe`, `games/wortgarten`, `games/schiffe`, `games/blockblast` | je `manifest.json` (optional `icon`: Emoji für die Katalog-Kachel) + `src/server` + `src/tv` + `src/controller` + `src/shared.ts`. |
 | `android-tv` | Kotlin-Shell (kein npm-Workspace). |
 | `e2e` | Playwright-Browser-E2E, später Emulator-E2E. |
 
@@ -71,6 +71,7 @@ Dev: Server auf 8080, `tv-web` Vite 5173, `controller-pwa` Vite 5174; Vite proxy
 - **lobby:** Spieler treten bei (`room.join`). TV/Host wählt Spiel (`lobby.selectGame` → Settings = Defaults) und ändert Settings (`lobby.updateSettings`, validiert mit `validateSettings`).
 - **game:** `lobby.start` prüft: Spiel gewählt, dann Teilnehmer per `resolveParticipants(players, playerLimits, msg.playerIds)`: ohne `playerIds` alle verbundenen Spieler in Beitrittsreihenfolge, gekappt auf `maxPlayers`; mit `playerIds` genau die gewählten (existent, verbunden, eindeutig); Anzahl in `[minPlayers, maxPlayers]` (sonst `PLAYER_COUNT`). Ergebnis → `room.state.gamePlayerIds`. Server erstellt `createGameSession(def, { players: nur Teilnehmer, settings, seed, clock, previous, sink })`. `room.state.playerLimits` liefert min/max des gewählten Spiels für die Auswahl-UI des Hosts.
 - **Zuschauer:** alle Nicht-Teilnehmer (auch während der Runde Beitretende). Signal: `phase === "game"` und eigene ID ∉ `gamePlayerIds` (`isSpectator`). Sie bekommen keine `game.view`, `game.input` → `NOT_ALLOWED`; Controller zeigt Zuschauer-Screen. Ein Teilnehmer, der die Gnadenfrist überschreitet, wird entfernt (`onPlayerLeave`) und ist nach erneutem `room.join` Zuschauer bis zur nächsten Runde.
+- **Spieleabend / Überspringen:** siehe `docs/protocol.md` (`evening.*`, `game.skip`, `room.state.evening`/`skipId`). Wertung in `@couchplay/protocol/evening` (`scoreEveningRound`), überspringbare Wartezeiten per `ctx.timers.countdown(ms, fn, { skippable: true })`.
 - **results:** `ctx.end(results)` → `room.state.results`. `lobby.start` = Revanche (gleiches Spiel/Settings, `ctx.previous` = letztes Ergebnis), `room.toLobby` → Lobby.
 - **closed:** `room.closed{reason}` an alle, Verbindungen schließen (Close-Code 4004), Code wird frei.
 - **Inaktivität:** jede eingehende Client-Nachricht **außer `ping`** setzt `lastActivity`. Nach `ROOM_IDLE_TIMEOUT_MS` (2 h) → `closed(idle)`.
@@ -151,6 +152,8 @@ couchplay/
 ├─ controller-pwa/       Handy-UI                         Agent C
 ├─ games/quiz/           Quiz                             Spiele-Agent (Phase 3)
 ├─ games/kennstdu/       Wie gut kennst du mich?          Spiele-Agent
+├─ games/zeichnen/       Zeichnen & Raten                 Spiele-Agent
+├─ games/schaetzen/      Schätzen!                        Spiele-Agent
 ├─ games/tictactoe/      TicTacToe                        Spiele-Agent (Phase 3)
 ├─ games/wortgarten/     Wortgarten                       Spiele-Agent
 ├─ games/schiffe/        Schiffe versenken                Spiele-Agent

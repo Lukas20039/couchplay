@@ -17,7 +17,7 @@ import {
   type Actor,
   type RoomPhase,
 } from "./common.js";
-import { MAX_PLAYERS } from "./constants.js";
+import { EVENING_MAX_GAMES, EVENING_MAX_TEAMS, EVENING_MIN_GAMES, MAX_PLAYERS } from "./constants.js";
 import { ERROR_CODES } from "./errors.js";
 
 const rid = { rid: RequestIdSchema.optional() };
@@ -111,6 +111,34 @@ export const GameInputSchema = z.object({ t: z.literal("game.input"), data: z.un
 export const GameAbortSchema = z.object({ t: z.literal("game.abort"), ...rid });
 /** TV oder Host: Ergebnis-Screen verlassen → Lobby. */
 export const RoomToLobbySchema = z.object({ t: z.literal("room.toLobby"), ...rid });
+/**
+ * TV oder Host überspringt die aktuelle Wartezeit (room.state.skipId). Veraltete IDs (z. B.
+ * Doppelklick) ignoriert der Server stillschweigend.
+ */
+export const GameSkipSchema = z.object({ t: z.literal("game.skip"), skipId: z.number().int().nonnegative(), ...rid });
+/**
+ * TV oder Host startet einen Spieleabend: Spiele in Reihenfolge, `teams` = 0 (jeder für sich)
+ * oder 2–4 Teams (Server lost aus), `doubleFinal` = letztes Spiel zählt doppelt.
+ * Wählt das erste Spiel aus (Settings = Defaults), Phase → lobby.
+ */
+export const EveningStartSchema = z.object({
+  t: z.literal("evening.start"),
+  games: z.array(GameIdSchema).min(EVENING_MIN_GAMES).max(EVENING_MAX_GAMES),
+  teams: z.number().int().refine((n) => n === 0 || (n >= 2 && n <= EVENING_MAX_TEAMS), "0 oder 2–4 Teams"),
+  doubleFinal: z.boolean(),
+  ...rid,
+});
+/** Team wechseln (bis zum ersten Spielstart). Spieler nur sich selbst, TV/Host jeden. */
+export const EveningSetTeamSchema = z.object({
+  t: z.literal("evening.setTeam"),
+  playerId: PlayerIdSchema,
+  team: z.number().int().min(0).max(EVENING_MAX_TEAMS - 1),
+  ...rid,
+});
+/** TV oder Host lost die Teams neu aus (bis zum ersten Spielstart). */
+export const EveningShuffleSchema = z.object({ t: z.literal("evening.shuffle"), ...rid });
+/** TV oder Host beendet den Spieleabend (Wertung verfällt). */
+export const EveningEndSchema = z.object({ t: z.literal("evening.end"), ...rid });
 /** Anwendungs-Ping (Latenzmessung, optional). */
 export const PingSchema = z.object({ t: z.literal("ping"), ts: z.number().optional() });
 
@@ -130,6 +158,11 @@ export const ClientMessageSchema = z.discriminatedUnion("t", [
   GameInputSchema,
   GameAbortSchema,
   RoomToLobbySchema,
+  GameSkipSchema,
+  EveningStartSchema,
+  EveningSetTeamSchema,
+  EveningShuffleSchema,
+  EveningEndSchema,
   PingSchema,
 ]);
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
@@ -163,6 +196,11 @@ export const CLIENT_MESSAGE_RULES: Record<
   "game.input": { actors: ["player", "host"], phases: ["game"] },
   "game.abort": { actors: ["tv", "host"], phases: ["game"] },
   "room.toLobby": { actors: ["tv", "host"], phases: ["results"] },
+  "game.skip": { actors: ["tv", "host"], phases: ["game"] },
+  "evening.start": { actors: ["tv", "host"], phases: ["lobby", "results"] },
+  "evening.setTeam": { actors: ["tv", "host", "player"], phases: ["lobby", "results"] },
+  "evening.shuffle": { actors: ["tv", "host"], phases: ["lobby", "results"] },
+  "evening.end": { actors: ["tv", "host"], phases: ["lobby", "results"] },
   ping: { actors: ["tv", "player", "host"], phases: ["lobby", "game", "results"] },
 };
 

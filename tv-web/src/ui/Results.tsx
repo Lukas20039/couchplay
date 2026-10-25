@@ -6,6 +6,9 @@ import { plural, t } from "../i18n/index.js";
 import { avatarEmoji, fill, gameIcon, playerColorVar } from "../lib/format.js";
 import { botWon, dataPlayerName, rematchPlayerIds, selectedGame, startCheck } from "../state/selectors.js";
 import { ChooseOverlay } from "./Choose.js";
+import { EveningSide } from "./Evening.js";
+import { nextGame } from "../state/evening.js";
+import { eveningFinished } from "@couchplay/protocol/evening";
 import { BACK_LEVEL, useApi, useBack } from "./context.js";
 
 export interface RankRow {
@@ -63,9 +66,12 @@ export function Results(props: { room: RoomState; catalog: readonly GameManifest
     else if (check.kind === "ready") api.send({ t: "lobby.start" });
   };
   const canAgain = rematchPlayerIds(room) !== undefined || check.kind === "ready" || check.kind === "choose";
+  const evening = room.evening ?? null;
+  const upcoming = evening ? nextGame(room, catalog) : null;
 
   return (
-    <div class="screen results" data-testid="results">
+    <div class={`screen results ${evening ? "with-evening" : ""}`} data-testid="results">
+      {evening && <EveningSide room={room} />}
       <header class="results-head">
         <span class="results-icon" aria-hidden="true">
           {gameIcon(game)}
@@ -137,21 +143,32 @@ export function Results(props: { room: RoomState; catalog: readonly GameManifest
           ))}
         </ol>
       )}
-      <div class="button-row results-actions">
-        <button
-          class={`btn btn-primary ${canAgain ? "" : "is-disabled"}`}
-          data-nav="results"
-          data-nav-autofocus
-          data-testid="play-again"
-          aria-disabled={canAgain ? undefined : "true"}
-          onClick={() => canAgain && again()}
-        >
-          {t.results.again}
-        </button>
-        <button class="btn" data-nav="results" data-testid="to-lobby" onClick={toLobby}>
-          {t.results.toLobby}
-        </button>
-      </div>
+      {evening ? (
+        <div class="button-row results-actions">
+          <button class="btn btn-primary" data-nav="results" data-nav-autofocus data-testid="evening-next" onClick={toLobby}>
+            {eveningFinished(evening) || !upcoming ? t.evening.toFinale : fill(t.evening.next, { game: upcoming.name })}
+          </button>
+          <button class="btn" data-nav="results" data-testid="evening-end" onClick={() => api.send({ t: "evening.end" })}>
+            {t.evening.end}
+          </button>
+        </div>
+      ) : (
+        <div class="button-row results-actions">
+          <button
+            class={`btn btn-primary ${canAgain ? "" : "is-disabled"}`}
+            data-nav="results"
+            data-nav-autofocus
+            data-testid="play-again"
+            aria-disabled={canAgain ? undefined : "true"}
+            onClick={() => canAgain && again()}
+          >
+            {t.results.again}
+          </button>
+          <button class="btn" data-nav="results" data-testid="to-lobby" onClick={toLobby}>
+            {t.results.toLobby}
+          </button>
+        </div>
+      )}
       {choosing && check.kind === "choose" && (
         <ChooseOverlay room={room} min={check.min} max={check.max} onClose={() => setChoosing(false)} />
       )}

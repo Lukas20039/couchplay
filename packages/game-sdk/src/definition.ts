@@ -25,6 +25,11 @@ export interface GamePlayer {
 
 export type TimerId = number;
 
+export interface CountdownOptions {
+  /** Wartezeit darf vom TV/Host übersprungen werden (siehe GameTimers.countdown). */
+  skippable?: boolean;
+}
+
 /** Timer, die automatisch bei ctx.end()/Abbruch aufgeräumt werden. */
 export interface GameTimers {
   setTimeout(fn: () => void, ms: number): TimerId;
@@ -34,8 +39,10 @@ export interface GameTimers {
   /**
    * Countdown: ruft onDone nach ms auf. `endsAt` (Clock-Zeit, ms) an den TV
    * schicken, damit er lokal herunterzählen kann.
+   * `skippable: true` = reine Wartezeit (Auflösung, Zwischenstand, Intro …): TV/Host dürfen sie
+   * per game.skip abkürzen, onDone läuft dann sofort. Nie für Antwort-/Spielzeit verwenden.
    */
-  countdown(ms: number, onDone: () => void): { id: TimerId; endsAt: number };
+  countdown(ms: number, onDone: () => void, opts?: CountdownOptions): { id: TimerId; endsAt: number };
 }
 
 export interface GameLogger {

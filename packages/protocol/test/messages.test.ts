@@ -51,6 +51,11 @@ const clientExamples: ClientMessage[] = [
   { t: "game.input", data: { type: "answer", index: 2 } },
   { t: "game.abort" },
   { t: "room.toLobby" },
+  { t: "game.skip", skipId: 7 },
+  { t: "evening.start", games: ["quiz", "kennstdu", "quiz"], teams: 2, doubleFinal: true },
+  { t: "evening.setTeam", playerId: "p_1", team: 1 },
+  { t: "evening.shuffle" },
+  { t: "evening.end" },
   { t: "ping", ts: 123 },
 ];
 
@@ -162,6 +167,28 @@ describe("Server-Nachrichten", () => {
 
   it.each(serverExamples)("parst $t", (msg) => {
     expect(parseServerMessage(encodeMessage(msg))).toEqual({ ok: true, msg });
+  });
+
+  it("akzeptiert room.state mit Spieleabend und skipId", () => {
+    const msg = {
+      t: "room.state",
+      room: {
+        ...room,
+        skipId: 3,
+        evening: {
+          games: ["quiz", "kennstdu"],
+          teams: [["p_1"], ["p_2"]],
+          teamsLocked: true,
+          doubleFinal: true,
+          rounds: [{ gameId: "quiz", double: false, awards: [{ key: "team:0", place: 1, points: 10 }] }],
+          standings: [
+            { key: "team:0", points: 10, rank: 1 },
+            { key: "team:1", points: 0, rank: 2 },
+          ],
+        },
+      },
+    };
+    expect(ServerMessageSchema.safeParse(msg).success).toBe(true);
   });
 
   it("lehnt Raum mit mehr als 8 Spielern ab", () => {

@@ -10,7 +10,8 @@
     "./constants": "./src/constants.ts",
     "./errors": "./src/errors.ts",
     "./settings": "./src/settings.ts",
-    "./util": "./src/util.ts"
+    "./util": "./src/util.ts",
+    "./evening": "./src/evening.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

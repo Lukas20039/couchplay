@@ -6,6 +6,7 @@ import { unlockedFields } from "@couchplay/protocol/settings";
 import { useEffect, useState } from "preact/hooks";
 import { Avatar, SelfBar } from "../components/common.js";
 import { ConfirmDialog } from "../components/ConfirmDialog.js";
+import { EveningCard, EveningPlanner, eveningStartLabel } from "../components/Evening.js";
 import { ProfileSheet } from "../components/ProfileSheet.js";
 import { useApp, useAppState } from "../hooks.js";
 import { t } from "../i18n/index.js";
@@ -24,6 +25,8 @@ export function Lobby() {
   const [selection, setSelection] = useState<Selection>(AUTO);
   const [askLeave, setAskLeave] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const evening = room.evening ?? null;
 
   // Spielwechsel → wieder automatische Vorauswahl (füllt bis maxPlayers nach).
   useEffect(() => setSelection(AUTO), [room.selectedGameId, limits?.maxPlayers]);
@@ -44,7 +47,19 @@ export function Lobby() {
           {!room.tvConnected && <p class="hint hint--warn">{t.lobby.tvAway}</p>}
         </div>
 
-        {host && <HostPanel game={game} selection={selection} setSelection={setSelection} />}
+        {evening && <EveningCard />}
+
+        {host && !evening && !planning && (
+          <section class="panel">
+            <button type="button" class="evening-open" data-testid="evening-open" onClick={() => setPlanning(true)}>
+              <span class="evening-open__title">{t.evening.open}</span>
+              <span class="evening-open__hint">{t.evening.openHint}</span>
+            </button>
+          </section>
+        )}
+        {host && !evening && planning && <EveningPlanner onClose={() => setPlanning(false)} />}
+
+        {host && !planning && <HostPanel game={game} selection={selection} setSelection={setSelection} chooseGame={!evening} />}
 
         <PlayerList players={room.players} selfId={s.playerId} onEditSelf={() => setEditing(true)} />
 
@@ -57,7 +72,7 @@ export function Lobby() {
           {t.lobby.leave}
         </button>
       </section>
-      {host && <StartButton selection={selection} />}
+      {host && !planning && <StartButton selection={selection} label={evening ? eveningStartLabel(evening) : undefined} />}
       {editing && me && <ProfileSheet me={me} onClose={() => setEditing(false)} />}
       {askLeave && (
         <ConfirmDialog
@@ -115,13 +130,13 @@ function PlayerList({ players, selfId, onEditSelf }: { players: readonly Player[
   );
 }
 
-function StartButton({ selection }: { selection: Selection }) {
+function StartButton({ selection, label: okLabel }: { selection: Selection; label?: string | undefined }) {
   const app = useApp();
   const room = useAppState().room!;
   const limits = room.playerLimits;
   const check = startCheck(room.players, limits, selection);
   const label = check.ok
-    ? t.lobby.start
+    ? (okLabel ?? t.lobby.start)
     : check.reason === "noGame"
       ? t.lobby.startNeedsGame
       : t.lobby.startCount(limits!.minPlayers, limits!.maxPlayers);
@@ -145,11 +160,13 @@ function StartButton({ selection }: { selection: Selection }) {
 
 interface HostPanelProps {
   game: GameManifest | null;
+  /** false im Spieleabend: das Spiel kommt aus dem Plan. */
+  chooseGame: boolean;
   selection: Selection;
   setSelection: (sel: Selection) => void;
 }
 
-function HostPanel({ game, selection, setSelection }: HostPanelProps) {
+function HostPanel({ game, selection, setSelection, chooseGame }: HostPanelProps) {
   const app = useApp();
   const s = useAppState();
   const room = s.room!;
@@ -161,32 +178,34 @@ function HostPanel({ game, selection, setSelection }: HostPanelProps) {
 
   return (
     <>
-      <section class="panel" aria-labelledby="games-h">
-        <h2 id="games-h" class="subtitle">
-          {t.lobby.chooseGame}
-        </h2>
-        <div class="games" role="radiogroup" aria-labelledby="games-h" data-testid="host-game-select">
-          {s.catalog.map((g) => {
-            const on = g.id === room.selectedGameId;
-            return (
-              <button
-                key={g.id}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                class={`gamecard${on ? " gamecard--on" : ""}`}
-                style={g.accentColor ? { "--a": g.accentColor } : undefined}
-                data-testid={`game-option-${g.id}`}
-                onClick={() => !on && app.send({ t: "lobby.selectGame", gameId: g.id })}
-              >
-                <span class="gamecard__name">{g.name}</span>
-                <span class="gamecard__meta">{t.lobby.playersRange(g.minPlayers, g.maxPlayers)}</span>
-                <span class="gamecard__desc">{g.description}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      {chooseGame && (
+        <section class="panel" aria-labelledby="games-h">
+          <h2 id="games-h" class="subtitle">
+            {t.lobby.chooseGame}
+          </h2>
+          <div class="games" role="radiogroup" aria-labelledby="games-h" data-testid="host-game-select">
+            {s.catalog.map((g) => {
+              const on = g.id === room.selectedGameId;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  class={`gamecard${on ? " gamecard--on" : ""}`}
+                  style={g.accentColor ? { "--a": g.accentColor } : undefined}
+                  data-testid={`game-option-${g.id}`}
+                  onClick={() => !on && app.send({ t: "lobby.selectGame", gameId: g.id })}
+                >
+                  <span class="gamecard__name">{g.name}</span>
+                  <span class="gamecard__meta">{t.lobby.playersRange(g.minPlayers, g.maxPlayers)}</span>
+                  <span class="gamecard__desc">{g.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {settingFields.length > 0 && (
         <section class="panel" aria-labelledby="settings-h" data-testid="host-settings">

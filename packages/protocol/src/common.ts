@@ -2,6 +2,9 @@
 import { z } from "zod";
 import {
   AVATAR_IDS,
+  EVENING_MAX_GAMES,
+  EVENING_MAX_TEAMS,
+  EVENING_MIN_GAMES,
   MAX_PLAYERS,
   MIN_PLAYERS,
   NAME_MAX_LENGTH,
@@ -97,6 +100,59 @@ export const GameResultsSchema = z.object({
 });
 export type GameResults = z.infer<typeof GameResultsSchema>;
 
+// ---------------------------------------------------------------------------
+// Spieleabend (mehrere Spiele mit Gesamtwertung, optional in Teams)
+// ---------------------------------------------------------------------------
+
+/**
+ * Wertungsschlüssel: Spieler-ID (jeder für sich) oder `team:<n>` (Teammodus, n = Teamindex).
+ * Spieler-IDs beginnen nie mit "team:".
+ */
+export const EveningKeySchema = z.string().min(1).max(32);
+
+export const EveningAwardSchema = z.object({
+  key: EveningKeySchema,
+  /** Platz in diesem Spiel (1 = bester; Gleichstand = gleicher Platz). */
+  place: z.number().int().min(1),
+  /** Abend-Punkte für dieses Spiel (inkl. Verdopplung im Finale). */
+  points: z.number().int().min(0),
+});
+export type EveningAward = z.infer<typeof EveningAwardSchema>;
+
+export const EveningRoundSchema = z.object({
+  gameId: GameIdSchema,
+  /** Finale mit doppelten Punkten. */
+  double: z.boolean(),
+  awards: z.array(EveningAwardSchema),
+});
+export type EveningRound = z.infer<typeof EveningRoundSchema>;
+
+export const EveningStandingSchema = z.object({
+  key: EveningKeySchema,
+  points: z.number().int().min(0),
+  rank: z.number().int().min(1),
+  /** Nur Spieler: Name/Avatar (bleiben erhalten, wenn der Spieler den Raum verlässt). */
+  name: z.string().optional(),
+  avatar: AvatarIdSchema.optional(),
+});
+export type EveningStanding = z.infer<typeof EveningStandingSchema>;
+
+export const EveningSchema = z.object({
+  /** Geplante Spiele in Reihenfolge; das aktuelle ist games[rounds.length]. */
+  games: z.array(GameIdSchema).min(EVENING_MIN_GAMES).max(EVENING_MAX_GAMES),
+  /** Teammodus: Spieler-IDs je Team (Index = Teamnummer, Name/Farbe im Client). null = jeder für sich. */
+  teams: z.array(z.array(PlayerIdSchema)).min(2).max(EVENING_MAX_TEAMS).nullable(),
+  /** Teams stehen fest (ab dem ersten Spielstart). */
+  teamsLocked: z.boolean(),
+  /** Letztes Spiel zählt doppelt. */
+  doubleFinal: z.boolean(),
+  /** Gewertete Spiele (abgebrochene zählen nicht). */
+  rounds: z.array(EveningRoundSchema),
+  /** Gesamtwertung, sortiert nach Rang. */
+  standings: z.array(EveningStandingSchema),
+});
+export type Evening = z.infer<typeof EveningSchema>;
+
 export const RoomStateSchema = z.object({
   code: RoomCodeSchema,
   phase: RoomPhaseSchema,
@@ -124,6 +180,13 @@ export const RoomStateSchema = z.object({
   results: GameResultsSchema.nullable(),
   /** Höchster Fortschritt der Spieler im Raum je Spiel (player.progress); fehlt = 0. */
   progress: ProgressValuesSchema,
+  /**
+   * Phase "game": ID der aktuell überspringbaren Wartezeit (Auflösung, Zwischenstand …) für
+   * game.skip; null/fehlt = gerade nichts zu überspringen.
+   */
+  skipId: z.number().int().nonnegative().nullable().optional(),
+  /** Laufender Spieleabend; null/fehlt = einzelne Spiele. */
+  evening: EveningSchema.nullable().optional(),
 });
 export type RoomState = z.infer<typeof RoomStateSchema>;
 

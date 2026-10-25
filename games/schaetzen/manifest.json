@@ -1,0 +1,32 @@
+{
+  "id": "schaetzen",
+  "name": "Schätzen!",
+  "description": "Wie hoch, wie weit, wie alt? Alle tippen gleichzeitig eine Zahl – wer am nächsten an der Lösung liegt, holt die meisten Punkte.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#3fb6ff",
+  "icon": "🎯",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "geografie", "label": "Geografie" },
+        { "value": "geschichte", "label": "Geschichte (Jahreszahlen)" },
+        { "value": "natur", "label": "Tiere & Natur" },
+        { "value": "mensch", "label": "Mensch & Körper" },
+        { "value": "technik", "label": "Technik & Erfindungen" },
+        { "value": "sport", "label": "Sport & Rekorde" },
+        { "value": "weltall", "label": "Weltall" },
+        { "value": "alltag", "label": "Alltag & Kurioses" }
+      ],
+      "default": ["geografie", "geschichte", "natur", "mensch", "technik", "sport", "weltall", "alltag"],
+      "minSelected": 1
+    },
+    { "type": "number", "key": "rounds", "label": "Fragen", "min": 5, "max": 20, "step": 1, "default": 10 },
+    { "type": "number", "key": "answerSeconds", "label": "Antwortzeit (Sekunden)", "min": 20, "max": 60, "step": 5, "default": 30 }
+  ]
+}

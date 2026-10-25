@@ -202,7 +202,8 @@ export default defineGame<SchiffeSettings, SchiffeInput, SchiffeTvState, Schiffe
         stats: [{ ...stats[0] }, { ...stats[1] }],
       };
       publish();
-      ctx.timers.setTimeout(() => ctx.end({ ranking: ranking(), data }), END_DELAY_MS);
+      // Reine Ergebnisanzeige mit aufgedeckten Flotten → TV/Host dürfen sie überspringen.
+      ctx.timers.countdown(END_DELAY_MS, () => ctx.end({ ranking: ranking(), data }), { skippable: true });
     };
 
     const updatePause = (): void => {

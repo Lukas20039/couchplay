@@ -51,6 +51,30 @@ Erinnerungen, Entweder – oder); wie beim Quiz merkt sich jedes Handy, welche F
 |---|---|
 | ![Wie gut kennst du mich? am TV](docs/screenshots/tv-kennstdu.png) | <img src="docs/screenshots/phone-kennstdu.png" width="220" alt="Raten am Handy"> |
 
+### 🎨 Zeichnen & Raten · 2–8 Spieler
+
+Reihum zeichnet eine Person am Handy einen Begriff (Auswahl aus drei), der Fernseher zeigt die Zeichnung
+live. Alle anderen raten per Texteingabe – Tippfehler und Umlaute verzeiht der Vergleich, bei „knapp
+daneben“ gibt es einen privaten Hinweis. Falsche Tipps fliegen als Sprechblasen über den TV, nach der
+Hälfte der Zeit werden Buchstaben aufgedeckt. Wer schneller rät, bekommt mehr Punkte, der Zeichner
+für jeden Treffer. 800 Begriffe in 8 Kategorien und drei Schwierigkeitsstufen.
+
+| TV | Handy des Zeichners |
+|---|---|
+| ![Zeichnen & Raten am TV](docs/screenshots/tv-zeichnen.png) | <img src="docs/screenshots/phone-zeichnen.png" width="220" alt="Zeichnen am Handy"> |
+
+### 🎯 Schätzen! · 1–8 Spieler
+
+Schätzfragen mit Zahlenantwort – „Wie tief ist der Baikalsee?“, „In welchem Jahr begann der Erste
+Weltkrieg?“. Alle tippen gleichzeitig über ein großes Ziffernfeld, wer am nächsten dran ist, gewinnt;
+ein Volltreffer bringt Bonus. Die Auflösung am TV zeigt alle Tipps als Avatare auf einem Zahlenstrahl,
+dann fährt die Lösung ein – dazu ein kurzer Fakt. 480 geprüfte Fragen in 8 Kategorien, getrennt vom
+Allgemeinwissen-Quiz.
+
+| Auflösung am TV | Handy |
+|---|---|
+| ![Schätzen am TV](docs/screenshots/tv-schaetzen.png) | <img src="docs/screenshots/phone-schaetzen.png" width="220" alt="Ziffernfeld am Handy"> |
+
 ### ⭕ TicTacToe · 1–2 Spieler
 
 Allein gegen den Computer (leicht, mittel oder unbesiegbar) oder zu zweit Handy gegen Handy,
@@ -100,6 +124,22 @@ Noch ein Proof of Concept (siehe [`games/blockblast/README.md`](games/blockblast
 | TV | Handy |
 |---|---|
 | ![Blockblast am TV](docs/screenshots/tv-blockblast.png) | <img src="docs/screenshots/phone-blockblast.png" width="220" alt="Blockblast am Handy: Teil wird aufs Feld gezogen"> |
+
+### 🏆 Spieleabend (auch in Teams)
+
+Mehrere Spiele hintereinander mit Gesamtwertung: Der Host stellt am Handy oder TV die Spiele in
+Reihenfolge zusammen und wählt „Jeder für sich“ oder 2–4 Teams (🔥 Feuer, 🌊 Welle, 🌵 Kaktus, ⚡ Blitz).
+Die Teams werden ausgelost, bis zum ersten Spiel kann jeder am Handy wechseln. Nach jedem Spiel gibt
+es Abendpunkte nach Platz (10, 7, 5, 4, 3, 2, 1) – Teams nach dem Durchschnittsplatz ihrer Mitspieler –,
+das Finale zählt auf Wunsch doppelt. Am Ende Siegerehrung mit Konfetti.
+
+| Lobby mit Teams | Ergebnis mit Abendwertung | Team wählen |
+|---|---|---|
+| ![Spieleabend-Lobby](docs/screenshots/tv-evening-lobby.png) | ![Abendwertung](docs/screenshots/tv-evening-results.png) | <img src="docs/screenshots/phone-evening-teams.png" width="180" alt="Team wählen am Handy"> |
+
+**Weiter ⏭:** Auflösungen, Zwischenstände und Podien laufen automatisch weiter – wer nicht warten
+will, drückt am TV OK oder tippt als Host am Handy auf „Weiter“. Antwort- und Spielzeiten lassen sich
+nie überspringen.
 
 ### 🎵 Musik
 
@@ -186,7 +226,7 @@ Nichts installieren: QR-Code am TV scannen. Optional über *Teilen → Zum Home-
 | [`tv-web/`](tv-web) | TV-Oberfläche (Preact), komplett per Fernbedienung bedienbar |
 | [`controller-pwa/`](controller-pwa) | Handy-Controller als PWA |
 | [`android-tv/`](android-tv) | Android-TV-App (Kotlin) |
-| [`games/quiz/`](games/quiz), [`games/kennstdu/`](games/kennstdu), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
+| [`games/quiz/`](games/quiz), [`games/kennstdu/`](games/kennstdu), [`games/zeichnen/`](games/zeichnen), [`games/schaetzen/`](games/schaetzen), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
 | [`packages/protocol/`](packages/protocol) | WebSocket-Protokoll (zod-Schemas) |
 | [`packages/game-sdk/`](packages/game-sdk) | Schnittstelle und Laufzeit für Spiele |
 | [`e2e/`](e2e) | End-to-End-Tests im Browser und im Android-TV-Emulator |

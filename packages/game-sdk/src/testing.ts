@@ -44,6 +44,8 @@ export interface GameHarness<TTv = unknown, TView = unknown> {
   /** Virtuelle Zeit vorspulen (feuert Timer/Ticks). */
   advance(ms: number): void;
   leave(playerId: PlayerId): void;
+  /** Aktuelle Wartezeit überspringen (wie game.skip vom TV/Host). true = übersprungen. */
+  skip(): boolean;
   setConnected(playerId: PlayerId, connected: boolean): void;
 }
 
@@ -95,6 +97,10 @@ export function createTestHarness<TTv = unknown, TView = unknown>(
     input: (id: PlayerId, data: unknown) => session.input(id, data),
     advance: (ms: number) => clock.advance(ms),
     leave: (id: PlayerId) => session.playerLeft(id),
+    skip: () => {
+      const id = session.skipId;
+      return id !== null && session.skip(id);
+    },
     setConnected: (id: PlayerId, value: boolean) => {
       connected.set(id, value);
       session.connectionChanged(id, value);

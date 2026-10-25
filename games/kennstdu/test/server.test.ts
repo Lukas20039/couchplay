@@ -141,3 +141,35 @@ describe("Gedächtnis und Verlassen", () => {
     expect(tv(h).phase).toBe("final");
   });
 });
+
+describe("Überspringbare Wartezeiten", () => {
+  it("Intro, Auflösung, Zwischenstand und Finale lassen sich überspringen, die Fragezeit nicht", () => {
+    const h = setup(2);
+    expect(tv(h).phase).toBe("intro");
+    expect(h.skip()).toBe(true);
+    const s = ask(h);
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    const other = h.players.find((p) => p.id !== s.hotseat.id)!.id;
+    h.input(s.hotseat.id, { type: "answer", index: 0 });
+    expect(h.session.skipId).toBeNull();
+    h.input(other, { type: "answer", index: 0 });
+    expect(tv(h).phase).toBe("reveal");
+    expect(h.skip()).toBe(true);
+    expect(tv(h).phase).toBe("standings");
+    expect(h.skip()).toBe(true);
+    const s2 = ask(h);
+    expect(s2.hotseat.id).not.toBe(s.hotseat.id);
+    // Die alten Timer feuern nicht nach: Die zweite Frage läuft weiter.
+    h.advance(TIMING.revealMs);
+    expect(ask(h).hotseat.id).toBe(s2.hotseat.id);
+    h.advance(s2.endsAt - h.clock.now());
+    expect(tv(h).phase).toBe("reveal");
+    expect(h.skip()).toBe(true);
+    expect(tv(h).phase).toBe("final");
+    expect(h.results).toBeNull();
+    expect(h.skip()).toBe(true);
+    expect((h.results!.data as KdResultData).total).toBe(2);
+    expect(h.session.skipId).toBeNull();
+  });
+});

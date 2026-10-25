@@ -967,3 +967,335 @@ button {
     transform: translate(-50%, 0);
   }
 }
+
+/* ---------- Wartezeit überspringen ---------- */
+.skip-button {
+  position: absolute;
+  right: 3rem;
+  bottom: 2.6rem;
+  z-index: 20;
+  min-width: 0;
+  padding: 0.9rem 2.2rem;
+  font-size: 1.7rem;
+  background: rgba(44, 37, 84, 0.92);
+  box-shadow: 0 0.6rem 2rem rgba(0, 0, 0, 0.4);
+  animation: skip-in 0.3s ease-out 0.6s both;
+}
+@keyframes skip-in {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Spieleabend ---------- */
+.evening-open {
+  display: block;
+  width: 100%;
+  margin-bottom: 1.4rem;
+}
+.overlay-panel.evening-setup {
+  width: 92rem;
+  max-width: 92rem;
+  max-height: 58rem;
+}
+.evening-games {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-gap: 0.9rem 1.4rem;
+  max-height: none;
+}
+.picker-list > .evening-game + .evening-game {
+  margin-top: 0;
+}
+.evening-game.is-checked {
+  box-shadow: inset 0.4rem 0 0 var(--accent);
+}
+.evening-order {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-right: 1rem;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 0.2rem var(--muted);
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+.is-checked .evening-order {
+  background: var(--focus);
+  color: var(--bg);
+  box-shadow: none;
+}
+.evening-game-icon {
+  margin-right: 0.8rem;
+  font-size: 2rem;
+}
+.evening-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.evening-options > .setting-label {
+  margin-right: 1.6rem;
+}
+.evening-team-choices {
+  display: flex;
+  margin-right: 2.4rem;
+}
+.evening-choice {
+  width: auto;
+  margin-right: 1rem;
+  white-space: nowrap;
+}
+.evening-plan {
+  padding: 1.2rem 1.6rem;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 0.15rem var(--line);
+}
+.evening-progress {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  font-size: 1.9rem;
+  font-weight: 800;
+}
+.evening-final-badge {
+  margin-left: 1.2rem;
+  padding: 0.2rem 1rem;
+  border-radius: 999px;
+  background: var(--p3);
+  color: var(--bg);
+  font-size: 1.3rem;
+  font-weight: 900;
+  vertical-align: middle;
+}
+.evening-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+.evening-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: 3.6rem;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.evening-chip.is-done {
+  opacity: 0.55;
+}
+.evening-chip.is-done > span:first-child {
+  color: var(--ok);
+  font-weight: 900;
+}
+.evening-chip.is-current {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 0.25rem var(--accent);
+  font-size: 1.7rem;
+}
+.evening-chip-x2 {
+  color: var(--p3);
+  font-weight: 900;
+}
+.player-points {
+  margin-left: auto;
+  padding-left: 0.8rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--p3);
+}
+.team-columns {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-gap: 1.4rem;
+}
+.team-col {
+  padding: 1rem 1.2rem 1.2rem;
+  border-radius: var(--radius);
+  background: var(--bg-2);
+  box-shadow:
+    inset 0 0.5rem 0 var(--tc),
+    inset 0 0 0 0.15rem var(--line);
+  min-width: 0;
+}
+.team-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0.8rem;
+  font-size: 1.7rem;
+  font-weight: 800;
+}
+.team-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.team-points {
+  color: var(--p3);
+  font-variant-numeric: tabular-nums;
+}
+.team-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.team-member {
+  --ring-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  height: 3.6rem;
+  padding: 0 1.1rem 0 0.3rem;
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+.team-member .avatar {
+  margin-right: 0.6rem;
+}
+.team-member .player-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.team-member.is-offline {
+  opacity: 0.5;
+}
+.team-empty {
+  font-size: 1.4rem;
+}
+.team-hint {
+  margin-top: 0.8rem;
+}
+.results.with-evening {
+  padding-right: 44rem;
+}
+.evening-side {
+  position: absolute;
+  top: 3rem;
+  right: 3rem;
+  bottom: 3rem;
+  width: 38rem;
+  padding: 2.4rem 2.4rem 2rem;
+  border-radius: 2rem;
+  background: var(--surface);
+  box-shadow: 0 1.6rem 4rem rgba(0, 0, 0, 0.35);
+  animation: results-in 0.45s ease-out 0.3s both;
+}
+.evening-side h2 {
+  display: flex;
+  align-items: center;
+}
+.evening-side > p {
+  margin: 0.4rem 0 1.4rem;
+}
+.evening-table > li + li {
+  margin-top: 0.7rem;
+}
+.evening-row {
+  display: flex;
+  align-items: center;
+  height: 4.4rem;
+  padding: 0 1.4rem 0 1rem;
+  border-radius: 1rem;
+  background: var(--bg-2);
+  font-size: 1.6rem;
+  animation: podium-up 0.4s ease-out var(--delay, 0s) both;
+}
+.evening-row .rank-name {
+  margin-right: 0.8rem;
+}
+.evening-award {
+  margin-right: 1rem;
+  padding: 0.1rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(61, 220, 132, 0.18);
+  color: var(--ok);
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+.evening-finale {
+  position: relative;
+  overflow: hidden;
+}
+.finale-winner {
+  margin: -1rem 0 2.2rem;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--p3);
+  animation: podium-up 0.6s ease-out 0.7s both;
+}
+.confetti {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+.confetti i {
+  position: absolute;
+  top: -3rem;
+  left: calc(var(--i) * 4.3%);
+  width: 1rem;
+  height: 1.8rem;
+  border-radius: 0.3rem;
+  background: var(--p0);
+  opacity: 0.85;
+  animation: confetti-fall calc(4s + var(--i) * 0.13s) linear calc(var(--i) * -0.37s) infinite;
+}
+.confetti i:nth-child(4n + 1) {
+  background: var(--p1);
+}
+.confetti i:nth-child(4n + 2) {
+  background: var(--p3);
+}
+.confetti i:nth-child(4n + 3) {
+  background: var(--p2);
+}
+@keyframes confetti-fall {
+  from {
+    transform: translateY(0) rotate(0deg);
+  }
+  to {
+    transform: translateY(68rem) rotate(540deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti,
+  .skip-button,
+  .evening-row,
+  .evening-side {
+    animation: none;
+  }
+  .confetti {
+    display: none;
+  }
+}
+/* Ergebnis mit Abendspalte: Podium und Liste schmaler, damit nichts unter die Spalte rutscht. */
+.results.with-evening {
+  padding-left: 3rem;
+}
+.with-evening .podium-place {
+  width: 16rem;
+  margin: 0 0.8rem;
+}
+.with-evening .ranking {
+  width: 52rem;
+}

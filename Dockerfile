@@ -25,6 +25,8 @@ COPY games/wortgarten/package.json games/wortgarten/
 COPY games/schiffe/package.json games/schiffe/
 COPY games/blockblast/package.json games/blockblast/
 COPY games/kennstdu/package.json games/kennstdu/
+COPY games/zeichnen/package.json games/zeichnen/
+COPY games/schaetzen/package.json games/schaetzen/
 COPY server/package.json server/
 COPY tv-web/package.json tv-web/
 COPY controller-pwa/package.json controller-pwa/
@@ -55,6 +57,8 @@ COPY --from=build /app/games/wortgarten/package.json games/wortgarten/
 COPY --from=build /app/games/schiffe/package.json games/schiffe/
 COPY --from=build /app/games/blockblast/package.json games/blockblast/
 COPY --from=build /app/games/kennstdu/package.json games/kennstdu/
+COPY --from=build /app/games/zeichnen/package.json games/zeichnen/
+COPY --from=build /app/games/schaetzen/package.json games/schaetzen/
 COPY --from=build /app/server/package.json server/
 COPY --from=build /app/tv-web/package.json tv-web/
 COPY --from=build /app/controller-pwa/package.json controller-pwa/

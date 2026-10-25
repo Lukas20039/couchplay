@@ -192,12 +192,17 @@ export function createWortgarten(options: WgGameOptions = {}) {
           })
           .sort((a, b) => a.rank - b.rank || state(a.id).order - state(b.id).order);
 
-      const schedule = (ms: number, next: () => void): void => {
+      /** `skippable` = reine Wartezeit (Rundenergebnis, Finale) – nie die Spielzeit einer Runde. */
+      const schedule = (ms: number, next: () => void, skippable = false): void => {
         if (timer !== null) ctx.timers.clear(timer);
-        const cd = ctx.timers.countdown(ms, () => {
-          timer = null;
-          next();
-        });
+        const cd = ctx.timers.countdown(
+          ms,
+          () => {
+            timer = null;
+            next();
+          },
+          { skippable },
+        );
         timer = cd.id;
         endsAt = cd.endsAt;
         durationMs = ms;
@@ -359,14 +364,14 @@ export function createWortgarten(options: WgGameOptions = {}) {
           .slice(0, 6);
         recomputeRanks();
         phase = "roundEnd";
-        schedule(TIMING.roundEndMs, round + 1 >= settings.rounds ? showFinal : () => startRound(round + 1));
+        schedule(TIMING.roundEndMs, round + 1 >= settings.rounds ? showFinal : () => startRound(round + 1), true);
         publish();
       };
 
       const showFinal = (): void => {
         xpAfter = new Map(ctx.players.map((p) => [p.id, clampXp(state(p.id).xpStart + state(p.id).score)]));
         phase = "final";
-        schedule(TIMING.finalMs, finish);
+        schedule(TIMING.finalMs, finish, true);
         publish();
       };
 
@@ -445,6 +450,7 @@ export function createWortgarten(options: WgGameOptions = {}) {
 
       // ---------------------------------------------------------------- Start
 
+      // Intro bleibt fest: Die Handys melden hier ihren Fortschritt (Stufe).
       schedule(TIMING.introMs, () => startRound(0));
       publish();
 

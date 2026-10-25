@@ -224,3 +224,38 @@ describe("Gegen den Computer", () => {
     expect(tv(h).outcome).toEqual({ winner: 1, forfeit: true });
   });
 });
+
+describe("Überspringbare Wartezeiten", () => {
+  it("Aufstellung, Kampf und Bedenkzeit des Computers sind nie überspringbar", () => {
+    const h = vsBot();
+    expect(tv(h).phase).toBe("setup");
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    h.advance(BOT_SETUP_MS);
+    h.input("p1", { type: "ready" });
+    expect(tv(h).phase).toBe("battle");
+    expect(h.session.skipId).toBeNull();
+    const free = view(h, "p1").target.cells.indexOf(".");
+    h.input("p1", { type: "fire", cell: free });
+    expect(h.session.skipId).toBeNull();
+  });
+
+  it("Ergebnisanzeige lässt sich überspringen und endet genau einmal", () => {
+    const h = pvp();
+    bothReady(h);
+    for (const c of enemyCells(h, "p1")) h.input("p1", { type: "fire", cell: c });
+    expect(tv(h).phase).toBe("over");
+    expect(h.results).toBeNull();
+    expect(h.skip()).toBe(true);
+    expect(h.results?.ranking).toEqual([
+      { playerId: "p1", score: 1, rank: 1 },
+      { playerId: "p2", score: 0, rank: 2 },
+    ]);
+    const first = h.results;
+    // Verlassen nach dem Überspringen und alte Timer ändern nichts mehr.
+    h.leave("p2");
+    h.advance(END_DELAY_MS);
+    expect(h.results).toBe(first);
+    expect(h.session.skipId).toBeNull();
+  });
+});

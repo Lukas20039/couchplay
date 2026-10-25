@@ -25,7 +25,12 @@ RoomState  = { code, phase: "lobby"|"game"|"results", joinUrl, players: Player[]
                settings: Record<string, SettingValue>,
                gamePlayerIds: string[],   // Teilnehmer der laufenden/letzten Runde (Startreihenfolge)
                results: GameResults|null,
-               progress: Record<gameId, number> }   // höchster gemeldeter Fortschritt im Raum (player.progress), fehlt = 0
+               progress: Record<gameId, number>,   // höchster gemeldeter Fortschritt im Raum (player.progress), fehlt = 0
+               skipId?: number|null,               // Phase game: überspringbare Wartezeit (game.skip), sonst null
+               evening?: Evening|null }            // laufender Spieleabend, sonst null
+Evening    = { games: gameId[] (2–12), teams: playerId[][] (2–4) | null, teamsLocked, doubleFinal,
+               rounds: { gameId, double, awards: { key, place, points }[] }[],
+               standings: { key, points, rank, name?, avatar? }[] }   // key = Spieler-ID oder "team:<n>"
 GameResults = { gameId, ranking: { playerId, score, rank }[], data?: unknown }
 SettingValue = string | number | boolean | string[]
 GameManifest = { id, name, description, version, minPlayers, maxPlayers, botSupport, settings: SettingField[],
@@ -42,6 +47,8 @@ SettingField = { type: "select", key, label, options: SettingOption[], default: 
 - **Freischaltungen:** Optionen mit `minProgress > room.progress[gameId]` sind gesperrt. TV und Handy zeigen sie nicht an (`unlockedFields()` aus `@couchplay/protocol/settings`; Auswahlfelder mit nur einer freien Option entfallen ganz). `lobby.updateSettings` mit gesperrter Option → `INVALID_SETTINGS`. Sinkt der Fortschritt (Spieler geht), setzt der Server gesperrte Werte auf den Default zurück. Default-Optionen dürfen nie gesperrt sein (Manifest-Prüfung).
 - `code`: 6 Ziffern (`/^\d{6}$/`, führende Nullen möglich). `token`/`tvToken`: base64url, 22–64 Zeichen.
 - **Zuschauer:** In Phase `game` ist jeder Spieler mit `id ∉ room.gamePlayerIds` Zuschauer (`isSpectator(room, playerId)`). Er erhält keine `game.view`, darf kein `game.input` senden (`NOT_ALLOWED`) und zeigt einen Zuschauer-Screen. Auch während einer Runde Beitretende sind Zuschauer.
+- **Wartezeit überspringen:** Spiele markieren reine Wartezeiten (Auflösung, Zwischenstand, Intro, Finale) mit `ctx.timers.countdown(ms, fn, { skippable: true })`. Der Server meldet den frühesten solchen Countdown als `room.state.skipId`. TV (OK-Taste) und Host (Knopf am Handy) senden `game.skip{skipId}`. Passt die ID nicht mehr (Doppelklick, Phase schon weiter), passiert nichts.
+- **Spieleabend:** `evening.start` legt die Spiele in Reihenfolge fest und lost bei `teams` 2–4 die Teams gleichmäßig aus. Bis zum ersten Spielstart dürfen Spieler ihr Team per `evening.setTeam` wechseln (Host/TV jeden), `evening.shuffle` lost neu aus. Wer später beitritt, kommt ins kleinste Team. Jedes regulär beendete Spiel wird gewertet (`scoreEveningRound`): Platz → `EVENING_POINTS` (10, 7, 5, 4, 3, 2, 1, 1). Teams werden nach dem Durchschnittsrang ihrer Teilnehmer platziert, das Finale zählt bei `doubleFinal` doppelt. Abgebrochene Spiele zählen nicht. Im Abend gibt es keine Revanche (`lobby.start` in results → `NOT_ALLOWED`). `room.toLobby` wählt das nächste Spiel (Settings = Defaults). `lobby.selectGame` ersetzt das anstehende Spiel des Plans. Nach dem letzten Spiel bleibt `evening` stehen (Siegerehrung), bis `evening.end` kommt. Ein neuer Start ist bis dahin `NOT_ALLOWED`.
 - `AvatarId`: `fuchs katze hund panda eule frosch tiger einhorn pinguin krake roboter alien`. Darstellung ausschließlich über `AVATAR_EMOJI` / `avatarEmoji(id)` aus `@couchplay/protocol/constants` (Fallback `AVATAR_FALLBACK_EMOJI` 🙂). Bots/Computer-Gegner: `BOT_EMOJI` 🖥️ (nicht 🤖 – das ist der Avatar „roboter“).
 - Name: 1–16 Codepoints nach `normalizeName`, eindeutig im Raum (case-insensitive).
 
@@ -65,7 +72,12 @@ Spalte „Wer/Phase": Berechtigung nach Handshake (`CLIENT_MESSAGE_RULES`). Vers
 | `lobby.start` | `playerIds?` (1–8, eindeutig) | tv/host · lobby, results | `room.state{phase:"game", gamePlayerIds}` + erste `game.tv`/`game.view` |
 | `game.input` | `data` (spielspezifisch) | player/host (Teilnehmer) · game | keine (Wirkung über `game.*`), bei Fehler `INVALID_INPUT` |
 | `game.abort` | – | tv/host · game | `room.state{phase:"lobby"}` |
-| `room.toLobby` | – | tv/host · results | `room.state{phase:"lobby"}` |
+| `room.toLobby` | – | tv/host · results | `room.state{phase:"lobby"}` (Spieleabend: nächstes Spiel ausgewählt) |
+| `game.skip` | `skipId` | tv/host · game | keine (Wirkung über `game.*`); veraltete ID → ignoriert |
+| `evening.start` | `games` (2–12 IDs), `teams` (0 \| 2–4), `doubleFinal` | tv/host · lobby, results | `room.state{evening, selectedGameId=games[0]}`; `GAME_NOT_FOUND`, `PLAYER_COUNT` (weniger Spieler als Teams) |
+| `evening.setTeam` | `playerId, team` | player (nur sich selbst), tv/host (jeden) · lobby, results | `room.state`; `INVALID_PHASE` ohne Teams bzw. nach erstem Spielstart |
+| `evening.shuffle` | – | tv/host · lobby, results | `room.state` (Teams neu ausgelost) |
+| `evening.end` | – | tv/host · lobby, results | `room.state{evening:null}` |
 | `ping` | `ts?` | alle | `pong` |
 
 Beispiele:
@@ -87,6 +99,11 @@ Beispiele:
 {"t":"game.input","data":{"type":"answer","index":2}}
 {"t":"game.abort"}
 {"t":"room.toLobby"}
+{"t":"game.skip","skipId":17}
+{"t":"evening.start","games":["quiz","kennstdu","schaetzen"],"teams":2,"doubleFinal":true}
+{"t":"evening.setTeam","playerId":"p_k3j9x2","team":1}
+{"t":"evening.shuffle"}
+{"t":"evening.end"}
 {"t":"ping","ts":1729411200000}
 ```
 

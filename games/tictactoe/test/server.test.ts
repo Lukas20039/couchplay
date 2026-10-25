@@ -350,3 +350,31 @@ describe("Computer im Spiel", () => {
     expect(s.winningLine).not.toBeNull();
   });
 });
+
+describe("Überspringbare Wartezeiten", () => {
+  it("Zug- und Bot-Denkzeit sind nie überspringbar", () => {
+    const h = pvp();
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    playPvp(h, [0, 3]);
+    expect(h.session.skipId).toBeNull();
+    const b = vsBot("leicht");
+    place(b, "p1", 4);
+    expect(tv(b).botThinking).toBe(true);
+    expect(b.session.skipId).toBeNull();
+    expect(b.skip()).toBe(false);
+  });
+
+  it("Ergebnisanzeige lässt sich überspringen und endet genau einmal", () => {
+    const h = pvp();
+    playPvp(h, [0, 3, 1, 4, 2]);
+    expect(tv(h).phase).toBe("over");
+    expect(h.results).toBeNull();
+    expect(h.skip()).toBe(true);
+    expect(h.results).toMatchObject({ gameId: "tictactoe", ranking: [{ playerId: "p1", rank: 1 }, { playerId: "p2", rank: 2 }] });
+    const first = h.results;
+    h.advance(END_DELAY_MS);
+    expect(h.results).toBe(first);
+    expect(h.session.skipId).toBeNull();
+  });
+});

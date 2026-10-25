@@ -78,6 +78,15 @@ export function avatarEmoji(id: string): string {
 /** Anzahl Spielerfarben; der Server vergibt `color` = 0..PLAYER_COLOR_COUNT-1, eindeutig im Raum. */
 export const PLAYER_COLOR_COUNT = 8;
 
+/** Spieleabend: Anzahl geplanter Spiele und Teams. */
+export const EVENING_MIN_GAMES = 2;
+export const EVENING_MAX_GAMES = 12;
+export const EVENING_MAX_TEAMS = 4;
+/** Abend-Punkte je Platz in einem Spiel (Platz 1 = Index 0; ab Platz 8 gleich). */
+export const EVENING_POINTS = [10, 7, 5, 4, 3, 2, 1, 1] as const;
+/** Team-Emojis (Index = Teamnummer); Namen/Farben definieren die Apps. */
+export const TEAM_EMOJI = ["🔥", "🌊", "🌵", "⚡"] as const;
+
 // ---------------------------------------------------------------------------
 // Zeiten (Millisekunden)
 // ---------------------------------------------------------------------------

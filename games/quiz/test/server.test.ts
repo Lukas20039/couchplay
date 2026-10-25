@@ -544,3 +544,49 @@ describe("Gedächtnis je Spieler", () => {
     expect(h2.input("p1", { type: "seen", ids: { tec: Array.from({ length: 1001 }, (_, i) => i % 999) } }).ok).toBe(false);
   });
 });
+
+describe("Quiz – überspringbare Wartezeiten", () => {
+  it("Auflösung, Zwischenstand und Finale lassen sich überspringen, Intro und Antwortzeit nicht", () => {
+    const h = setup(2, settings5);
+    expect(phase(h)).toBe("intro");
+    // Intro bleibt fest: Die Handys melden hier ihre gesehenen Fragen.
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    toFirstQuestion(h);
+    // Antwortzeit ist nie überspringbar
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    expect(phase(h)).toBe("question");
+    answer(h, "p1", correctIndex(h));
+    expect(h.session.skipId).toBeNull();
+    answer(h, "p2", wrongIndex(h));
+    expect(phase(h)).toBe("reveal");
+    const score = view(h, "p1").score;
+    expect(h.skip()).toBe(true);
+    expect(phase(h)).toBe("standings");
+    expect(h.skip()).toBe(true);
+    const s = tv(h);
+    expect(s.phase === "question" && s.index).toBe(1);
+    // Kein doppelter Phasenwechsel durch den alten Timer
+    h.advance(TIMING.revealMs + TIMING.standingsMs);
+    expect(phase(h)).toBe("question");
+    expect(view(h, "p1").score).toBe(score);
+    for (let i = 1; i < 5; i++) {
+      const q = tv(h);
+      if (q.phase !== "question") throw new Error("Frage erwartet");
+      h.advance(q.endsAt - h.clock.now());
+      expect(phase(h)).toBe("reveal");
+      expect(h.skip()).toBe(true);
+      if (i < 4) {
+        expect(phase(h)).toBe("standings");
+        expect(h.skip()).toBe(true);
+        expect(phase(h)).toBe("question");
+      }
+    }
+    expect(phase(h)).toBe("final");
+    expect(h.results).toBeNull();
+    expect(h.skip()).toBe(true);
+    expect(h.results).toMatchObject({ gameId: "quiz" });
+    expect(h.session.skipId).toBeNull();
+  });
+});

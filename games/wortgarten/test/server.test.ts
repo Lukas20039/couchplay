@@ -216,3 +216,37 @@ describe("Wortgarten – Verbindung", () => {
     });
   });
 });
+
+describe("Wortgarten – überspringbare Wartezeiten", () => {
+  it("Rundenergebnis und Finale lassen sich überspringen, Intro und Runde nicht", () => {
+    const h = setup(1, { rounds: 2, roundSeconds: 60 });
+    expect(tv(h).phase).toBe("intro");
+    // Intro bleibt fest: Die Handys melden hier ihren Fortschritt.
+    expect(h.skip()).toBe(false);
+    h.advance(TIMING.introMs);
+    const r0 = roundTv(h);
+    expect(r0.round).toBe(0);
+    // Spielzeit ist nie überspringbar
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    const [w] = wordsOnBoard(h);
+    submit(h, "p1", w![1]);
+    expect(h.session.skipId).toBeNull();
+    h.advance(r0.endsAt - h.clock.now());
+    expect(tv(h)).toMatchObject({ phase: "roundEnd", round: 0 });
+    expect(h.skip()).toBe(true);
+    const r1 = roundTv(h);
+    expect(r1.round).toBe(1);
+    // Der alte Intro-/Ernte-Timer feuert nicht nach: Runde 1 läuft weiter.
+    h.advance(TIMING.roundEndMs);
+    expect(roundTv(h).round).toBe(1);
+    h.advance(r1.endsAt - h.clock.now());
+    expect(tv(h)).toMatchObject({ phase: "roundEnd", round: 1 });
+    expect(h.skip()).toBe(true);
+    expect(tv(h).phase).toBe("final");
+    expect(h.results).toBeNull();
+    expect(h.skip()).toBe(true);
+    expect(h.results).toMatchObject({ gameId: "wortgarten", ranking: [{ playerId: "p1", rank: 1 }] });
+    expect(h.session.skipId).toBeNull();
+  });
+});

@@ -1,0 +1,44 @@
+{
+  "id": "zeichnen",
+  "name": "Zeichnen & Raten",
+  "description": "Reihum zeichnet eine Person einen Begriff am Handy, alle anderen sehen die Zeichnung am Fernseher und raten so schnell wie möglich.",
+  "version": "0.1.0",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#ffb020",
+  "icon": "🎨",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "tiere", "label": "Tiere" },
+        { "value": "essen", "label": "Essen & Trinken" },
+        { "value": "haushalt", "label": "Haushalt & Gegenstände" },
+        { "value": "berufe", "label": "Berufe" },
+        { "value": "sport", "label": "Sport & Freizeit" },
+        { "value": "orte", "label": "Orte & Gebäude" },
+        { "value": "natur", "label": "Natur & Wetter" },
+        { "value": "fantasie", "label": "Märchen & Fantasie" }
+      ],
+      "default": ["tiere", "essen", "haushalt", "berufe", "sport", "orte", "natur", "fantasie"],
+      "minSelected": 1
+    },
+    {
+      "type": "select",
+      "key": "difficulty",
+      "label": "Schwierigkeit",
+      "options": [
+        { "value": "leicht", "label": "Leicht" },
+        { "value": "gemischt", "label": "Gemischt" },
+        { "value": "schwer", "label": "Schwer" }
+      ],
+      "default": "gemischt"
+    },
+    { "type": "number", "key": "drawSeconds", "label": "Zeichenzeit (Sekunden)", "min": 60, "max": 100, "step": 20, "default": 80 },
+    { "type": "number", "key": "turns", "label": "Runden pro Person", "min": 1, "max": 3, "step": 1, "default": 1 },
+    { "type": "toggle", "key": "hints", "label": "Buchstaben-Hinweise", "default": true }
+  ]
+}

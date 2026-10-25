@@ -9,4 +9,6 @@ export const CONTROLLER_VIEWS: Record<string, ViewModuleLoader<ControllerViewFac
   schiffe: () => import("@couchplay/game-schiffe/controller"),
   blockblast: () => import("@couchplay/game-blockblast/controller"),
   kennstdu: () => import("@couchplay/game-kennstdu/controller"),
+  schaetzen: () => import("@couchplay/game-schaetzen/controller"),
+  zeichnen: () => import("@couchplay/game-zeichnen/controller"),
 };

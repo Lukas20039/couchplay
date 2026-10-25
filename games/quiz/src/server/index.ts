@@ -135,12 +135,17 @@ export default defineGame<QuizSettings, QuizInput, QuizTvState, QuizPlayerView>(
 
     const current = (): RoundQuestion => questions[index]!;
 
-    const schedule = (ms: number, next: () => void): void => {
+    /** `skippable` = reine Wartezeit (Auflösung, Zwischenstand, Finale) – nie die Antwortzeit. */
+    const schedule = (ms: number, next: () => void, skippable = false): void => {
       if (timer !== null) ctx.timers.clear(timer);
-      const cd = ctx.timers.countdown(ms, () => {
-        timer = null;
-        next();
-      });
+      const cd = ctx.timers.countdown(
+        ms,
+        () => {
+          timer = null;
+          next();
+        },
+        { skippable },
+      );
       timer = cd.id;
       endsAt = cd.endsAt;
     };
@@ -275,19 +280,19 @@ export default defineGame<QuizSettings, QuizInput, QuizTvState, QuizPlayerView>(
       recomputeRanks();
       phase = "reveal";
       const isLast = index >= total - 1;
-      schedule(TIMING.revealMs, isLast ? showFinal : showStandings);
+      schedule(TIMING.revealMs, isLast ? showFinal : showStandings, true);
       publish();
     };
 
     const showStandings = (): void => {
       phase = "standings";
-      schedule(TIMING.standingsMs, () => startQuestion(index + 1));
+      schedule(TIMING.standingsMs, () => startQuestion(index + 1), true);
       publish();
     };
 
     const showFinal = (): void => {
       phase = "final";
-      schedule(TIMING.finalMs, finish);
+      schedule(TIMING.finalMs, finish, true);
       publish();
     };
 
@@ -323,6 +328,7 @@ export default defineGame<QuizSettings, QuizInput, QuizTvState, QuizPlayerView>(
       return { onPlayerInput() {}, onPlayerLeave() {} };
     }
 
+    // Intro bleibt fest: Die Handys melden hier ihre schon gesehenen Fragen (Wiederholungsschutz).
     schedule(TIMING.introMs, () => startQuestion(0));
     publish();
 

@@ -9,6 +9,9 @@ import { hasNative, openNativeSettings } from "../lib/native.js";
 import { selectedGame, startCheck, type StartCheck } from "../state/selectors.js";
 import type { AppState } from "../state/store.js";
 import { ChooseOverlay } from "./Choose.js";
+import { EveningPlan, EveningSetup, TeamColumns } from "./Evening.js";
+import { playerPoints } from "../state/evening.js";
+import { eveningIsFinal } from "@couchplay/protocol/evening";
 import { Logo, StatusPill } from "./common.js";
 import { useApi } from "./context.js";
 import { Qr } from "./Qr.js";
@@ -18,6 +21,8 @@ export function Lobby(props: { state: AppState; room: RoomState }) {
   const { state, room } = props;
   const api = useApi();
   const [choosing, setChoosing] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const evening = room.evening ?? null;
   const game = selectedGame(room, state.catalog);
   const check = startCheck(room, state.catalog);
   const joinUrl = room.joinUrl || state.session?.joinUrl || fallbackJoinUrl(location.origin, room.code);
@@ -45,8 +50,13 @@ export function Lobby(props: { state: AppState; room: RoomState }) {
 
       <section class="catalog" aria-label={t.catalog.heading}>
         <div class="section-head">
-          <h2>{t.catalog.heading}</h2>
+          <h2>{evening ? t.evening.plan : t.catalog.heading}</h2>
           <div class="section-tools">
+            {evening && (
+              <button class="btn btn-quiet" data-nav="top" data-testid="evening-end" onClick={() => api.send({ t: "evening.end" })}>
+                {t.evening.end}
+              </button>
+            )}
             <StatusPill conn={state.conn} />
             <MusicButton />
             {hasNative() && (
@@ -56,14 +66,19 @@ export function Lobby(props: { state: AppState; room: RoomState }) {
             )}
           </div>
         </div>
-        <GameCatalog games={state.catalog} selectedId={room.selectedGameId} autoFocus={check.kind !== "ready" && check.kind !== "choose"} />
+        {evening ? (
+          <EveningPlan room={room} catalog={state.catalog} />
+        ) : (
+          <GameCatalog games={state.catalog} selectedId={room.selectedGameId} autoFocus={check.kind !== "ready" && check.kind !== "choose"} />
+        )}
       </section>
 
       <section class="players-panel" aria-label={t.players.heading}>
         <h2>
           {t.players.heading} <span class="count">{fill(t.players.count, { n: room.players.length, max: MAX_PLAYERS })}</span>
         </h2>
-        <PlayerList players={room.players} />
+        {evening?.teams ? <TeamColumns room={room} /> : <PlayerList players={room.players} points={evening ? playerPoints(evening) : undefined} />}
+        {evening?.teams && <p class="muted small team-hint">{evening.teamsLocked ? t.evening.teamsLocked : t.evening.teamHint}</p>}
       </section>
 
       <section class="settings-panel" aria-label={t.settings.heading}>
@@ -72,12 +87,27 @@ export function Lobby(props: { state: AppState; room: RoomState }) {
       </section>
 
       <section class="start-bar">
-        <StartButton check={check} onStart={start} />
+        {!evening && (
+          <button class="btn btn-quiet evening-open" data-nav="start" data-testid="evening-open" onClick={() => setPlanning(true)}>
+            {t.evening.open}
+          </button>
+        )}
+        {evening?.teams && !evening.teamsLocked && (
+          <button class="btn btn-quiet evening-open" data-nav="start" data-testid="evening-shuffle" onClick={() => api.send({ t: "evening.shuffle" })}>
+            {t.evening.shuffle}
+          </button>
+        )}
+        <StartButton
+          check={check}
+          onStart={start}
+          label={evening ? (eveningIsFinal(evening) ? t.evening.startFinal : fill(t.evening.startGame, { n: evening.rounds.length + 1 })) : undefined}
+        />
       </section>
 
       {choosing && check.kind === "choose" && (
         <ChooseOverlay room={room} min={check.min} max={check.max} onClose={() => setChoosing(false)} />
       )}
+      {planning && <EveningSetup room={room} catalog={state.catalog} onClose={() => setPlanning(false)} />}
     </div>
   );
 }
@@ -169,7 +199,7 @@ function GameCatalog(props: { games: readonly GameManifest[]; selectedId: string
   );
 }
 
-export function PlayerList(props: { players: readonly Player[] }) {
+export function PlayerList(props: { players: readonly Player[]; points?: ReadonlyMap<string, number> | undefined }) {
   if (props.players.length === 0) {
     return (
       <p class="muted players-empty" data-testid="player-list" data-count="0">
@@ -201,6 +231,7 @@ export function PlayerList(props: { players: readonly Player[] }) {
             <span class="player-name">{p.name}</span>
             {!p.connected && <span class="offline-tag">{t.players.offline}</span>}
           </span>
+          {props.points && <span class="player-points" data-testid="player-points">{props.points.get(p.id) ?? 0}</span>}
         </li>
       ))}
     </ul>
@@ -220,7 +251,7 @@ function startHint(check: StartCheck): string {
   }
 }
 
-function StartButton(props: { check: StartCheck; onStart: () => void }) {
+function StartButton(props: { check: StartCheck; onStart: () => void; label?: string | undefined }) {
   const { check } = props;
   const enabled = check.kind === "ready" || check.kind === "choose";
   return (
@@ -234,7 +265,7 @@ function StartButton(props: { check: StartCheck; onStart: () => void }) {
         aria-disabled={enabled ? undefined : "true"}
         onClick={() => enabled && props.onStart()}
       >
-        {t.startButton.label}
+        {props.label ?? t.startButton.label}
       </button>
       <p class="start-hint" data-testid="start-hint">
         {startHint(check)}

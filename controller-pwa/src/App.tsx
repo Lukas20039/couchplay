@@ -2,6 +2,7 @@
 import { useEffect, useMemo } from "preact/hooks";
 import type { AppController } from "./app.js";
 import { Brand, ConnectionBanner, Toast } from "./components/common.js";
+import { EveningFinale, showFinale } from "./components/Evening.js";
 import { AppContext, useApp, useAppState } from "./hooks.js";
 import { t } from "./i18n/index.js";
 import { createWakeLock } from "./lib/platform.js";
@@ -35,7 +36,7 @@ function Root() {
   let screen;
   if (inRoom) {
     const phase = s.room!.phase;
-    screen = phase === "game" ? <GameScreen /> : phase === "results" ? <Results /> : <Lobby />;
+    screen = phase === "game" ? <GameScreen /> : phase === "results" ? <Results /> : showFinale(s.room) ? <EveningFinale /> : <Lobby />;
   } else if (s.autoJoin) {
     screen = <AutoJoining code={s.code} />;
   } else if (s.conn === "reconnecting" || s.conn === "joined") {

@@ -229,12 +229,17 @@ export default defineGame<KdSettings, KdInput, KdTvState, KdPlayerView>({
       ctx.sendToAllPlayers((p) => viewFor(p.id));
     };
 
-    const schedule = (ms: number, next: () => void): void => {
+    /** `skippable` = reine Wartezeit (Intro, Auflösung, Zwischenstand, Finale) – nie die Antwortzeit. */
+    const schedule = (ms: number, next: () => void, skippable = false): void => {
       if (timer !== null) ctx.timers.clear(timer);
-      const cd = ctx.timers.countdown(ms, () => {
-        timer = null;
-        next();
-      });
+      const cd = ctx.timers.countdown(
+        ms,
+        () => {
+          timer = null;
+          next();
+        },
+        { skippable },
+      );
       timer = cd.id;
       endsAt = cd.endsAt;
     };
@@ -282,20 +287,20 @@ export default defineGame<KdSettings, KdInput, KdTvState, KdPlayerView>({
       recomputeRanks();
       phase = "reveal";
       const last = schedule_.slice(pos + 1).filter(active).length === 0;
-      schedule(TIMING.revealMs, last ? showFinal : showStandings);
+      schedule(TIMING.revealMs, last ? showFinal : showStandings, true);
       publish();
     };
 
     const showStandings = (): void => {
       phase = "standings";
-      schedule(TIMING.standingsMs, startQuestion);
+      schedule(TIMING.standingsMs, startQuestion, true);
       publish();
     };
 
     const showFinal = (): void => {
       phase = "final";
       recomputeRanks();
-      schedule(TIMING.finalMs, finish);
+      schedule(TIMING.finalMs, finish, true);
       publish();
     };
 
@@ -321,7 +326,7 @@ export default defineGame<KdSettings, KdInput, KdTvState, KdPlayerView>({
       if (raters.every((id) => guesses.has(id))) reveal();
     };
 
-    schedule(TIMING.introMs, startQuestion);
+    schedule(TIMING.introMs, startQuestion, true);
     publish();
 
     return {

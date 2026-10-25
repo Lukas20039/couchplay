@@ -31,6 +31,17 @@ export function GameScreen() {
     <main class="screen screen--game">
       {me && <SelfBar player={me} right={abort} />}
       {spectator || !gameId ? <Spectator /> : <GameStage key={gameId} gameId={gameId} />}
+      {host && typeof room.skipId === "number" && (
+        <button
+          key={room.skipId}
+          type="button"
+          class="skip-button"
+          data-testid="skip-button"
+          onClick={() => app.send({ t: "game.skip", skipId: room.skipId as number })}
+        >
+          {t.skip.button}
+        </button>
+      )}
       {askAbort && host && (
         <ConfirmDialog
           text={t.game.abortConfirm}

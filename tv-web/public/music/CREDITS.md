@@ -12,7 +12,9 @@ Für CouchPlay auf −16 LUFS normalisiert und als MP3 (96 kbit/s) neu kodiert; 
 | `schiffe.mp3` | Schiffe versenken | Battle Theme A | cynicmusic | https://opengameart.org/content/battle-theme-a |
 | `blockblast.mp3` | Blockblast | Awake! (megaWall) | cynicmusic | https://opengameart.org/content/awake-megawall-10 |
 | `kennstdu.mp3` | Wie gut kennst du mich? | Buy Something! (Shop Theme) | CleytonKauffman | https://opengameart.org/content/shop-theme |
+| `zeichnen.mp3` | Zeichnen & Raten | Chiptune Adventures – Stage 2 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/4-chiptunes-adventure |
+| `schaetzen.mp3` | Schätzen! | Retro Game Music Pack – Level 2 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
 | `results.mp3` | Ergebnis | Retro Game Music Pack – Ending | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
 
-Lizenz geprüft am 23.10.2026 (Projektseite „License(s): CC0“, bei Juhani Junkala zusätzlich INFO.txt im Paket).
+Lizenz geprüft am 23.10.2026 bzw. 25.10.2026 (Projektseite „License(s): CC0“, bei Juhani Junkala zusätzlich INFO.txt im Paket).
 Ein Stück tauschen: Datei hier ersetzen (gleicher Name) oder in `src/audio/music.ts` (`TRACKS`) umbenennen.

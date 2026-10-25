@@ -89,6 +89,18 @@ export function GameStage(props: { room: RoomState; game: GameTvPacket | null })
       <div class="game-host" ref={host} />
       {load === "loading" && <div class="center-message">{t.game.loading}</div>}
       {load === "failed" && <div class="center-message">{t.game.loadFailed}</div>}
+      {typeof room.skipId === "number" && !menu && (
+        <button
+          key={room.skipId}
+          class="btn skip-button"
+          data-nav="skip"
+          data-nav-autofocus
+          data-testid="skip-button"
+          onClick={() => api.send({ t: "game.skip", skipId: room.skipId as number })}
+        >
+          {t.skip.button}
+        </button>
+      )}
       {missing.length > 0 && (
         <div class="banner banner-player" role="status" data-testid="player-disconnected">
           {fill(t.game.disconnected, { names: missing.map((p) => p.name).join(", ") })}

@@ -9,7 +9,9 @@ import type { AppState, Store } from "./state/store.js";
 import { ReconnectBanner, Toast } from "./ui/common.js";
 import { ApiContext, type AppApi } from "./ui/context.js";
 import { GameStage } from "./ui/GameStage.js";
+import { EveningFinale } from "./ui/Evening.js";
 import { Lobby } from "./ui/Lobby.js";
+import { showFinale } from "./state/evening.js";
 import { Results } from "./ui/Results.js";
 import { FatalScreen, StartScreen } from "./ui/Screens.js";
 
@@ -92,6 +94,7 @@ export function App(props: { store: Store; client: TvClient }) {
   else if (!room) screen = <StartScreen conn={state.conn} resuming={client.session() !== null} />;
   else if (room.phase === "game") screen = <GameStage room={room} game={state.game} />;
   else if (room.phase === "results") screen = <Results room={room} catalog={state.catalog} />;
+  else if (showFinale(room)) screen = <EveningFinale room={room} catalog={state.catalog} />;
   else screen = <Lobby state={state} room={room} />;
 
   return (

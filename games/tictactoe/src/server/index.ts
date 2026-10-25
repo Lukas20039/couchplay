@@ -189,9 +189,8 @@ export default defineGame<TicTacToeSettings, TicTacToeInput, TicTacToeTvState, T
         bot: seats[1].kind === "bot" ? { difficulty: seats[1].difficulty, mark: seats[1].mark } : null,
       });
       publish();
-      ctx.timers.setTimeout(() => {
-        ctx.end({ ranking: ranking(), data: resultData() });
-      }, END_DELAY_MS);
+      // Reine Ergebnisanzeige → TV/Host dürfen sie überspringen.
+      ctx.timers.countdown(END_DELAY_MS, () => ctx.end({ ranking: ranking(), data: resultData() }), { skippable: true });
     };
 
     const place = (cell: number, mark: Mark): void => {

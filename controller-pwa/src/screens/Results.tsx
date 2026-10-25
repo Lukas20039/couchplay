@@ -2,8 +2,10 @@
 // Host: „Nochmal“ / „Zur Lobby“.
 import type { GameResults, Player, RankingEntry } from "@couchplay/protocol";
 import { BOT_EMOJI } from "@couchplay/protocol/constants";
-import { useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { Avatar, SelfBar } from "../components/common.js";
+import { ConfirmDialog } from "../components/ConfirmDialog.js";
+import { EveningResults, nextGameName } from "../components/Evening.js";
 import { useApp, useAppState } from "../hooks.js";
 import { t } from "../i18n/index.js";
 import { firstTime, resultsKey } from "../lib/once.js";
@@ -43,6 +45,9 @@ export function Results() {
     ...ranking.slice(0, podiumSize).map((entry) => ({ kind: "player" as const, entry })),
   ];
   const rest = ranking.slice(podiumSize);
+  const evening = room.evening ?? null;
+  const upcoming = evening ? nextGameName(room, s.catalog) : null;
+  const [askEnd, setAskEnd] = useState(false);
 
   // Nur wenn der Übergang Spiel → Ergebnis live erlebt wurde, und pro Runde nur einmal
   // (Reload/Reconnect auf dem Ergebnis-Screen vibriert nicht erneut).
@@ -117,9 +122,19 @@ export function Results() {
             })}
           </ol>
         )}
+        {evening && <EveningResults />}
       </section>
       <footer class="actions">
-        {host ? (
+        {host && evening ? (
+          <>
+            <button type="button" class="btn btn--primary" data-testid="evening-next" onClick={() => app.send({ t: "room.toLobby" })}>
+              {upcoming ? t.evening.next(upcoming) : t.evening.toFinale}
+            </button>
+            <button type="button" class="btn btn--ghost" data-testid="evening-end" onClick={() => setAskEnd(true)}>
+              {t.evening.end}
+            </button>
+          </>
+        ) : host ? (
           <>
             <button type="button" class="btn btn--primary" data-testid="again-button" onClick={again}>
               {t.results.again}
@@ -132,6 +147,18 @@ export function Results() {
           <p class="hint">{t.results.waitHost}</p>
         )}
       </footer>
+      {askEnd && (
+        <ConfirmDialog
+          text={t.evening.endConfirm}
+          confirmLabel={t.evening.endYes}
+          cancelLabel={t.dialog.cancel}
+          onConfirm={() => {
+            setAskEnd(false);
+            app.send({ t: "evening.end" });
+          }}
+          onCancel={() => setAskEnd(false)}
+        />
+      )}
     </main>
   );
 }

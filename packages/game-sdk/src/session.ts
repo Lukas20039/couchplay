@@ -22,6 +22,8 @@ export interface GameSessionSink {
   end(results: GameResults): void;
   /** Spielcode hat eine Exception geworfen; Session ist danach beendet. Server → Lobby + Log. */
   crash(error: unknown): void;
+  /** Optional: überspringbare Wartezeit geändert (ID für skip() bzw. null = nichts zu überspringen). */
+  skippable?(skipId: number | null): void;
 }
 
 export interface GameSessionOptions {
@@ -48,6 +50,13 @@ export interface GameSession {
   /** Spieler endgültig weg (leave/kick/Gnadenfrist). */
   playerLeft(playerId: PlayerId): void;
   connectionChanged(playerId: PlayerId, connected: boolean): void;
+  /** Aktuell überspringbare Wartezeit (frühester skippable-Countdown) oder null. */
+  readonly skipId: number | null;
+  /**
+   * Wartezeit sofort beenden (game.skip). Nur wenn `skipId` noch die aktuelle ist – so überspringt
+   * ein doppelter Klick nicht gleich die nächste Wartezeit mit. true = übersprungen.
+   */
+  skip(skipId: number): boolean;
   /** Abbruch von außen (game.abort, Raum geschlossen). Ruft sink.end NICHT auf. */
   abort(): void;
 }
@@ -61,6 +70,9 @@ export function createGameSession(def: AnyGameDefinition, opts: GameSessionOptio
   const participants = new Set(opts.players.map((p) => p.id));
   const active = new Set(participants);
   const timers = new Map<TimerId, ClockHandle>();
+  /** Überspringbare Countdowns: ID → Callback und Fälligkeit. */
+  const skippable = new Map<TimerId, { fn: () => void; dueAt: number }>();
+  let lastSkipId: number | null = null;
   let timerSeq = 0;
   let ended = false;
   let instance: GameInstance | null = null;
@@ -77,9 +89,26 @@ export function createGameSession(def: AnyGameDefinition, opts: GameSessionOptio
     }
   };
 
+  const currentSkipId = (): number | null => {
+    if (ended) return null;
+    let best: [TimerId, number] | null = null;
+    for (const [id, { dueAt }] of skippable) if (!best || dueAt < best[1]) best = [id, dueAt];
+    return best?.[0] ?? null;
+  };
+
+  /** Meldet Änderungen der überspringbaren Wartezeit an den Sink. */
+  const notifySkip = (): void => {
+    const next = currentSkipId();
+    if (next === lastSkipId) return;
+    lastSkipId = next;
+    sink.skippable?.(next);
+  };
+
   const clearAll = (): void => {
     for (const handle of timers.values()) clock.clearTimeout(handle);
     timers.clear();
+    skippable.clear();
+    notifySkip();
   };
 
   const finish = (): void => {
@@ -101,7 +130,9 @@ export function createGameSession(def: AnyGameDefinition, opts: GameSessionOptio
         id,
         clock.setTimeout(() => {
           timers.delete(id);
+          const wasSkippable = skippable.delete(id);
           guard(fn);
+          if (wasSkippable) notifySkip();
         }, ms),
       );
       return id;
@@ -126,10 +157,17 @@ export function createGameSession(def: AnyGameDefinition, opts: GameSessionOptio
       const handle = timers.get(id);
       if (handle !== undefined) clock.clearTimeout(handle);
       timers.delete(id);
+      if (skippable.delete(id)) notifySkip();
     },
     clearAll,
-    countdown(ms, onDone) {
-      return { id: gameTimers.setTimeout(onDone, ms), endsAt: clock.now() + ms };
+    countdown(ms, onDone, opts) {
+      const id = gameTimers.setTimeout(onDone, ms);
+      const endsAt = clock.now() + ms;
+      if (opts?.skippable && !ended) {
+        skippable.set(id, { fn: onDone, dueAt: endsAt });
+        notifySkip();
+      }
+      return { id, endsAt };
     },
   };
 
@@ -198,6 +236,21 @@ export function createGameSession(def: AnyGameDefinition, opts: GameSessionOptio
     connectionChanged(playerId, connected) {
       if (!active.has(playerId)) return;
       guard(() => instance?.onPlayerConnectionChange?.(playerId, connected));
+    },
+    get skipId() {
+      return currentSkipId();
+    },
+    skip(skipId) {
+      if (ended || skipId !== currentSkipId()) return false;
+      const entry = skippable.get(skipId);
+      if (!entry) return false;
+      const handle = timers.get(skipId);
+      if (handle !== undefined) clock.clearTimeout(handle);
+      timers.delete(skipId);
+      skippable.delete(skipId);
+      guard(entry.fn);
+      notifySkip();
+      return true;
     },
     abort() {
       finish();

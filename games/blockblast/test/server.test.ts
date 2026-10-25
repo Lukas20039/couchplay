@@ -183,3 +183,30 @@ describe("Ende", () => {
     expect(h.lastTv()!.phase).toBe("over");
   });
 });
+
+describe("Überspringbare Wartezeiten", () => {
+  it("Start-Countdown und Ergebnisanzeige lassen sich überspringen, die Spielzeit nicht", () => {
+    const h = make(2);
+    expect(h.lastTv()!.phase).toBe("countdown");
+    expect(h.skip()).toBe(true);
+    const tv = h.lastTv()!;
+    expect(tv).toMatchObject({ phase: "playing", endsAt: h.clock.now() + 180_000 });
+    // Spielzeit ist nie überspringbar, auch nicht nach einem Zug
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    expect(play(h, "p1")).toBe(true);
+    expect(h.session.skipId).toBeNull();
+    // Der alte Countdown feuert nicht nach (kein zweiter Start mit neuer Spielzeit)
+    h.advance(COUNTDOWN_MS);
+    expect(h.lastTv()!.endsAt).toBe(tv.endsAt);
+    h.advance(tv.endsAt - h.clock.now());
+    expect(h.lastTv()!.phase).toBe("over");
+    expect(h.results).toBeNull();
+    expect(h.skip()).toBe(true);
+    expect(h.results?.ranking).toHaveLength(2);
+    const first = h.results;
+    h.advance(END_DELAY_MS);
+    expect(h.results).toBe(first);
+    expect(h.session.skipId).toBeNull();
+  });
+});

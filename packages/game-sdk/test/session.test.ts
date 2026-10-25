@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import { ManualClock, createRng, defineGame, type GameContext } from "../src/index.js";
+import { ManualClock, createGameSession, createRng, defineGame, type GameContext } from "../src/index.js";
 import { createTestHarness, makePlayers } from "../src/testing.js";
 
 const manifest = {
@@ -198,5 +198,66 @@ describe("ManualClock", () => {
     c.advance(25);
     expect(log).toEqual(["a", "b"]);
     expect(c.now()).toBe(25);
+  });
+});
+
+describe("überspringbare Wartezeiten", () => {
+  type StepTv = { step: string };
+  /** intro (überspringbar) → play (Spielzeit, nicht überspringbar) → reveal (überspringbar) → Ende. */
+  const stepGame = defineGame<Record<string, never>, { type: "go" }, StepTv, null>({
+    manifest: { ...manifest, id: "schritte", settings: [] },
+    inputSchema: z.object({ type: z.literal("go") }),
+    createGame(ctx) {
+      const show = (step: string): void => ctx.broadcastTv({ step });
+      const reveal = (): void => {
+        show("reveal");
+        ctx.timers.countdown(5_000, () => ctx.end({ ranking: [] }), { skippable: true });
+      };
+      const play = (): void => {
+        show("play");
+        ctx.timers.countdown(20_000, reveal);
+      };
+      show("intro");
+      ctx.timers.countdown(3_000, play, { skippable: true });
+      return { onPlayerInput() {}, onPlayerLeave() {} };
+    },
+  });
+
+  it("überspringt nur Wartezeiten, nie die Spielzeit", () => {
+    const h = createTestHarness<StepTv>(stepGame, { players: 1 });
+    expect(h.session.skipId).not.toBeNull();
+    expect(h.skip()).toBe(true);
+    expect(h.lastTv()).toEqual({ step: "play" });
+    expect(h.session.skipId).toBeNull();
+    expect(h.skip()).toBe(false);
+    h.advance(20_000);
+    expect(h.lastTv()).toEqual({ step: "reveal" });
+    expect(h.skip()).toBe(true);
+    expect(h.results).not.toBeNull();
+    expect(h.session.skipId).toBeNull();
+  });
+
+  it("ignoriert veraltete Skip-IDs (Doppelklick) und meldet Änderungen an den Sink", () => {
+    const changes: (number | null)[] = [];
+    const clock = new ManualClock();
+    const tv: StepTv[] = [];
+    const session = createGameSession(stepGame, {
+      players: makePlayers(1),
+      settings: {},
+      seed: 1,
+      clock,
+      sink: { tv: (s) => tv.push(s as StepTv), player() {}, end() {}, crash() {}, skippable: (id) => changes.push(id) },
+    });
+    const first = session.skipId!;
+    expect(session.skip(first)).toBe(true);
+    expect(session.skip(first)).toBe(false);
+    expect(tv.at(-1)).toEqual({ step: "play" });
+    clock.advance(20_000);
+    const second = session.skipId!;
+    expect(second).not.toBe(first);
+    expect(session.skip(first)).toBe(false);
+    clock.advance(5_000);
+    expect(session.ended).toBe(true);
+    expect(changes).toEqual([first, null, second, null]);
   });
 });
