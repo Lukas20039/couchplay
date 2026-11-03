@@ -15,6 +15,7 @@ import {
   DRAWER_POINTS,
   GUESS_POINTS,
   HINT_AT,
+  strokeCost,
   TIMING,
   type Bubble,
   type CategoryId,
@@ -490,28 +491,38 @@ export default defineGame<ZgSettings, ZgInput, ZgTvState, ZgPlayerView>({
       ctx.sendToPlayer(playerId, viewFor(playerId));
     };
 
-    const onDraw = (input: Extract<ZgInput, { type: "stroke" | "undo" | "clear" }>): void => {
+    /** Neue Strich-/Füll-ID annehmen (Folge-Chunks eines älteren, z. B. rückgängig gemachten Strichs zählen nicht). */
+    const claimId = (id: number): boolean => {
+      if (usedStrokeIds.has(id)) return false;
+      usedStrokeIds.add(id);
+      nextStrokeId = Math.max(nextStrokeId, id + 1);
+      return true;
+    };
+
+    const onDraw = (input: Extract<ZgInput, { type: "stroke" | "fill" | "undo" | "clear" }>): void => {
       if (input.type === "undo") {
         const removed = strokes.pop();
         if (!removed) return;
-        pointCount -= removed.points.length / 2;
+        pointCount -= strokeCost(removed);
         rev++;
       } else if (input.type === "clear") {
         if (strokes.length === 0) return;
         strokes = [];
         pointCount = 0;
         rev++;
+      } else if (input.type === "fill") {
+        if (DRAW_LIMITS.drawingPoints - pointCount < DRAW_LIMITS.fillCost) return;
+        if (strokes.filter((x) => x.fill).length >= DRAW_LIMITS.fills || !claimId(input.id)) return;
+        strokes.push({ id: input.id, color: input.color, size: 0, points: [input.x, input.y], fill: true });
+        pointCount += DRAW_LIMITS.fillCost;
       } else {
         const room = DRAW_LIMITS.drawingPoints - pointCount;
         if (room <= 0) return;
         const pts = input.points.length / 2 > room ? input.points.slice(0, room * 2) : input.points;
         const last = strokes.at(-1);
-        if (last && last.id === input.id) last.points.push(...pts);
+        if (last && !last.fill && last.id === input.id) last.points.push(...pts);
         else {
-          // Folge-Chunks eines älteren (z. B. rückgängig gemachten) Strichs werden ignoriert.
-          if (usedStrokeIds.has(input.id)) return;
-          usedStrokeIds.add(input.id);
-          nextStrokeId = Math.max(nextStrokeId, input.id + 1);
+          if (!claimId(input.id)) return;
           strokes.push({ id: input.id, color: input.color, size: input.size, points: pts.slice() });
         }
         pointCount += pts.length / 2;

@@ -1,7 +1,7 @@
 // Von Server, TV- und Controller-View gemeinsam genutzte Typen von „Zeichnen & Raten“.
 // Der gesuchte Begriff steht nur in der Ansicht des Zeichners – TV und Rater sehen ihn erst in "reveal".
 import type { AvatarId, PlayerId } from "@couchplay/protocol";
-import type { CategoryId, Difficulty } from "./constants.js";
+import { type CategoryId, type Difficulty, DRAW_LIMITS } from "./constants.js";
 
 export { CATEGORY_IDS, type CategoryId } from "./constants.js";
 
@@ -34,18 +34,26 @@ export interface ZgSettings {
   hints: boolean;
 }
 
-/** Ein Strich: Farbe/Größe als Index (PALETTE/SIZES), Punkte flach [x, y, x, y, …] in 0–1000. */
+/**
+ * Ein Strich: Farbe/Größe als Index (PALETTE/SIZES), Punkte flach [x, y, x, y, …] in 0–1000.
+ * `fill`: Füll-Eimer an Punkt [x, y] (size 0) – füllt die zusammenhängende Fläche gleicher Farbe.
+ */
 export interface Stroke {
   id: number;
   color: number;
   size: number;
   points: number[];
+  fill?: true;
 }
+
+/** So viel zählt ein Strich bzw. eine Füllung gegen DRAW_LIMITS.drawingPoints (Server und Handy gleich). */
+export const strokeCost = (s: Stroke): number => (s.fill ? DRAW_LIMITS.fillCost : s.points.length / 2);
 
 /** Eingaben vom Handy (game.input.data); Schema in server/input.ts. */
 export type ZgInput =
   | { type: "choose"; index: number }
   | { type: "stroke"; id: number; color: number; size: number; points: number[] }
+  | { type: "fill"; id: number; color: number; x: number; y: number }
   | { type: "undo" }
   | { type: "clear" }
   | { type: "guess"; text: string }

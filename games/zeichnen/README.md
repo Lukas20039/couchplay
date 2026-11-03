@@ -7,9 +7,14 @@ Auflösung, Zwischenstand und Finale – das Intro nicht, weil die Handys darin 
 - **Zeichner:** reihum in gemischter Reihenfolge, jede Person `turns` Mal. Wählt am Handy einen von drei Begriffen
   (möglichst aus verschiedenen Kategorien, nach Schwierigkeit gefiltert; ohne Wahl nach 10 s Zufall) und zeichnet ihn.
 - **Zeichnungsdaten:** `{type:"stroke", id, color, size, points:[x,y,…]}` (0–1000, ≤ 250 Punkte je Nachricht,
-  Folge-Chunks mit gleicher `id` hängen an), `undo`, `clear`. Das Handy glättet (Mindestabstand) und sendet
+  Folge-Chunks mit gleicher `id` hängen an), `{type:"fill", id, color, x, y}` (Eimer, ≤ 30 je Zeichnung, zählt
+  20 Punkte), `undo`, `clear`. Das Handy glättet (Mindestabstand) und sendet
   höchstens alle 125 ms. Server: ≤ 6000 Punkte je Zeichnung, TV-Zustand gedrosselt (120 ms), `rev` steigt bei
   undo/clear. Die Ansicht des Zeichners enthält seine Striche (Reconnect), gedrosselt alle 2 s aufgefrischt.
+- **Werkzeuge am Handy:** 32 Farben (9 direkt, alle im Farbmenü ▾), 5 Stärken, Stift, Eimer, Radierer, Linie,
+  Rechteck, Kreis, Zurück/Vor, Löschen. Gezeichnet wird auf ein festes 1000 × 1000-Blatt (`src/ui/canvas.ts`), damit
+  der Flood-Fill auf TV und Handy gleich ausfällt. Der Radierer malt in der Blattfarbe: Weiß, bis der Eimer eine
+  randberührende Blattfläche umfärbt. Formen gehen erst beim Loslassen als ganzer Strich raus; „Vor“ sendet mit neuer ID.
 - **Raten:** Freitext ≤ 40 Zeichen, ≤ 1 Tipp/s. Vergleich normalisiert (`normalizeGuess` in `src/data/schema.ts`),
   Tippfehler (Levenshtein 1 ab 5, 2 ab 9 Zeichen) → nur privat „Knapp daneben!“ und nicht auf dem TV.
   Treffer erscheinen am TV nur als „Anna hat’s! ✅“.

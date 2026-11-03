@@ -27,17 +27,20 @@ function sketch(h: H): void {
   const line = (color: number, size: number, pts: number[]) => h.input(d, { type: "stroke", id: id++, color, size, points: pts });
   const circle = (cx: number, cy: number, r: number) =>
     Array.from({ length: 41 }, (_, i) => [Math.round(cx + r * Math.cos((i / 40) * Math.PI * 2)), Math.round(cy + r * Math.sin((i / 40) * Math.PI * 2))]).flat();
-  line(0, 1, [220, 820, 220, 520, 560, 520, 560, 820, 220, 820]);
-  line(1, 1, [190, 540, 390, 330, 590, 540]);
-  line(7, 1, [350, 820, 350, 680, 430, 680, 430, 820]);
-  line(5, 0, [260, 580, 330, 580, 330, 640, 260, 640, 260, 580]);
-  line(3, 2, circle(800, 180, 70));
-  line(3, 0, [800, 60, 800, 20]);
-  line(3, 0, [920, 180, 970, 180]);
-  line(3, 0, [680, 180, 630, 180]);
-  line(4, 2, circle(780, 560, 90));
-  line(7, 2, [780, 650, 780, 830]);
-  line(4, 1, [80, 860, 300, 870, 520, 855, 760, 870, 940, 860]);
+  line(0, 2, [220, 820, 220, 520, 560, 520, 560, 820, 220, 820]);
+  line(2, 2, [190, 540, 390, 330, 590, 540]);
+  line(8, 2, [350, 820, 350, 680, 430, 680, 430, 820]);
+  line(6, 1, [260, 580, 330, 580, 330, 640, 260, 640, 260, 580]);
+  line(4, 3, circle(800, 180, 70));
+  line(4, 1, [800, 60, 800, 20]);
+  line(4, 1, [920, 180, 970, 180]);
+  line(4, 1, [680, 180, 630, 180]);
+  line(5, 3, circle(780, 560, 90));
+  line(8, 3, [780, 650, 780, 830]);
+  line(5, 2, [80, 860, 300, 870, 520, 855, 760, 870, 940, 860]);
+  // Eimer: Himmel hellblau, Dach rot.
+  h.input(d, { type: "fill", id: id++, color: 24, x: 100, y: 100 });
+  h.input(d, { type: "fill", id: id++, color: 2, x: 390, y: 460 });
   h.advance(300);
 }
 

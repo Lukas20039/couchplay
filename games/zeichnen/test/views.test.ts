@@ -3,6 +3,7 @@
 import type { ControllerViewApi, TvViewApi } from "@couchplay/game-sdk/client";
 import { createTestHarness } from "@couchplay/game-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_SIZE } from "../src/constants.js";
 import controllerView from "../src/controller/index.js";
 import game from "../src/server/index.js";
 import { TIMING, type ZgPlayerView, type ZgTvState } from "../src/shared.js";
@@ -85,11 +86,53 @@ describe("Controller", () => {
     el.querySelector<HTMLButtonElement>("[data-testid=zg-undo]")!.click();
     await flush(400);
     const sent = sendInput.mock.calls.map(([i]) => i).slice(2);
-    expect(sent[0]).toMatchObject({ type: "stroke", color: 0, size: 1 });
+    expect(sent[0]).toMatchObject({ type: "stroke", color: 0, size: DEFAULT_SIZE });
     expect(sent.at(-1)).toEqual({ type: "undo" });
     // Server akzeptiert die Nachrichten.
     for (const msg of sent) expect(h.input(drawer, msg).ok).toBe(true);
     expect(JSON.parse(localStorage.getItem("couchplay.zeichnen.seen")!)).toHaveLength(1);
+    v.unmount();
+  });
+
+  it("Zeichner: Farbmenü, Eimer, Rechteck, rückgängig und wiederholen", async () => {
+    const h = harness();
+    h.advance(TIMING.introMs);
+    const drawer = drawerOf(h.lastTv()!);
+    h.input(drawer, { type: "choose", index: 0 });
+    const { el, v, sendInput } = mountController(h, drawer);
+    await flush();
+    const click = (id: string) => el.querySelector<HTMLButtonElement>(`[data-testid=${id}]`)!.click();
+    const pad = () => el.querySelector<HTMLCanvasElement>("[data-testid=zg-pad]")!;
+    const fire = (type: string, x: number, y: number) =>
+      pad().dispatchEvent(new PointerEvent(type, { clientX: x, clientY: y, pointerId: 1, isPrimary: true, bubbles: true }));
+    click("zg-more");
+    await flush();
+    expect(el.querySelectorAll("[data-testid=zg-palette] button")).toHaveLength(32);
+    click("zg-color-20");
+    click("zg-tool-fill");
+    await flush();
+    expect(el.querySelector("[data-testid=zg-palette]")).toBeNull();
+    fire("pointerdown", 0.5, 0.5);
+    fire("pointerup", 0.5, 0.5);
+    click("zg-tool-rect");
+    await flush();
+    fire("pointerdown", 0.1, 0.1);
+    fire("pointermove", 0.5, 0.5);
+    fire("pointerup", 0.9, 0.8);
+    click("zg-undo");
+    await flush();
+    click("zg-redo");
+    await flush(500);
+    const sent = sendInput.mock.calls.map(([i]) => i).filter((i) => i.type !== "seen");
+    expect(sent.map((i) => i.type)).toEqual(["fill", "stroke", "undo", "stroke"]);
+    expect(sent[0]).toMatchObject({ color: 20, x: 500, y: 500 });
+    expect(sent[1]).toMatchObject({ color: 20, points: [100, 100, 900, 100, 900, 800, 100, 800, 100, 100] });
+    expect(sent[3].points).toEqual(sent[1].points);
+    expect(sent[3].id).not.toBe(sent[1].id);
+    for (const msg of sent) expect(h.input(drawer, msg).ok).toBe(true);
+    h.advance(200);
+    const tv = h.lastTv()!;
+    expect(tv.phase === "draw" && tv.strokes.map((x) => Boolean(x.fill))).toEqual([true, false]);
     v.unmount();
   });
 

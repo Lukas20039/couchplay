@@ -20,6 +20,13 @@ export const ZgInputSchema: z.ZodType<ZgInput> = z.discriminatedUnion("type", [
       .max(DRAW_LIMITS.chunkPoints * 2)
       .refine((p) => p.length % 2 === 0, "Punkte paarweise"),
   }),
+  z.object({
+    type: z.literal("fill"),
+    id: z.number().int().min(0).max(1_000_000_000),
+    color: z.number().int().min(0).max(PALETTE.length - 1),
+    x: Coord,
+    y: Coord,
+  }),
   z.object({ type: z.literal("undo") }),
   z.object({ type: z.literal("clear") }),
   z.object({ type: z.literal("guess"), text: z.string().max(GUESS_LIMITS.maxLength) }),

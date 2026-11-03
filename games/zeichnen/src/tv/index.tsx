@@ -94,7 +94,7 @@ function Sheet({ strokes, rev }: { strokes: Stroke[]; rev: number }) {
     const c = canvas.current;
     if (!c) return;
     const fit = (): void => {
-      if (fitCanvas(c, c.clientWidth || 1)) renderer.current.invalidate();
+      fitCanvas(c, c.clientWidth || 1);
     };
     fit();
     const onResize = (): void => {

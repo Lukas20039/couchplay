@@ -60,19 +60,35 @@ export const CONTROLLER_CSS = /* css */ `
   box-shadow: inset 0 0 0 2px rgba(255,255,255,0.25); cursor: pointer; font-size: 1rem; line-height: 1;
 }
 .zg-swatch.is-on { box-shadow: 0 0 0 2px var(--bg, #0f0e17), 0 0 0 4px #fff; }
-.zg-swatch--eraser { background: #fff; }
+.zg-swatch--more { background: var(--sw); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem; text-shadow: 0 0 3px #000; }
+.zg-swatch--more.is-open { box-shadow: 0 0 0 2px var(--bg, #0f0e17), 0 0 0 4px var(--zg-accent); }
+.zg-palette {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 2; padding: 12px; border-radius: 18px;
+  width: 100%; max-width: 344px; display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; background: rgba(15,14,23,0.94);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.zg-palette .zg-swatch { width: 100%; height: 0; padding-top: 100%; }
 .zg-size, .zg-tool {
-  height: 44px; margin: 0; border: 0; border-radius: 12px; background: var(--raised, #25223a); color: inherit; font: inherit;
+  height: 42px; margin: 0; border: 0; border-radius: 12px; background: var(--raised, #25223a); color: inherit; font: inherit;
   font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; cursor: pointer;
 }
-.zg-size { width: 44px; flex: none; }
-.zg-size span { display: block; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,0.4); }
+.zg-size { width: 34px; flex: none; }
+.zg-size span { display: block; flex: none; border-radius: 50%; box-shadow: 0 0 0 1px rgba(255,255,255,0.4); }
 .zg-size.is-on { box-shadow: inset 0 0 0 3px var(--zg-accent); }
-.zg-tool { flex: 1; min-width: 0; margin-left: 6px; padding: 0 4px; flex-direction: column; white-space: nowrap; overflow: hidden; line-height: 1.1; }
+.zg-tool { flex: 1; min-width: 0; margin-left: 6px; padding: 0 2px; flex-direction: column; white-space: nowrap; overflow: hidden; line-height: 1.1; }
 .zg-tool span { font-size: 1.15rem; }
-.zg-tool small { font-size: 0.72rem; font-weight: 800; }
+.zg-tool small { font-size: 0.66rem; font-weight: 800; letter-spacing: -0.02em; }
 .zg-tool--danger { color: #ff8c8c; }
+.zg-tool--pick:first-child { margin-left: 0; }
+.zg-tool--pick.is-on { box-shadow: inset 0 0 0 3px var(--zg-accent); color: var(--zg-accent); }
+.zg-size + .zg-tool { margin-left: 8px; }
 .zg-tool:disabled { opacity: 0.5; }
+@media (max-width: 370px) {
+  .zg-tool small { display: none; }
+  .zg-tool span { font-size: 1.3rem; }
+  .zg-size { width: 30px; }
+  .zg-palette { gap: 7px; padding: 10px; }
+}
 
 /* Raten */
 .zg-guess { flex: 1; display: flex; flex-direction: column; min-height: 0; }

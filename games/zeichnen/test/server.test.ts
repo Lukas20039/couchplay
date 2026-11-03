@@ -2,7 +2,7 @@
 import { createTestHarness, type GameHarness } from "@couchplay/game-sdk/testing";
 import type { SettingsValues } from "@couchplay/protocol";
 import { describe, expect, it } from "vitest";
-import { DRAW_LIMITS } from "../src/constants.js";
+import { DRAW_LIMITS, PALETTE, SIZES } from "../src/constants.js";
 import { WORDS_BY_CATEGORY } from "../src/data/index.js";
 import game from "../src/server/index.js";
 import { TIMING, type ZgPlayerView, type ZgResultData, type ZgTvState } from "../src/shared.js";
@@ -262,10 +262,37 @@ describe("Zeichnen", () => {
     expect(h.input(d, stroke(1, [1, 2, 3])).ok).toBe(false);
     expect(h.input(d, stroke(1, [1001, 0])).ok).toBe(false);
     expect(h.input(d, stroke(1, [1.5, 0])).ok).toBe(false);
-    expect(h.input(d, stroke(1, [1, 1], 9)).ok).toBe(false);
-    expect(h.input(d, stroke(1, [1, 1], 0, 3)).ok).toBe(false);
+    expect(h.input(d, stroke(1, [1, 1], PALETTE.length)).ok).toBe(false);
+    expect(h.input(d, stroke(1, [1, 1], 0, SIZES.length)).ok).toBe(false);
+    expect(h.input(d, { type: "fill", id: 2, color: PALETTE.length, x: 1, y: 1 }).ok).toBe(false);
+    expect(h.input(d, { type: "fill", id: 2, color: 0, x: 1001, y: 1 }).ok).toBe(false);
     expect(h.input(d, stroke(1, Array.from({ length: (DRAW_LIMITS.chunkPoints + 1) * 2 }, () => 1))).ok).toBe(false);
     expect(h.input(d, stroke(1, Array.from({ length: DRAW_LIMITS.chunkPoints * 2 }, () => 1))).ok).toBe(true);
+  });
+
+  it("Füllungen: als Strich mit fill, begrenzt, undo gibt Platz frei; Chunks hängen nie an eine Füllung", () => {
+    const h = setup(2);
+    startDrawing(h);
+    const d = drawerOf(h);
+    h.input(d, stroke(1, [10, 10, 20, 20]));
+    h.input(d, { type: "fill", id: 2, color: 0, x: 500, y: 500 });
+    // Gleiche ID wie die Füllung: wird nicht angehängt (ID schon vergeben).
+    h.input(d, stroke(2, [30, 30]));
+    h.advance(200);
+    let s = tv(h);
+    expect(s.phase === "draw" && s.strokes).toEqual([
+      { id: 1, color: 0, size: 1, points: [10, 10, 20, 20] },
+      { id: 2, color: 0, size: 0, points: [500, 500], fill: true },
+    ]);
+    for (let i = 0; i < DRAW_LIMITS.fills + 5; i++) h.input(d, { type: "fill", id: 10 + i, color: i % 2, x: 1, y: 1 });
+    h.advance(200);
+    s = tv(h);
+    expect(s.phase === "draw" && s.strokes.filter((x) => x.fill).length).toBe(DRAW_LIMITS.fills);
+    h.input(d, { type: "undo" });
+    h.input(d, { type: "fill", id: 100, color: 3, x: 1, y: 1 });
+    h.advance(200);
+    s = tv(h);
+    expect(s.phase === "draw" && s.strokes.at(-1)).toMatchObject({ id: 100, fill: true });
   });
 
   it("TV-Zustand gedrosselt (≤ 1 je 120 ms), der letzte Stand kommt an", () => {
@@ -287,6 +314,20 @@ describe("Zeichnen", () => {
     // Ohne neue Daten kommt nichts mehr.
     h.advance(1000);
     expect(h.tvStates.length - before).toBe(sent);
+  });
+
+  it("Füllungen zählen gegen das Punktelimit", () => {
+    const h = setup(2);
+    startDrawing(h);
+    const d = drawerOf(h);
+    const chunk = Array.from({ length: DRAW_LIMITS.chunkPoints * 2 }, (_, i) => i % 1000);
+    const chunks = DRAW_LIMITS.drawingPoints / DRAW_LIMITS.chunkPoints;
+    for (let i = 0; i < chunks - 1; i++) h.input(d, stroke(i, chunk));
+    h.input(d, stroke(500, chunk.slice(0, (DRAW_LIMITS.chunkPoints - DRAW_LIMITS.fillCost + 1) * 2)));
+    h.input(d, { type: "fill", id: 600, color: 2, x: 1, y: 1 });
+    h.advance(200);
+    const s = tv(h);
+    expect(s.phase === "draw" && s.strokes.some((x) => x.fill)).toBe(false);
   });
 
   it("über 6000 Punkte je Zeichnung werden Striche ignoriert; undo schafft Platz", () => {

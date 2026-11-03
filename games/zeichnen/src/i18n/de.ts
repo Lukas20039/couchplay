@@ -13,8 +13,23 @@ export const CATEGORY_LABELS: Record<CategoryId, string> = {
 };
 
 /** Namen der Stiftfarben (Index wie PALETTE) – für Screenreader/aria-label. */
-export const COLOR_NAMES = ["Schwarz", "Rot", "Orange", "Gelb", "Grün", "Blau", "Lila", "Braun", "Weiß"];
-export const SIZE_NAMES = ["Dünn", "Mittel", "Dick"];
+export const COLOR_NAMES = [
+  "Schwarz", "Weiß", "Rot", "Orange", "Gelb", "Grün", "Blau", "Lila", "Braun",
+  "Dunkelgrau", "Grau", "Hellgrau", "Rosa", "Pink", "Weinrot", "Koralle",
+  "Hellgelb", "Gold", "Hellgrün", "Dunkelgrün", "Oliv", "Mint", "Türkis", "Petrol",
+  "Hellblau", "Dunkelblau", "Flieder", "Dunkellila", "Hautfarbe hell", "Hautfarbe", "Hautfarbe dunkel", "Dunkelbraun",
+];
+export const SIZE_NAMES = ["Sehr dünn", "Dünn", "Mittel", "Dick", "Sehr dick"];
+
+/** Werkzeuge der Zeichenleiste: [Symbol, Kurzname, Beschreibung]. */
+export const TOOL_LABELS = {
+  pen: ["✏️", "Stift", "Stift"],
+  fill: ["🪣", "Füllen", "Fläche füllen"],
+  eraser: ["🧽", "Radierer", "Radierer"],
+  line: ["╱", "Linie", "Gerade Linie"],
+  rect: ["▭", "Eckig", "Rechteck"],
+  ellipse: ["◯", "Rund", "Kreis"],
+} as const;
 
 export const t = {
   title: "Zeichnen & Raten",
@@ -53,7 +68,10 @@ export const t = {
     guessedOf: (n: number, of: number) => `${n} von ${of} haben’s`,
     timeUp: "Zeit ist um!",
     full: "Das Blatt ist voll – mach etwas rückgängig.",
-    eraser: "Radierer",
+    fillsFull: "Genug gefüllt – mach etwas rückgängig.",
+    moreColors: "Mehr Farben",
+    redo: "Wiederholen",
+    redoShort: "Vor",
     undo: "Rückgängig",
     undoShort: "Zurück",
     clear: "Alles löschen",
