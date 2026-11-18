@@ -1,0 +1,57 @@
+{
+  "id": "viergewinnt",
+  "name": "Vier gewinnt",
+  "description": "Steine in die Spalten werfen, vier in einer Reihe gewinnen – zu zweit oder allein gegen den Computer.",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 2,
+  "botSupport": true,
+  "accentColor": "#ffc93c",
+  "icon": "🔴",
+  "settings": [
+    {
+      "type": "select",
+      "key": "difficulty",
+      "label": "Computer-Stärke (1 Spieler)",
+      "options": [
+        { "value": "leicht", "label": "Leicht" },
+        { "value": "mittel", "label": "Mittel" },
+        { "value": "schwer", "label": "Schwer" }
+      ],
+      "default": "mittel"
+    },
+    {
+      "type": "select",
+      "key": "bestOf",
+      "label": "Partien",
+      "options": [
+        { "value": "1", "label": "Eine Partie" },
+        { "value": "3", "label": "Best of 3" },
+        { "value": "5", "label": "Best of 5" }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "key": "turnTime",
+      "label": "Zeit pro Zug",
+      "options": [
+        { "value": "0", "label": "Unbegrenzt" },
+        { "value": "15", "label": "15 Sekunden" },
+        { "value": "30", "label": "30 Sekunden" }
+      ],
+      "default": "0"
+    },
+    {
+      "type": "select",
+      "key": "board",
+      "label": "Spielbrett",
+      "options": [
+        { "value": "7x6", "label": "Klassisch (7 × 6)" },
+        { "value": "8x7", "label": "Groß (8 × 7)" },
+        { "value": "9x7", "label": "Riesig (9 × 7)" }
+      ],
+      "default": "7x6"
+    }
+  ]
+}

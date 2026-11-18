@@ -17,7 +17,11 @@ Für CouchPlay auf −16 LUFS normalisiert und als MP3 (96 kbit/s) neu kodiert; 
 | `sortiert.mp3` | Sortiert! | Retro Game Music Pack – Level 1 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
 | `flunkern.mp3` | Flunkern | Chiptune Adventures – Stage Select | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/4-chiptunes-adventure |
 | `wuerdeeher.mp3` | Wer würde eher …? | Retro Game Music Pack – Level 3 | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
+| `stadtland.mp3` | Stadt, Land, Fluss | Happy Adventure (Loop) | TinyWorlds | https://opengameart.org/content/happy-adventure-loop |
+| `spion.mp3` | Wer ist der Spion? | 8-bit The Quiet Spy | HydroGene | https://opengameart.org/content/8-bit-the-quiet-spy |
+| `viergewinnt.mp3` | Vier gewinnt | Chiptune Adventures – Boss Fight | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/4-chiptunes-adventure |
+| `allesodernichts.mp3` | Alles oder nichts | Urgent! | Spring Spring | https://opengameart.org/content/urgent |
 | `results.mp3` | Ergebnis | Retro Game Music Pack – Ending | Juhani Junkala (SubspaceAudio) | https://opengameart.org/content/5-chiptunes-action |
 
-Lizenz geprüft am 23.10.2026 bzw. 25.10.2026 (Projektseite „License(s): CC0“, bei Juhani Junkala zusätzlich INFO.txt im Paket).
+Lizenz geprüft am 23.10.2026, 25.10.2026, 03.11.2026 bzw. 18.11.2026 (Projektseite „License(s): CC0“, bei Juhani Junkala zusätzlich INFO.txt im Paket).
 Ein Stück tauschen: Datei hier ersetzen (gleicher Name) oder in `src/audio/music.ts` (`TRACKS`) umbenennen.

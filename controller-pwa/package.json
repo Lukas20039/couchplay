@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@couchplay/game-allesodernichts": "0.1.0",
     "@couchplay/game-blockblast": "0.1.0",
     "@couchplay/game-flunkern": "0.1.0",
     "@couchplay/game-kennstdu": "0.1.0",
@@ -19,7 +20,10 @@
     "@couchplay/game-schiffe": "0.1.0",
     "@couchplay/game-sdk": "0.1.0",
     "@couchplay/game-sortiert": "0.1.0",
+    "@couchplay/game-spion": "0.1.0",
+    "@couchplay/game-stadtland": "0.1.0",
     "@couchplay/game-tictactoe": "0.1.0",
+    "@couchplay/game-viergewinnt": "0.1.0",
     "@couchplay/game-wortgarten": "0.1.0",
     "@couchplay/game-wuerdeeher": "0.1.0",
     "@couchplay/game-zeichnen": "0.1.0",

@@ -1084,7 +1084,8 @@ select.input {
 }
 .evening-picks {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Eine Spalte: zwei sind für lange Namen zu schmal; minmax(0, …) hält die Zeile im Bildschirm. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 12px 0 20px;
 }

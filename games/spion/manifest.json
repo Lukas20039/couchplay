@@ -1,0 +1,54 @@
+{
+  "id": "spion",
+  "name": "Wer ist der Spion?",
+  "description": "Alle kennen das geheime Wort – nur einer nicht. Gebt reihum Hinweise, entlarvt den Spion oder bluff dich als Spion durch.",
+  "version": "0.1.0",
+  "minPlayers": 3,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#e63946",
+  "icon": "🕵️",
+  "settings": [
+    {
+      "type": "select",
+      "key": "mode",
+      "label": "Modus",
+      "options": [
+        { "value": "klassisch", "label": "Klassisch – der Spion kennt nur die Kategorie" },
+        { "value": "undercover", "label": "Undercover – der Spion hat ein ähnliches Wort und weiß nichts davon" }
+      ],
+      "default": "klassisch"
+    },
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "orte", "label": "Orte" },
+        { "value": "berufe", "label": "Berufe" },
+        { "value": "tiere", "label": "Tiere" },
+        { "value": "essen", "label": "Essen & Trinken" },
+        { "value": "gegenstaende", "label": "Gegenstände" },
+        { "value": "sport", "label": "Sport & Hobbys" },
+        { "value": "figuren", "label": "Filme & Figuren" },
+        { "value": "feste", "label": "Feste & Anlässe" }
+      ],
+      "default": ["orte", "berufe", "tiere", "essen", "gegenstaende", "sport", "figuren", "feste"],
+      "minSelected": 1
+    },
+    {
+      "type": "select",
+      "key": "rounds",
+      "label": "Runden",
+      "options": [
+        { "value": "3", "label": "3 Runden" },
+        { "value": "5", "label": "5 Runden" },
+        { "value": "8", "label": "8 Runden" }
+      ],
+      "default": "5"
+    },
+    { "type": "number", "key": "clueRounds", "label": "Hinweisrunden", "min": 1, "max": 3, "step": 1, "default": 2 },
+    { "type": "number", "key": "clueSeconds", "label": "Zeit pro Hinweis (Sekunden)", "min": 15, "max": 60, "step": 5, "default": 30 },
+    { "type": "number", "key": "voteSeconds", "label": "Diskussion & Abstimmung (Sekunden)", "min": 30, "max": 120, "step": 15, "default": 60 }
+  ]
+}

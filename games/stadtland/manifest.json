@@ -1,0 +1,29 @@
+{
+  "id": "stadtland",
+  "name": "Stadt, Land, Fluss",
+  "description": "Der Klassiker fürs Sofa: Ein Buchstabe, sechs Kategorien, die Uhr läuft. Wer zuerst alles hat, ruft „Stopp!“ – doppelte Antworten bringen weniger.",
+  "version": "0.1.0",
+  "minPlayers": 2,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#2fc4a0",
+  "icon": "🏙️",
+  "settings": [
+    {
+      "type": "select",
+      "key": "set",
+      "label": "Kategorien",
+      "options": [
+        { "value": "klassisch", "label": "Klassisch (Stadt, Land, Fluss …)" },
+        { "value": "essen", "label": "Essen & Trinken" },
+        { "value": "popkultur", "label": "Popkultur" },
+        { "value": "quatsch", "label": "Quatsch" },
+        { "value": "gemischt", "label": "Bunt gemischt" }
+      ],
+      "default": "klassisch"
+    },
+    { "type": "number", "key": "rounds", "label": "Runden", "min": 3, "max": 7, "step": 2, "default": 5 },
+    { "type": "number", "key": "roundSeconds", "label": "Zeit pro Runde (Sekunden)", "min": 60, "max": 120, "step": 30, "default": 90 },
+    { "type": "number", "key": "categoryCount", "label": "Kategorien pro Runde", "min": 5, "max": 6, "step": 1, "default": 6 }
+  ]
+}

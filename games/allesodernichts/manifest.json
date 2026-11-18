@@ -1,0 +1,32 @@
+{
+  "id": "allesodernichts",
+  "name": "Alles oder nichts",
+  "description": "Knifflige Fragen mit vier Antworten – Runde für Runde fliegt eine falsche raus. Rechtzeitig aussteigen oder alles riskieren?",
+  "version": "0.1.0",
+  "minPlayers": 1,
+  "maxPlayers": 8,
+  "botSupport": false,
+  "accentColor": "#ff9f1c",
+  "icon": "🎰",
+  "settings": [
+    {
+      "type": "multiselect",
+      "key": "categories",
+      "label": "Kategorien",
+      "options": [
+        { "value": "rechtschreibung", "label": "Rechtschreibung" },
+        { "value": "woerter", "label": "Wörter & Bedeutungen" },
+        { "value": "geografie", "label": "Geografie" },
+        { "value": "geschichte", "label": "Geschichte" },
+        { "value": "natur", "label": "Natur & Wissenschaft" },
+        { "value": "kultur", "label": "Kunst, Musik & Film" },
+        { "value": "sport", "label": "Sport & Spiel" },
+        { "value": "alltag", "label": "Alltag, Essen & Technik" }
+      ],
+      "default": ["rechtschreibung", "woerter", "geografie", "geschichte", "natur", "kultur", "sport", "alltag"],
+      "minSelected": 1
+    },
+    { "type": "number", "key": "rounds", "label": "Fragen", "min": 5, "max": 20, "step": 5, "default": 10 },
+    { "type": "number", "key": "answerSeconds", "label": "Antwortzeit (Sekunden)", "min": 15, "max": 45, "step": 5, "default": 25 }
+  ]
+}

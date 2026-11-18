@@ -14,4 +14,8 @@ export const CONTROLLER_VIEWS: Record<string, ViewModuleLoader<ControllerViewFac
   sortiert: () => import("@couchplay/game-sortiert/controller"),
   flunkern: () => import("@couchplay/game-flunkern/controller"),
   wuerdeeher: () => import("@couchplay/game-wuerdeeher/controller"),
+  stadtland: () => import("@couchplay/game-stadtland/controller"),
+  spion: () => import("@couchplay/game-spion/controller"),
+  viergewinnt: () => import("@couchplay/game-viergewinnt/controller"),
+  allesodernichts: () => import("@couchplay/game-allesodernichts/controller"),
 };

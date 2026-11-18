@@ -14,4 +14,8 @@ export const TV_VIEWS: Record<string, ViewModuleLoader<TvViewFactory>> = {
   sortiert: () => import("@couchplay/game-sortiert/tv"),
   flunkern: () => import("@couchplay/game-flunkern/tv"),
   wuerdeeher: () => import("@couchplay/game-wuerdeeher/tv"),
+  stadtland: () => import("@couchplay/game-stadtland/tv"),
+  spion: () => import("@couchplay/game-spion/tv"),
+  viergewinnt: () => import("@couchplay/game-viergewinnt/tv"),
+  allesodernichts: () => import("@couchplay/game-allesodernichts/tv"),
 };

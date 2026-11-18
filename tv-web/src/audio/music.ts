@@ -23,6 +23,10 @@ export const TRACKS: Record<string, Track> = {
   sortiert: { file: "sortiert.mp3", overlap: 0.8 },
   flunkern: { file: "flunkern.mp3", overlap: 0.8 },
   wuerdeeher: { file: "wuerdeeher.mp3", overlap: 0.8 },
+  stadtland: { file: "stadtland.mp3", overlap: 0.8 },
+  spion: { file: "spion.mp3", overlap: 0.8 },
+  viergewinnt: { file: "viergewinnt.mp3", overlap: 0.8 },
+  allesodernichts: { file: "allesodernichts.mp3", overlap: 0.8 },
 };
 
 /** Lautstärkestufen: Aus, Leise, Mittel, Laut. */

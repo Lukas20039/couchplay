@@ -39,6 +39,19 @@ am Ende ein Podium.
 |---|---|---|
 | ![Quizfrage](docs/screenshots/tv-quiz-question.png) | ![Auflösung](docs/screenshots/tv-quiz-reveal.png) | <img src="docs/screenshots/phone-quiz.png" width="180" alt="Antworttasten"> <img src="docs/screenshots/phone-quiz-correct.png" width="180" alt="Richtig beantwortet"> |
 
+### 🎰 Alles oder nichts · 1–8 Spieler
+
+Knifflige Fragen mit vier Antworten, die alle richtig sein könnten – „Wie schreibt man …?“, Fremdwörter,
+Geografie, Geschichte und mehr. Alle tippen geheim eine Antwort oder enthalten sich. Dann rast am TV ein
+Lauflicht über die Antworten, wird langsamer, zögert – und streicht eine falsche. Wessen Antwort noch steht,
+entscheidet am Handy: **aussteigen** und +1 (nach der zweiten Runde +2) sichern oder **weiterzocken**. Wer bis
+zum Schluss durchhält, bekommt +3 (als Einziger +1 Bonus); fliegt die eigene Antwort raus, gibt es −1, −2
+oder −3. Rund 1 560 Fragen in 8 Kategorien, Wiederholungsschutz je Handy wie beim Quiz.
+
+| Elimination am TV | Handy |
+|---|---|
+| ![Alles oder nichts am TV](docs/screenshots/tv-allesodernichts.png) | <img src="docs/screenshots/phone-allesodernichts.png" width="220" alt="Aussteigen oder weiter am Handy"> |
+
 ### 💬 Wie gut kennst du mich? · 2–8 Spieler
 
 Das Kennenlernspiel: Reihum ist eine Person dran und beantwortet am Handy ehrlich eine Frage über sich –
@@ -112,6 +125,30 @@ seinen Titel. Abstimmung offen oder anonym, 300 Aussagen in 6 Kategorien.
 |---|---|
 | ![Wer würde eher am TV](docs/screenshots/tv-wuerdeeher.png) | <img src="docs/screenshots/phone-wuerdeeher.png" width="220" alt="Abstimmen am Handy"> |
 
+### 🏙️ Stadt, Land, Fluss · 2–8 Spieler
+
+Der Klassiker fürs Sofa: Am TV rattert die Walze, bis der Buchstabe steht – dann tippen alle am Handy
+Stadt, Land, Fluss, Name, Beruf und Tier (oder „Essen & Trinken“, „Popkultur“ und „Quatsch“ mit Kategorien
+wie „Ausrede fürs Zuspätkommen“). Wer alles hat, ruft „Stopp!“ – dann bleiben allen nur noch fünf Sekunden.
+Danach wird gemeinsam geprüft: Falscher Anfangsbuchstabe fliegt automatisch raus, fragwürdige Antworten
+streicht die Mehrheit per Daumen runter. Einzigartig 10 Punkte, doppelt 5, als Einziger in der Kategorie 20.
+
+| Prüfung am TV | Handy |
+|---|---|
+| ![Stadt, Land, Fluss am TV](docs/screenshots/tv-stadtland.png) | <img src="docs/screenshots/phone-stadtland.png" width="220" alt="Antworten tippen am Handy"> |
+
+### 🕵️ Wer ist der Spion? · 3–8 Spieler
+
+Alle kennen das geheime Wort – nur einer nicht. Die Rollenkarte am Handy zeigt sich nur, solange man sie
+hält. Reihum gibt jeder ein Hinweiswort, das am TV erscheint, dann zeigen alle gleichzeitig auf den
+Verdächtigen (bei Gleichstand Stichwahl). Der enttarnte Spion darf noch das Wort raten und so trotzdem
+gewinnen. Im Undercover-Modus bekommt der Spion ein ähnliches Wort und weiß selbst nicht, dass er es ist.
+240 Wörter in 8 Kategorien.
+
+| Auflösung am TV | Handy |
+|---|---|
+| ![Wer ist der Spion? am TV](docs/screenshots/tv-spion.png) | <img src="docs/screenshots/phone-spion.png" width="220" alt="Geheime Rollenkarte am Handy"> |
+
 ### ⭕ TicTacToe · 1–2 Spieler
 
 Allein gegen den Computer (leicht, mittel oder unbesiegbar) oder zu zweit Handy gegen Handy,
@@ -148,6 +185,16 @@ klassische (5 Schiffe) oder große Flotte (10 Schiffe), Zusatzschuss nach Treffe
 | TV | Handy |
 |---|---|
 | ![Schiffe versenken am TV](docs/screenshots/tv-schiffe.png) | <img src="docs/screenshots/phone-schiffe.png" width="220" alt="Schiffe versenken am Handy"> |
+
+### 🔴 Vier gewinnt · 1–2 Spieler
+
+Spalte am Handy antippen, der Stein schwebt am TV darüber, nochmal tippen – und er fällt ins Brett.
+Best of 1, 3 oder 5 mit wechselndem Startspieler, optional mit Zugzeit (15/30 s) und auf größerem Brett
+(8 × 7, 9 × 7). Allein gegen den Computer in drei Stufen; „schwer“ rechnet bis zu sieben Züge voraus.
+
+| TV | Handy |
+|---|---|
+| ![Vier gewinnt am TV](docs/screenshots/tv-viergewinnt.png) | <img src="docs/screenshots/phone-viergewinnt.png" width="220" alt="Spalte wählen am Handy"> |
 
 ### 🧱 Blockblast · 1–8 Spieler (Vorschau)
 
@@ -263,7 +310,7 @@ Nichts installieren: QR-Code am TV scannen. Optional über *Teilen → Zum Home-
 | [`tv-web/`](tv-web) | TV-Oberfläche (Preact), komplett per Fernbedienung bedienbar |
 | [`controller-pwa/`](controller-pwa) | Handy-Controller als PWA |
 | [`android-tv/`](android-tv) | Android-TV-App (Kotlin) |
-| [`games/quiz/`](games/quiz), [`games/kennstdu/`](games/kennstdu), [`games/zeichnen/`](games/zeichnen), [`games/schaetzen/`](games/schaetzen), [`games/sortiert/`](games/sortiert), [`games/flunkern/`](games/flunkern), [`games/wuerdeeher/`](games/wuerdeeher), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/blockblast/`](games/blockblast) | die Spiele |
+| [`games/quiz/`](games/quiz), [`games/allesodernichts/`](games/allesodernichts), [`games/kennstdu/`](games/kennstdu), [`games/zeichnen/`](games/zeichnen), [`games/schaetzen/`](games/schaetzen), [`games/sortiert/`](games/sortiert), [`games/flunkern/`](games/flunkern), [`games/wuerdeeher/`](games/wuerdeeher), [`games/stadtland/`](games/stadtland), [`games/spion/`](games/spion), [`games/tictactoe/`](games/tictactoe), [`games/wortgarten/`](games/wortgarten), [`games/schiffe/`](games/schiffe), [`games/viergewinnt/`](games/viergewinnt), [`games/blockblast/`](games/blockblast) | die Spiele |
 | [`packages/protocol/`](packages/protocol) | WebSocket-Protokoll (zod-Schemas) |
 | [`packages/game-sdk/`](packages/game-sdk) | Schnittstelle und Laufzeit für Spiele |
 | [`e2e/`](e2e) | End-to-End-Tests im Browser und im Android-TV-Emulator |

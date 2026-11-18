@@ -9,7 +9,7 @@ describe("controller-pwa Gerüst", () => {
   });
 
   it("lädt die controller-Views aller eingebauten Spiele", async () => {
-    expect(Object.keys(CONTROLLER_VIEWS).sort()).toEqual(["blockblast", "flunkern", "kennstdu", "quiz", "schaetzen", "schiffe", "sortiert", "tictactoe", "wortgarten", "wuerdeeher", "zeichnen"]);
+    expect(Object.keys(CONTROLLER_VIEWS).sort()).toEqual(["allesodernichts", "blockblast", "flunkern", "kennstdu", "quiz", "schaetzen", "schiffe", "sortiert", "spion", "stadtland", "tictactoe", "viergewinnt", "wortgarten", "wuerdeeher", "zeichnen"]);
     for (const load of Object.values(CONTROLLER_VIEWS)) {
       const mod = await load();
       const view = mod.default();
