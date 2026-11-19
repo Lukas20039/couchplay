@@ -1,0 +1,187 @@
+// Handkuratierte Ergänzung zur Marken-Liste: im deutschsprachigen Alltag bekannte Marken
+// (Lebensmittel, Drogerie, Handel, Mode, Technik, Auto). Ein Eintrag pro Zeile, „#“ = Kommentar.
+export default `
+Adidas
+Aldi
+Aldi Nord
+Aldi Süd
+Alnatura
+Amazon
+Apple
+Aral
+Ariel
+Asics
+Audi
+Bahlsen
+Balea
+Barilla
+Bauknecht
+Bayer
+Beiersdorf
+Bitburger
+BMW
+Bosch
+Braun
+Brita
+Bugatti
+Burger King
+C&A
+Calvin Klein
+Canon
+Capri-Sonne
+Chanel
+Coca-Cola
+Colgate
+Continental
+Converse
+Dacia
+Dallmayr
+dm
+Douglas
+Dr. Oetker
+Dove
+Duplo
+Edeka
+Eduscho
+Ehrmann
+Eismann
+Esprit
+Ferrari
+Ferrero
+Fiat
+Fielmann
+Fisherman's Friend
+Ford
+Fossil
+Frosta
+Galeria
+Garnier
+Gillette
+Google
+Gucci
+H&M
+Hanuta
+Haribo
+Hela
+Henkel
+Hermès
+Hipp
+Hollister
+Honda
+Hornbach
+Hugo Boss
+Hyundai
+Ikea
+Intel
+Jack Wolfskin
+Jacobs
+Jägermeister
+Kaufland
+Kellogg's
+Kia
+Kinder
+KitKat
+Knorr
+Lacoste
+Lamborghini
+Landliebe
+Lego
+Leibniz
+Lenor
+Levi's
+Lidl
+Lindt
+L'Oréal
+Lufthansa
+Maggi
+Mars
+McDonald's
+Media Markt
+Mediamarkt
+Melitta
+Mercedes
+Mercedes-Benz
+Microsoft
+Miele
+Milka
+Mini
+Müller
+Müllermilch
+Mustang
+Natreen
+Nescafé
+Nestlé
+Netflix
+New Balance
+New Yorker
+Nike
+Nintendo
+Nivea
+Nokia
+Nutella
+Obi
+Odol
+Opel
+Otto
+Pampers
+Penny
+Persil
+Peugeot
+Philips
+Playmobil
+Playstation
+Porsche
+Prada
+Primark
+Pril
+Puma
+Ravensburger
+Real
+Red Bull
+Reebok
+Renault
+Rewe
+Ritter Sport
+Rolex
+Rossmann
+Rügenwalder
+s.Oliver
+Samsung
+Saturn
+Schauma
+Schwarzkopf
+Seat
+Siemens
+Sony
+Skoda
+Škoda
+Smart
+Spotify
+Starbucks
+Steiff
+Storck
+Subway
+Swarovski
+Tchibo
+Tempo
+Tesla
+Tesa
+Toyota
+Tommy Hilfiger
+Tupperware
+Uhu
+Valensina
+Vans
+Volkswagen
+VW
+Vorwerk
+Wagner
+Weleda
+Wella
+WMF
+Würth
+Xbox
+Zalando
+Zara
+Zewa
+`;

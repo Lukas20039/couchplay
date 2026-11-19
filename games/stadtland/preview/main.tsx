@@ -4,9 +4,14 @@ import type { ControllerViewApi, TvViewApi } from "@couchplay/game-sdk/client";
 import { createTestHarness, makePlayers, type GameHarness } from "@couchplay/game-sdk/testing";
 import type { AvatarId, Player, SettingsValues } from "@couchplay/protocol";
 import controllerView from "../src/controller/index.js";
-import game from "../src/server/index.js";
+import { answerKey } from "../src/normalize.js";
+import { createStadtlandGame } from "../src/server/index.js";
 import { TIMING, type SlPlayerView, type SlTvState } from "../src/shared.js";
 import tvView from "../src/tv/index.js";
+
+/** Fake-Lexikon der Vorschau: alles bekannt außer diesen (Vergleichsschlüssel). */
+const UNKNOWN = new Set(["brummstadt", "blubberhausen", "badtoelzimschoenenisartal", "bober", "bille", "bettina"]);
+const game = createStadtlandGame((_c, text) => (UNKNOWN.has(answerKey(text)) ? "unknown" : "known"));
 
 type H = GameHarness<SlTvState, SlPlayerView>;
 const NAMES = ["Anna", "Ben", "Cleo", "Dino", "Ella", "Finn", "Greta", "Maximilian"];
@@ -80,11 +85,60 @@ function playToFinal(n: number): H {
   return h;
 }
 
-type Built = { h: H; me?: string; at?: (s: SlTvState) => number; freeze?: boolean };
+const CUSTOM: SettingsValues = { ...SETTINGS, set: "eigene" };
+const MY_CATS = ["Städte", "Automarken", "Dinge im Bad", "Tiere", "Ausrede fürs Zuspätkommen"];
+/** Setup mit (teilweise) getippter Liste. */
+const inSetup = (n: number, cats = MY_CATS): H => {
+  const h = start(n, CUSTOM);
+  h.input("p1", { type: "custom", categories: cats, done: false });
+  return h;
+};
+/** Lexikon-Beispiel (Stadt, Buchstabe B): Brummstadt gerettet, Blubberhausen noch gestrichen, Bonn angefochten. */
+const LEX_B: string[][] = [
+  ["Berlin", "Belgien"],
+  ["Brummstadt", "Brasilien"],
+  ["Bonn", "Bulgarien"],
+  ["Blubberhausen", "Bhutan"],
+];
+function lexReview(n = 4): H {
+  const h = toReview(write(n, n === 4 ? LEX_B : CLASSIC_B));
+  if (n === 4) {
+    for (const id of ["p1", "p3"]) vote(h, id, "p2");
+    vote(h, "p1", "p4");
+    vote(h, "p4", "p3");
+  } else {
+    for (const id of ["p1", "p2", "p3", "p4", "p5"]) vote(h, id, "p8");
+    vote(h, "p1", "p7");
+  }
+  return h;
+}
+
+type Built = { h: H; me?: string; at?: (s: SlTvState) => number; freeze?: boolean; host?: boolean };
 const sinceStart = (offset: number) => (s: SlTvState) => ("endsAt" in s && "durationMs" in s ? s.endsAt - s.durationMs + offset : 0);
 
 const SCENES: Record<string, { kind: "tv" | "ctl"; build: () => Built }> = {
   "tv-intro": { kind: "tv", build: () => ({ h: start(5) }) },
+  "tv-setup": { kind: "tv", build: () => ({ h: inSetup(4), at: (s) => ("endsAt" in s ? s.endsAt - 84_000 : 0) }) },
+  "tv-setup-empty": { kind: "tv", build: () => ({ h: start(4, CUSTOM), at: (s) => ("endsAt" in s ? s.endsAt - 110_000 : 0) }) },
+  "tv-intro-custom": {
+    kind: "tv",
+    build() {
+      const h = inSetup(6, [...MY_CATS, "Was der Nachbar nachts macht"]);
+      h.input("p1", { type: "custom", categories: [...MY_CATS, "Was der Nachbar nachts macht"], done: true });
+      return { h };
+    },
+  },
+  "tv-write-custom": {
+    kind: "tv",
+    build() {
+      const h = inSetup(4);
+      h.input("p1", { type: "custom", categories: MY_CATS, done: true });
+      h.advance(TIMING.introMs + TIMING.letterMs);
+      return { h, at: (s) => ("endsAt" in s ? s.endsAt - 40_000 : 0) };
+    },
+  },
+  "tv-review-lexicon": { kind: "tv", build: () => ({ h: lexReview(4), at: (s) => ("endsAt" in s ? s.endsAt - 15_000 : 0) }) },
+  "tv-review-lexicon-8": { kind: "tv", build: () => ({ h: lexReview(8), at: (s) => ("endsAt" in s ? s.endsAt - 15_000 : 0) }) },
   "tv-letter-spin": { kind: "tv", build: () => ({ h: startWith("B", 4), at: sinceStart(1_100), freeze: true }) },
   "tv-letter": { kind: "tv", build: () => ({ h: startWith("B", 4), at: sinceStart(3_900), freeze: true }) },
   "tv-write": { kind: "tv", build: () => ({ h: write(5, CLASSIC_B, SETTINGS, 4), at: (s) => ("endsAt" in s ? s.endsAt - 48_000 : 0) }) },
@@ -153,6 +207,11 @@ const SCENES: Record<string, { kind: "tv" | "ctl"; build: () => Built }> = {
   "tv-final-8": { kind: "tv", build: () => ({ h: playToFinal(8), at: (s) => ("endsAt" in s ? s.endsAt - 6_000 : 0) }) },
 
   "ctl-intro": { kind: "ctl", build: () => ({ h: start(3), me: "p1" }) },
+  "ctl-setup-host": { kind: "ctl", build: () => ({ h: start(3, CUSTOM), me: "p1", host: true }) },
+  "ctl-setup-host-chips": { kind: "ctl", build: () => ({ h: inSetup(3, ["Städte", "Automarken", "Dinge im Bad", "tiere"]), me: "p1", host: true }) },
+  "ctl-setup-guest": { kind: "ctl", build: () => ({ h: inSetup(3), me: "p2" }) },
+  "ctl-review-lexicon": { kind: "ctl", build: () => ({ h: lexReview(4), me: "p1", at: (s) => ("endsAt" in s ? s.endsAt - 15_000 : 0) }) },
+  "ctl-review-lexicon-8": { kind: "ctl", build: () => ({ h: lexReview(8), me: "p1", at: (s) => ("endsAt" in s ? s.endsAt - 15_000 : 0) }) },
   "ctl-letter": { kind: "ctl", build: () => ({ h: startWith("B", 3), me: "p1" }) },
   "ctl-write": { kind: "ctl", build: () => ({ h: write(3, CLASSIC_B, SETTINGS, 4), me: "p2", at: (s) => ("endsAt" in s ? s.endsAt - 52_000 : 0) }) },
   "ctl-write-empty": { kind: "ctl", build: () => ({ h: toWrite(startWith("B", 3)), me: "p1", at: (s) => ("endsAt" in s ? s.endsAt - 88_000 : 0) }) },
@@ -230,7 +289,10 @@ function main(): void {
     root.textContent = `Unbekannte Szene. Verfügbar: ${Object.keys(SCENES).join(", ")}`;
     return;
   }
-  const { h, me, at, freeze = false } = scene.build();
+  const built = scene.build();
+  const { h, me, at, freeze = false } = built;
+  // Anna (p1) ist Raum-Host (siehe roomPlayers).
+  const host = built.host ?? me === "p1";
   const roomPlayers: Player[] = h.players.map((p, i) => ({ ...p, connected: i !== 2 || h.players.length < 5, isHost: i === 0 }));
   const s = h.lastTv()!;
   const clock = at ? at(s) : "endsAt" in s ? s.endsAt - 5_000 : h.clock.now();
@@ -242,6 +304,14 @@ function main(): void {
     const v = tvView();
     v.mount(root, { ...base, kind: "tv" } satisfies TvViewApi);
     v.update(s);
+    // Attrappe des „Weiter ⏭“-Knopfs von tv-web (Maße wie tv-web/src/styles.css .skip-button) in überspringbaren Phasen.
+    if (["setup", "intro", "review", "standings", "final"].includes(s.phase)) {
+      const skip = document.createElement("div");
+      skip.className = "preview-skip";
+      skip.textContent = "Weiter ⏭";
+      skip.setAttribute("style", "position:absolute;right:3rem;bottom:2.6rem;z-index:20;padding:0.9rem 2.2rem;font-size:1.7rem;font-weight:800;border-radius:99rem;background:rgba(44,37,84,0.92);box-shadow:0 0 0 0.3rem #ffd24d;color:#fff");
+      document.body.appendChild(skip);
+    }
     return;
   }
   const id = me!;
@@ -253,11 +323,19 @@ function main(): void {
     ...base,
     kind: "controller",
     playerId: id,
-    isHost: () => false,
+    isHost: () => host,
     sendInput: (input) => console.log("sendInput", input),
     vibrate: () => {},
   } satisfies ControllerViewApi);
   v.update(h.lastView(id)!);
+  // Attrappe des schwebenden „Weiter“-Knopfs der controller-pwa (nur Host, überspringbare Phasen).
+  if (host && ["setup", "intro", "review", "standings", "final"].includes(s.phase)) {
+    const skip = document.createElement("div");
+    skip.className = "preview-skip";
+    skip.textContent = "Weiter ⏭";
+    skip.setAttribute("style", "position:fixed;right:16px;bottom:16px;z-index:40;min-height:52px;line-height:52px;padding:0 22px;border-radius:999px;background:#ff4d4d;color:#0e1224;font-weight:800");
+    document.body.appendChild(skip);
+  }
 }
 
 main();

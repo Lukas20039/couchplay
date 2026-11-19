@@ -5,8 +5,8 @@
 // Nur Darstellung des empfangenen Zustands – keine Spielregeln.
 import { preactTvView, type TvComponentProps } from "@couchplay/game-sdk/preact";
 import type { Player } from "@couchplay/protocol";
-import { AWARDS, CATEGORY_LABELS, SET_LABELS, STATUS_LABELS, joinNames, t } from "../i18n/de.js";
-import { LETTERS, POINTS, TIMING, type SlEntry, type SlPlayerInfo, type SlProgress, type SlTvState } from "../shared.js";
+import { AWARDS, SET_LABELS, STATUS_LABELS, categoryLabel, joinNames, t } from "../i18n/de.js";
+import { CUSTOM_MIN, LETTERS, POINTS, TIMING, type SlEntry, type SlPlayerInfo, type SlProgress, type SlTvState } from "../shared.js";
 import { avatarEmoji, ensureStyles, playerColor, progress, secondsLeft, useServerNow } from "../ui/common.js";
 import { TV_CSS } from "./styles.js";
 
@@ -36,6 +36,9 @@ function StadtlandTv({ state, api, players }: TvComponentProps<SlTvState>) {
   if (!state) return <div class="sl-tv" />;
   let body;
   switch (state.phase) {
+    case "setup":
+      body = <Setup s={state} now={now} live={players} />;
+      break;
     case "intro":
       body = <Intro s={state} now={now} />;
       break;
@@ -111,6 +114,33 @@ function LetterTile({ letter, cls = "" }: { letter: string; cls?: string }) {
   );
 }
 
+/** Eigene Kategorien: Liste live vom Host-Handy, groß und nummeriert. */
+function Setup({ s, now, live }: { s: S<"setup">; now: number; live: readonly Player[] }) {
+  const host = live.find((p) => p.isHost)?.name ?? null;
+  return (
+    <div class="sl-setup" data-testid="sl-setup">
+      <header class="sl-head">
+        <Logo small />
+        <span class="sl-round">{t.title}</span>
+        <span class="sl-spacer" />
+        <Clock endsAt={s.endsAt} now={now} />
+      </header>
+      <h1 class="sl-title sl-title--mid">{t.tv.setupTitle}</h1>
+      <p class="sl-sub">{t.tv.setupBy(host)}</p>
+      {s.categories.length > 0 ? (
+        <ol class={`sl-catlist sl-setup__list ${s.categories.length > 5 ? "is-six" : ""}`} data-testid="sl-setup-list">
+          {s.categories.map((c, i) => (
+            <li key={i}>{c}</li>
+          ))}
+        </ol>
+      ) : (
+        <p class="sl-setup__empty">{t.tv.setupEmpty}</p>
+      )}
+      <p class={`sl-setup__hint ${s.categories.length >= CUSTOM_MIN ? "is-ok" : ""}`}>{t.tv.setupHint(CUSTOM_MIN)}</p>
+    </div>
+  );
+}
+
 function Intro({ s, now }: { s: S<"intro">; now: number }) {
   return (
     <div class="sl-intro">
@@ -118,8 +148,18 @@ function Intro({ s, now }: { s: S<"intro">; now: number }) {
         <Logo /> {t.title}
       </h1>
       <p class="sl-lead">{t.tv.introLead(s.total, SET_LABELS[s.set])}</p>
-      <ol class="sl-rules">
-        {t.tv.introRules(s.categoryCount, s.durationSeconds).map((r) => (
+      {s.custom && (
+        <div class="sl-intro__custom">
+          <p class="sl-sub">{t.tv.introCustom}</p>
+          <div class="sl-cats sl-cats--still" data-testid="sl-intro-cats">
+            {s.custom.map((c, i) => (
+              <span key={i}>{categoryLabel(c)}</span>
+            ))}
+          </div>
+        </div>
+      )}
+      <ol class={`sl-rules ${s.custom ? "is-compact" : ""}`}>
+        {t.tv.introRules(s.categoryCount, s.durationSeconds, s.check).map((r) => (
           <li key={r}>{r}</li>
         ))}
       </ol>
@@ -158,8 +198,8 @@ function LetterReveal({ s, elapsed }: { s: S<"letter">; elapsed: number }) {
         {s.letter}
       </p>
       <div class="sl-cats" style={at(TIMING.reelMs + 200, elapsed)}>
-        {s.categories.map((c) => (
-          <span key={c}>{CATEGORY_LABELS[c]}</span>
+        {s.categories.map((c, i) => (
+          <span key={i}>{categoryLabel(c)}</span>
         ))}
       </div>
     </div>
@@ -206,8 +246,8 @@ function Write({ s, now, live }: { s: S<"write">; now: number; live: readonly Pl
       <div class="sl-board">
         <LetterTile letter={s.letter} />
         <ol class={`sl-catlist ${s.categories.length > 5 ? "is-six" : ""}`} data-testid="sl-catlist">
-          {s.categories.map((c) => (
-            <li key={c}>{CATEGORY_LABELS[c]}</li>
+          {s.categories.map((c, i) => (
+            <li key={i}>{categoryLabel(c)}</li>
           ))}
         </ol>
       </div>
@@ -248,6 +288,7 @@ function Review({ s, now, live }: { s: S<"review">; now: number; live: readonly 
   const sharedKeys = [...new Set(s.entries.filter((e) => e.shared).map((e) => e.key))];
   const dense = s.entries.length > 4;
   const anyValid = s.entries.some((e) => e.needed !== null);
+  const anyRescue = s.entries.some((e) => e.needed !== null && !e.preset);
   const readyCount = s.ready.length;
   return (
     <>
@@ -258,7 +299,7 @@ function Review({ s, now, live }: { s: S<"review">; now: number; live: readonly 
         <Clock endsAt={s.endsAt} now={now} />
       </header>
       <h2 class="sl-category" data-testid="sl-category">
-        {CATEGORY_LABELS[category]}
+        {categoryLabel(category)}
       </h2>
       <div class={`sl-entries ${dense ? "is-dense" : ""}`} key={`c${s.index}`} data-testid="sl-entries">
         {s.entries.map((e, i) => {
@@ -267,7 +308,7 @@ function Review({ s, now, live }: { s: S<"review">; now: number; live: readonly 
         })}
       </div>
       <footer class="sl-foot">
-        <span>{anyValid ? t.tv.reviewHint : t.tv.reviewEmpty}</span>
+        <span>{anyRescue ? t.tv.reviewHintRescue : anyValid ? t.tv.reviewHint : t.tv.reviewEmpty}</span>
         <span class="sl-spacer" />
         {anyValid && <span>{t.tv.readyLabel(readyCount, s.entries.length)}</span>}
       </footer>
@@ -278,25 +319,37 @@ function Review({ s, now, live }: { s: S<"review">; now: number; live: readonly 
 
 function Entry({ e, p, i, group, off, ready }: { e: SlEntry; p: SlPlayerInfo; i: number; group: number; off: boolean; ready: boolean }) {
   const reason = STATUS_LABELS[e.status];
+  const rescued = e.status === "ok" && !e.preset;
+  // Rettbare Antworten zeigen ihren Stand immer (auch 0 Stimmen), anfechtbare erst ab der ersten Stimme.
+  const showVotes = e.needed !== null && (e.votes > 0 || !e.preset);
   return (
     <div
-      class={`sl-entry is-${e.status} ${group >= 0 ? `is-group g${group % 4}` : ""}`}
+      class={`sl-entry is-${e.status} ${rescued ? "is-rescued" : ""} ${group >= 0 ? `is-group g${group % 4}` : ""}`}
       style={{ "--c": playerColor(p.color), animationDelay: `${i * 70}ms` }}
       data-testid={`sl-entry-${p.id}`}
       data-status={e.status}
+      data-lexicon={e.lexicon ?? "none"}
+      data-rescued={rescued ? "true" : undefined}
     >
       <Avatar p={p} cls={off ? "is-off" : ""} badge={ready ? "✅" : undefined} />
       <span class="sl-entry__body">
-        <small>{p.name}</small>
+        <small>
+          {p.name}
+          {e.lexicon === "known" && <b class="sl-lex is-known">{t.tv.lexiconKnown}</b>}
+          {/* Wie am Handy: gestrichen bzw. nur markiert → „nicht im Lexikon“; gerettet zeigt nur das Gerettet-Etikett. */}
+          {e.lexicon === "unknown" && !rescued && <b class="sl-lex is-unknown">{e.status === "unlisted" ? reason : t.tv.lexiconUnknown}</b>}
+        </small>
         <span class="sl-entry__text">{e.text || t.controller.noAnswer}</span>
       </span>
       <span class="sl-entry__side">
-        {reason && <span class="sl-reason">{reason}</span>}
+        {/* „nicht im Lexikon“ steht schon in der Namenszeile – die Seitenspalte bleibt schmal für lange Antworten. */}
+        {reason && e.status !== "unlisted" && <span class="sl-reason">{reason}</span>}
+        {rescued && <span class="sl-tag sl-tag--rescued">{t.tv.rescuedTag}</span>}
         {e.shared && <span class="sl-tag">{t.tv.sharedTag}</span>}
         {e.points === POINTS.solo && <span class="sl-tag sl-tag--solo">{t.tv.soloTag}</span>}
-        {e.needed !== null && e.votes > 0 && (
-          <span class="sl-votes" data-testid={`sl-votes-${p.id}`}>
-            {t.tv.votes(e.votes, e.needed)}
+        {showVotes && (
+          <span class={`sl-votes ${e.preset ? "" : "sl-votes--up"}`} data-testid={`sl-votes-${p.id}`}>
+            {e.preset ? t.tv.votes(e.votes, e.needed!) : t.tv.rescueVotes(e.votes, e.needed!)}
           </span>
         )}
         <span class={`sl-pts ${e.points > 0 ? "is-on" : ""}`}>{e.points > 0 ? t.plus(e.points) : "0"}</span>

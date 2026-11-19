@@ -55,6 +55,19 @@ export const TV_CSS = /* css */ `
 .sl-rules li { margin-top: 0.8rem; }
 .sl-starts { margin-top: 2rem !important; font-size: 2.2rem; color: var(--sl-dim); }
 .sl-starts b { color: var(--sl-accent); font-size: 3rem; margin-left: 0.6rem; }
+.sl-rules.is-compact { margin-top: 1.2rem !important; font-size: 1.9rem; }
+.sl-rules.is-compact li { margin-top: 0.5rem; }
+.sl-intro__custom { display: flex; flex-direction: column; align-items: center; margin-top: 1rem; }
+.sl-cats--still { margin-top: 0.6rem; animation: none; }
+
+/* Eigene Kategorien festlegen */
+.sl-setup { display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; }
+.sl-setup .sl-head .sl-logo { margin-right: 0; }
+.sl-setup__list { margin-top: 2.4rem !important; flex: none; }
+.sl-setup__list li { animation: sl-slide 0.35s both; }
+.sl-setup__empty { margin-top: 6rem !important; font-size: 3rem; font-weight: 800; color: var(--sl-dim); }
+.sl-setup__hint { margin-top: auto !important; font-size: 2rem; font-weight: 700; color: #ffb3bd; }
+.sl-setup__hint.is-ok { color: var(--sl-dim); }
 .sl-avatars { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 2rem; }
 .sl-avatars__item, .sl-strip__item { display: flex; flex-direction: column; align-items: center; margin: 0 1rem; }
 .sl-avatars__item small, .sl-strip__item small { font-size: 1.5rem; font-weight: 700; margin-top: 0.5rem; max-width: 10rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -162,6 +175,14 @@ export const TV_CSS = /* css */ `
 .sl-tag { background: rgba(255,255,255,0.12); color: #e6fff8; }
 .sl-tag--solo { background: var(--sl-gold); color: #2a2000; }
 .sl-votes { background: rgba(255,90,110,0.28); color: #fff; }
+.sl-votes--up { background: rgba(61,220,132,0.3); }
+.sl-tag--rescued { background: var(--sl-good); color: #06281a; }
+.sl-lex { font-weight: 800; margin-left: 0.8rem; }
+.sl-lex.is-known { color: var(--sl-good); }
+.sl-lex.is-unknown { color: #ffc46b; }
+.sl-entry.is-unlisted { opacity: 0.8; box-shadow: inset 0.6rem 0 0 var(--c), inset 0 0 0 0.3rem rgba(255,179,71,0.75); }
+.sl-entry.is-unlisted .sl-entry__text { text-decoration: line-through; color: #ffd59a; }
+.sl-entry.is-rescued { box-shadow: inset 0.6rem 0 0 var(--c), inset 0 0 0 0.3rem var(--sl-good), 0 0 2rem rgba(61,220,132,0.35); }
 .sl-entry.is-empty, .sl-entry.is-letter, .sl-entry.is-short { opacity: 0.5; }
 .sl-entry.is-letter .sl-entry__text, .sl-entry.is-short .sl-entry__text { text-decoration: line-through; }
 .sl-entry.is-empty .sl-entry__text { color: var(--sl-dim); }
@@ -180,6 +201,10 @@ export const TV_CSS = /* css */ `
 .sl-entries.is-dense .sl-pts { font-size: 2.5rem; }
 .sl-entries.is-dense .sl-reason, .sl-entries.is-dense .sl-tag, .sl-entries.is-dense .sl-votes { font-size: 1.3rem; }
 .sl-foot { width: 100%; display: flex; align-items: center; margin-top: 1.4rem; font-size: 1.9rem; font-weight: 700; color: var(--sl-dim); flex: none; }
+/* Unten rechts liegt der „Weiter ⏭“-Knopf von tv-web (right 3rem, bottom 2.6rem, ca. 14 × 4 rem) – in der
+   überspringbaren Prüfung bleiben Fußzeile und Zeitbalken dort frei. */
+.sl-tv--review .sl-foot { padding-right: 16rem; }
+.sl-tv--review > .sl-timebar { width: auto; align-self: stretch; margin-right: 16rem; }
 
 /* Rangliste */
 .sl-list { list-style: none; padding: 0; margin-top: 2rem !important; width: 74rem; }
@@ -217,9 +242,9 @@ export const TV_CSS = /* css */ `
 .sl-step.r2 .sl-step__block { height: 9rem; }
 .sl-step.r3 .sl-step__block { height: 6rem; }
 .sl-podium.is-compact { margin-top: 2.4rem; }
-.sl-podium.is-compact .sl-step.r1 .sl-step__block { height: 9rem; }
-.sl-podium.is-compact .sl-step.r2 .sl-step__block { height: 6rem; }
-.sl-podium.is-compact .sl-step.r3 .sl-step__block { height: 4.6rem; }
+.sl-podium.is-compact .sl-step.r1 .sl-step__block { height: 7.6rem; }
+.sl-podium.is-compact .sl-step.r2 .sl-step__block { height: 5.4rem; }
+.sl-podium.is-compact .sl-step.r3 .sl-step__block { height: 4.2rem; }
 .sl-podium.is-compact .sl-step__block { font-size: 3.4rem; padding-top: 0.4rem; }
 .sl-step.r1 { animation-delay: 0.6s; }
 .sl-step.r2 { animation-delay: 0.3s; }
@@ -242,7 +267,8 @@ export const TV_CSS = /* css */ `
 .sl-award__text b { font-size: 1.6rem; color: var(--sl-gold); white-space: nowrap; }
 .sl-award__who { font-size: 2rem; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sl-award__text small { font-size: 1.5rem; color: var(--sl-dim); }
-.sl-finalbar { width: 60rem; height: 0.8rem; border-radius: 1rem; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 1.4rem; flex: none; }
+/* Abstand nach unten: Die (bis zu drei) Auszeichnungen reichen sonst in den „Weiter ⏭“-Knopf von tv-web. */
+.sl-finalbar { width: 60rem; height: 0.8rem; border-radius: 1rem; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 1.4rem; margin-bottom: 3.2rem; flex: none; }
 .sl-finalbar span { display: block; height: 100%; background: var(--sl-accent); transform-origin: left center; transition: transform 0.25s linear; }
 
 @keyframes sl-pop { from { transform: scale(0.5); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -255,6 +281,6 @@ export const TV_CSS = /* css */ `
 @keyframes sl-rise { from { transform: translateY(8rem); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .sl-reel__strip, .sl-reel__glow, .sl-cats, .sl-board .sl-tile, .sl-stop, .sl-stop__word, .sl-stop__count, .sl-timeup__word,
-  .sl-entry, .sl-category, .sl-row, .sl-step, .sl-chip, .sl-award, .sl-av.is-done, .sl-clock.is-hurry { animation-duration: 0.01ms; }
+  .sl-entry, .sl-category, .sl-row, .sl-setup__list li, .sl-step, .sl-chip, .sl-award, .sl-av.is-done, .sl-clock.is-hurry { animation-duration: 0.01ms; }
 }
 `;

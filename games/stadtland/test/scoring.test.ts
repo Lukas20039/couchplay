@@ -1,7 +1,7 @@
 // Reine Regeln: Normalisierung, automatische Prüfung, Wertung einer Kategorie, Auswahl von Kategorien/Buchstaben.
 import { createRng } from "@couchplay/game-sdk";
 import { describe, expect, it } from "vitest";
-import { ANSWER_MAX, CATEGORY_IDS, LETTERS, SETS, type CategoryId } from "../src/constants.js";
+import { ANSWER_MAX, CATEGORY_IDS, LETTERS, SETS, type CategoryId, type CheckMode } from "../src/constants.js";
 import { CATEGORY_LABELS, SET_LABELS } from "../src/i18n/de.js";
 import { answerKey, checkAnswer, cleanAnswer } from "../src/normalize.js";
 import { computeAwards, neededVotes, pickCategories, pickLetter, scoreCategory } from "../src/scoring.js";
@@ -109,6 +109,126 @@ describe("Wertung einer Kategorie", () => {
       [null, "ok"],
     ]);
     expect([0, 1, 2, 3, 7].map(neededVotes)).toEqual([null, 1, 2, 2, 4]);
+  });
+});
+
+describe("Lexikon-Voreinstellung", () => {
+  const ids = ["p1", "p2", "p3", "p4"];
+  type Lex = "known" | "unknown" | null;
+  const score = (rows: Array<[string, Lex]>, mode: CheckMode, challenges = new Map<string, Set<string>>(), voters = ids.slice(0, rows.length)) =>
+    scoreCategory(
+      rows.map(([text, lexicon], i) => ({ playerId: ids[i]!, text, lexicon })),
+      "B",
+      challenges,
+      voters,
+      mode,
+    );
+  const view = (e: ReturnType<typeof score>) => e.map((x) => [x.status, x.preset, x.lexicon, x.points]);
+
+  it("known/unknown/null × streng/hinweis/aus", () => {
+    const rows: Array<[string, Lex]> = [
+      ["Bonn", "known"],
+      ["Bxyz", "unknown"],
+      ["Bla", null],
+    ];
+    // streng: Unbekanntes zunächst gestrichen → zählt nicht für „einzig“.
+    expect(view(score(rows, "streng"))).toEqual([
+      ["ok", true, "known", 10],
+      ["unlisted", false, "unknown", 0],
+      ["ok", true, null, 10],
+    ]);
+    // hinweis: nur markiert, zählt.
+    expect(view(score(rows, "hinweis"))).toEqual([
+      ["ok", true, "known", 10],
+      ["ok", true, "unknown", 10],
+      ["ok", true, null, 10],
+    ]);
+    // aus: Lexikon wird ignoriert (auch nicht angezeigt).
+    expect(view(score(rows, "aus"))).toEqual([
+      ["ok", true, null, 10],
+      ["ok", true, null, 10],
+      ["ok", true, null, 10],
+    ]);
+    // Standardmodus ist „streng“; automatisch Ungültiges bekommt nie ein Lexikon-Ergebnis.
+    expect(scoreCategory([{ playerId: "p1", text: "Hamburg", lexicon: "unknown" }], "B", new Map(), ["p1"])[0]).toMatchObject({ status: "letter", lexicon: null });
+  });
+
+  it("Rettung per Mehrheit 👍; Punkte richten sich nach dem Endergebnis", () => {
+    const rows: Array<[string, Lex]> = [
+      ["Bonn", "known"],
+      ["Bxyz", "unknown"],
+      ["", null],
+    ];
+    // p2 allein mit Unbekanntem: p1 ist mit Bonn einzig gültig → 20.
+    expect(view(score(rows, "streng"))).toEqual([
+      ["ok", true, "known", 20],
+      ["unlisted", false, "unknown", 0],
+      ["empty", true, null, 0],
+    ]);
+    // Stimmberechtigt für „Bxyz“: p1, p3 → 2 Stimmen nötig.
+    const one = score(rows, "streng", new Map([["bxyz", new Set(["p1"])]]));
+    expect([one[1]!.status, one[1]!.votes, one[1]!.needed]).toEqual(["unlisted", 1, 2]);
+    const two = score(rows, "streng", new Map([["bxyz", new Set(["p1", "p3"])]]));
+    expect(view(two)).toEqual([
+      ["ok", true, "known", 10],
+      ["ok", false, "unknown", 10],
+      ["empty", true, null, 0],
+    ]);
+    // Gerettete gleiche Antworten teilen sich die 5 Punkte.
+    const shared = score(
+      [
+        ["Bxyz", "unknown"],
+        ["bxyz!", "unknown"],
+        ["", null],
+      ],
+      "streng",
+      new Map([["bxyz", new Set(["p3"])]]),
+    );
+    expect(view(shared).slice(0, 2)).toEqual([
+      ["ok", false, "unknown", 5],
+      ["ok", false, "unknown", 5],
+    ]);
+  });
+
+  it("👎 streicht auch Bekanntes; ohne Stimmberechtigte bleibt die Voreinstellung", () => {
+    const e = score(
+      [
+        ["Bonn", "known"],
+        ["Bremen", null],
+      ],
+      "streng",
+      new Map([["bonn", new Set(["p2"])]]),
+    );
+    expect(view(e)).toEqual([
+      ["rejected", true, "known", 0],
+      ["ok", true, null, 20],
+    ]);
+    // Beide haben dasselbe Unbekannte: niemand darf abstimmen → bleibt gestrichen.
+    const same = score(
+      [
+        ["Bxyz", "unknown"],
+        ["Bxyz", "unknown"],
+      ],
+      "streng",
+    );
+    expect(same.map((x) => [x.status, x.needed])).toEqual([
+      ["unlisted", null],
+      ["unlisted", null],
+    ]);
+  });
+
+  it("Gruppe gilt als bekannt, sobald eine Schreibweise bekannt ist", () => {
+    const e = score(
+      [
+        ["Der Bodensee", "unknown"],
+        ["bodensee", "known"],
+      ],
+      "streng",
+    );
+    expect(e.map((x) => [x.status, x.lexicon, x.points])).toEqual([
+      ["ok", "known", 5],
+      ["ok", "known", 5],
+    ]);
   });
 });
 

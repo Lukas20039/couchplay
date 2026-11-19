@@ -1,17 +1,22 @@
 // Spielablauf über createTestHarness (fester Seed, virtuelle Uhr).
+// Die echten Wortlisten werden hier nicht geladen (vi.mock): Standard-Lexikon „nicht prüfbar“, damit die
+// Ablauf-Tests unabhängig von den Listen bleiben. Lexikon-Fälle nutzen createStadtlandGame(fake).
 import { createTestHarness, type GameHarness } from "@couchplay/game-sdk/testing";
 import type { SettingsValues } from "@couchplay/protocol";
-import { describe, expect, it } from "vitest";
-import { ANSWER_MAX, LETTERS, SETS } from "../src/constants.js";
-import game from "../src/server/index.js";
-import { TIMING, type SlPlayerView, type SlResultData, type SlTvState } from "../src/shared.js";
+import { describe, expect, it, vi } from "vitest";
+import { ANSWER_MAX, LETTERS, SETS, type CategoryId } from "../src/constants.js";
+import { answerKey } from "../src/normalize.js";
+import game, { createStadtlandGame, type LexiconLookup } from "../src/server/index.js";
+import { TIMING, type SlLexicon, type SlPlayerView, type SlResultData, type SlTvState } from "../src/shared.js";
+
+vi.mock("../src/server/lexicon/index.js", () => ({ lookupAnswer: () => null, LEXICON_CATEGORIES: new Set() }));
 
 type H = GameHarness<SlTvState, SlPlayerView>;
-const SETTINGS: SettingsValues = { rounds: 3, roundSeconds: 60, categoryCount: 6, set: "klassisch" };
+const SETTINGS: SettingsValues = { rounds: 3, roundSeconds: 60, categoryCount: 6, set: "klassisch", check: "streng" };
 const ROUND_MS = 60_000;
 
-const setup = (players = 3, settings: SettingsValues = SETTINGS, seed = 7): H =>
-  createTestHarness<SlTvState, SlPlayerView>(game, { players, settings: { ...SETTINGS, ...settings }, seed });
+const setup = (players = 3, settings: SettingsValues = SETTINGS, seed = 7, g = game): H =>
+  createTestHarness<SlTvState, SlPlayerView>(g, { players, settings: { ...SETTINGS, ...settings }, seed });
 const tv = (h: H) => h.lastTv()!;
 const phase = (h: H) => tv(h).phase;
 const view = (h: H, id: string) => h.lastView(id)!;
@@ -55,12 +60,13 @@ describe("Ablauf", () => {
   it("Intro → Buchstabe → Schreiben → Stifte weg → Prüfung je Kategorie → Zwischenstand … → Finale → Ergebnis", () => {
     const h = setup(3);
     expect(phase(h)).toBe("intro");
-    expect(as(h, "intro").set).toBe("klassisch");
+    expect(as(h, "intro")).toMatchObject({ set: "klassisch", check: "streng", custom: null, categoryCount: 6 });
     h.advance(TIMING.introMs);
     const letters: string[] = [];
     for (let r = 0; r < 3; r++) {
       const l = as(h, "letter");
-      expect([l.round, l.total, l.categories]).toEqual([r, 3, ["stadt", "land", "fluss", "name", "beruf", "tier"]]);
+      expect([l.round, l.total, l.categories.map((c) => c.id)]).toEqual([r, 3, ["stadt", "land", "fluss", "name", "beruf", "tier"]]);
+      expect(l.categories.every((c) => c.custom === null)).toBe(true);
       letters.push(l.letter);
       h.advance(TIMING.letterMs);
       expect(as(h, "write").durationMs).toBe(ROUND_MS);
@@ -91,7 +97,7 @@ describe("Ablauf", () => {
     const h = toWrite(setup(2, { set: "essen", categoryCount: 5, roundSeconds: 120, rounds: 3 }));
     const w = as(h, "write");
     expect(w.categories).toHaveLength(5);
-    for (const c of w.categories) expect(SETS.essen).toContain(c);
+    for (const c of w.categories) expect(SETS.essen).toContain(c.id);
     expect(w.durationMs).toBe(120_000);
     expect(viewAs(h, "p1", "write").categories).toEqual(w.categories);
   });
@@ -362,6 +368,189 @@ describe("Abgang und Reconnect", () => {
     h.leave("p1");
     h.leave("p2");
     expect(phase(h)).toBe("final");
+  });
+});
+
+describe("Lexikon-Prüfung", () => {
+  /** Fake-Lexikon: Antworten mit „ok“ am Ende sind bekannt, alles andere unbekannt; jede Kategorie prüfbar. */
+  const calls: Array<[CategoryId, string]> = [];
+  const fake: LexiconLookup = (category, text): SlLexicon => {
+    calls.push([category, text]);
+    return answerKey(text).endsWith("ok") ? "known" : "unknown";
+  };
+  const lexGame = createStadtlandGame(fake);
+  const play = (check: string, players = 3) => toWrite(setup(players, { check }, 7, lexGame));
+
+  it("streng: Unbekanntes ist zunächst gestrichen, die Mehrheit der Nicht-Autoren rettet es (👍)", () => {
+    const h = play("streng");
+    const L = letterOf(h);
+    send(h, "p1", [`${L}aok`]);
+    send(h, "p2", [`${L}xyz`]);
+    toReview(h);
+    // Rettungskandidat → normale Prüfdauer.
+    expect(as(h, "review").durationMs).toBe(TIMING.reviewMs);
+    expect([entry(h, "p1").status, entry(h, "p1").lexicon, entry(h, "p1").points]).toEqual(["ok", "known", 20]);
+    expect(entry(h, "p2")).toMatchObject({ status: "unlisted", preset: false, lexicon: "unknown", votes: 0, needed: 2, points: 0 });
+    // p1 und p3 dürfen abstimmen, p2 nicht (eigene Antwort).
+    expect(viewAs(h, "p1", "review").entries.find((e) => e.playerId === "p2")).toMatchObject({ canVote: true, preset: false });
+    expect(viewAs(h, "p2", "review").entries.find((e) => e.playerId === "p2")!.canVote).toBe(false);
+    const key = entry(h, "p2").key;
+    challenge(h, "p2", key);
+    challenge(h, "p1", key);
+    expect([entry(h, "p2").status, entry(h, "p2").votes]).toEqual(["unlisted", 1]);
+    challenge(h, "p3", key);
+    expect(entry(h, "p2")).toMatchObject({ status: "ok", preset: false, votes: 2, points: 10 });
+    expect(entry(h, "p1").points).toBe(10);
+    // Zurücknehmen streicht wieder.
+    challenge(h, "p3", key, false);
+    expect(entry(h, "p2").status).toBe("unlisted");
+    challenge(h, "p3", key);
+    for (let i = 0; i < 6 && phase(h) === "review"; i++) h.skip();
+    expect(as(h, "standings").players.map((p) => [p.id, p.score])).toEqual([
+      ["p1", 10],
+      ["p2", 10],
+      ["p3", 0],
+    ]);
+  });
+
+  it("👍-Rettungen zählen nicht für „Strengste Jury“, 👎 schon", () => {
+    const h = play("streng", 2);
+    const L = letterOf(h);
+    send(h, "p1", [`${L}xyz`, `${L}aok`]);
+    toReview(h);
+    challenge(h, "p2", entry(h, "p1").key);
+    expect(entry(h, "p1").status).toBe("ok");
+    h.skip();
+    challenge(h, "p2", entry(h, "p1").key);
+    expect(entry(h, "p1").status).toBe("rejected");
+    for (let i = 0; i < 300 && phase(h) !== "final"; i++) if (!h.skip()) h.advance(1_000);
+    expect(as(h, "final").awards.find((a) => a.kind === "judge")).toEqual({ kind: "judge", playerIds: ["p2"], count: 1 });
+  });
+
+  it("hinweis: Unbekanntes zählt, ist aber markiert; aus: Lexikon wird gar nicht gefragt", () => {
+    const h = play("hinweis");
+    const L = letterOf(h);
+    send(h, "p1", [`${L}xyz`]);
+    toReview(h);
+    expect(entry(h, "p1")).toMatchObject({ status: "ok", preset: true, lexicon: "unknown", points: 20 });
+
+    calls.length = 0;
+    const off = play("aus");
+    send(off, "p1", [`${letterOf(off)}xyz`]);
+    toReview(off);
+    expect(entry(off, "p1")).toMatchObject({ status: "ok", lexicon: null, points: 20 });
+    expect(calls).toEqual([]);
+  });
+
+  it("nur automatisch gültige Antworten werden nachgeschlagen (gecacht)", () => {
+    calls.length = 0;
+    const h = play("streng");
+    const L = letterOf(h);
+    const other = L === "A" ? "B" : "A";
+    send(h, "p1", [`${L}xyz`]);
+    send(h, "p2", [`${other}xyz`]);
+    toReview(h);
+    challenge(h, "p3", entry(h, "p1").key);
+    expect(calls).toEqual([["stadt", `${L}xyz`]]);
+    expect(entry(h, "p2")).toMatchObject({ status: "letter", lexicon: null });
+  });
+});
+
+describe("Eigene Kategorien (setup)", () => {
+  const CUSTOM: SettingsValues = { set: "eigene" };
+  const custom = (h: H, id: string, categories: string[], done = false) => h.input(id, { type: "custom", categories, done });
+  const calls: Array<[CategoryId, string]> = [];
+  const lexGame = createStadtlandGame((category, text) => {
+    calls.push([category, text]);
+    return "unknown";
+  });
+
+  it("Setup vor dem Intro: Liste live auf TV und Handys, bereinigt; „Los geht’s“ erst ab 3 Einträgen", () => {
+    const h = setup(3, CUSTOM);
+    expect(as(h, "setup")).toMatchObject({ categories: [], durationMs: TIMING.setupMs });
+    expect(viewAs(h, "p2", "setup").categories).toEqual([]);
+    expect(custom(h, "p1", ["  Städte ", "Automarken", "automarken!"]).ok).toBe(true);
+    expect(as(h, "setup").categories).toEqual(["Städte", "Automarken"]);
+    expect(viewAs(h, "p3", "setup").categories).toEqual(["Städte", "Automarken"]);
+    // Zu wenige → done wirkungslos.
+    custom(h, "p1", ["Städte", "Automarken", ""], true);
+    expect(phase(h)).toBe("setup");
+    // Zu viele bzw. zu lange Rohtexte → INVALID_INPUT; lange Namen werden gekürzt.
+    expect(custom(h, "p1", Array(7).fill("x")).ok).toBe(false);
+    expect(custom(h, "p1", ["x".repeat(121)]).ok).toBe(false);
+    custom(h, "p1", ["Städte", "Automarken", "Dinge im Bad, die man nie benutzt", "Tiere"]);
+    expect(as(h, "setup").categories).toEqual(["Städte", "Automarken", "Dinge im Bad, die man nie be", "Tiere"]);
+    // Jeder Spieler darf senden (Server kennt den Host nicht) – nur das Host-Handy zeigt den Editor.
+    custom(h, "p2", ["Städte", "Automarken", "Tiere"], true);
+    const intro = as(h, "intro");
+    expect(intro.categoryCount).toBe(3);
+    expect(intro.custom).toEqual([
+      { id: "stadt", custom: "Städte" },
+      { id: null, custom: "Automarken" },
+      { id: "tier", custom: "Tiere" },
+    ]);
+    // Nach dem Setup ist custom wirkungslos.
+    custom(h, "p1", ["A1", "B2", "C3"], true);
+    expect(as(h, "intro").custom).toHaveLength(3);
+  });
+
+  it("jede Runde spielt alle eigenen Kategorien (categoryCount egal); Lexikon nur für abgebildete", () => {
+    calls.length = 0;
+    const h = setup(2, { ...CUSTOM, categoryCount: 5, rounds: 3 }, 7, lexGame);
+    custom(h, "p1", ["Städte", "Automarken", "Tiere", "Vorname"], true);
+    h.skip();
+    h.advance(TIMING.letterMs);
+    const w = as(h, "write");
+    expect(w.categories.map((c) => [c.id, c.custom])).toEqual([
+      ["stadt", "Städte"],
+      [null, "Automarken"],
+      ["tier", "Tiere"],
+      ["name", "Vorname"],
+    ]);
+    expect(viewAs(h, "p1", "write").answers).toHaveLength(4);
+    const L = letterOf(h);
+    send(h, "p1", [`${L}eins`, `${L}zwei`, `${L}drei`, `${L}vier`]);
+    toReview(h);
+    expect(entry(h, "p1").status).toBe("unlisted");
+    h.skip();
+    // „Automarken“ ist nicht prüfbar → gilt wie bisher.
+    expect(entry(h, "p1")).toMatchObject({ status: "ok", lexicon: null });
+    h.skip();
+    h.skip();
+    expect(calls).toEqual([
+      ["stadt", `${L}eins`],
+      ["tier", `${L}drei`],
+      ["name", `${L}vier`],
+    ]);
+    h.skip();
+    expect(as(h, "standings").categories).toHaveLength(4);
+    h.skip();
+    expect(as(h, "letter").categories.map((c) => c.custom)).toEqual(["Städte", "Automarken", "Tiere", "Vorname"]);
+  });
+
+  it("Zeit abgelaufen: zuletzt empfangene Liste; nie etwas (oder < 3) → Klassisch; überspringbar", () => {
+    const h = setup(2, CUSTOM);
+    custom(h, "p1", ["Automarken", "Dinge im Bad", "Ausreden"]);
+    h.advance(TIMING.setupMs - 1);
+    expect(phase(h)).toBe("setup");
+    h.advance(1);
+    expect(as(h, "intro").custom!.map((c) => c.custom)).toEqual(["Automarken", "Dinge im Bad", "Ausreden"]);
+
+    const none = setup(2, CUSTOM);
+    none.advance(TIMING.setupMs);
+    expect(as(none, "intro").custom).toEqual(SETS.klassisch.map((id) => ({ id, custom: null })));
+
+    const few = setup(2, CUSTOM);
+    custom(few, "p1", ["Automarken", "Tiere"]);
+    expect(few.skip()).toBe(true);
+    expect(as(few, "intro").custom!.map((c) => c.id)).toEqual(["stadt", "land", "fluss", "name", "beruf", "tier"]);
+  });
+
+  it("Ergebnisdaten enthalten die eigenen Kategorien", () => {
+    const h = setup(2, { ...CUSTOM, rounds: 3 });
+    custom(h, "p1", ["Automarken", "Dinge im Bad", "Tiere"], true);
+    for (let i = 0; i < 2000 && !h.results; i++) if (!h.skip()) h.advance(1_000);
+    expect(h.results!.data).toMatchObject({ set: "eigene", check: "streng", custom: ["Automarken", "Dinge im Bad", "Tiere"] });
   });
 });
 

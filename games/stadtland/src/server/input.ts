@@ -8,6 +8,13 @@ const category = z.number().int().min(0).max(MAX_CATEGORIES - 1);
 
 export const SlInputSchema: z.ZodType<SlInput> = z.discriminatedUnion("type", [
   z.object({
+    type: z.literal("custom"),
+    // Rohtext großzügig begrenzen; der Server bereinigt, kürzt auf CUSTOM_NAME_MAX und entfernt Doppelte/Leere.
+    // Während des Tippens sind auch weniger als CUSTOM_MIN Einträge erlaubt (Live-Anzeige am TV).
+    categories: z.array(z.string().max(120)).max(MAX_CATEGORIES),
+    done: z.boolean(),
+  }),
+  z.object({
     type: z.literal("answers"),
     round,
     // Rohtext großzügig begrenzen; der Server bereinigt und kürzt auf ANSWER_MAX.

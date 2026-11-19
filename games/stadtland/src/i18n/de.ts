@@ -1,6 +1,6 @@
 // Alle Texte von „Stadt, Land, Fluss“ (TV- und Controller-View gemeinsam).
-import type { CategoryId, SetId } from "../constants.js";
-import type { SlAwardKind, SlStatus } from "../shared.js";
+import type { CategoryId, CheckMode, SetId } from "../constants.js";
+import type { SlAwardKind, SlCategory, SlStatus } from "../shared.js";
 
 export const CATEGORY_LABELS: Record<CategoryId, string> = {
   stadt: "Stadt",
@@ -45,7 +45,14 @@ export const SET_LABELS: Record<SetId, string> = {
   popkultur: "Popkultur",
   quatsch: "Quatsch",
   gemischt: "Bunt gemischt",
+  eigene: "Eigene Kategorien",
 };
+
+/** Anzeigename einer Runden-Kategorie: eigener Name bzw. Text der eingebauten Kategorie. */
+export const categoryLabel = (c: SlCategory): string => (c.custom === null ? CATEGORY_LABELS[c.id] : c.custom);
+
+/** Vorbelegung des Editors für eigene Kategorien (ohne gespeicherte Liste am Host-Handy). */
+export const CUSTOM_DEFAULTS: readonly string[] = ["Stadt", "Land", "Fluss", "Name", "Beruf", "Tier"];
 
 /** Kurzer Grund, warum eine Antwort nicht zählt (null = zählt). */
 export const STATUS_LABELS: Record<SlStatus, string | null> = {
@@ -54,6 +61,14 @@ export const STATUS_LABELS: Record<SlStatus, string | null> = {
   short: "zu kurz",
   letter: "falscher Buchstabe",
   rejected: "gestrichen",
+  unlisted: "nicht im Lexikon",
+};
+
+/** Zusatzzeile der Intro-Regeln zur Lexikon-Prüfung (null = keine). */
+const LEXICON_RULE: Record<CheckMode, string | null> = {
+  streng: "Das Lexikon prüft mit: Unbekanntes ist erst mal gestrichen – mit Mehrheit 👍 rettet ihr es.",
+  hinweis: "Das Lexikon markiert unbekannte Antworten – ob sie zählen, entscheidet ihr.",
+  aus: null,
 };
 
 const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
@@ -81,13 +96,20 @@ export const t = {
 
   tv: {
     introLead: (rounds: number, set: string) => `${rounds} Runden · ${set}`,
-    introRules: (categories: number, seconds: number) => [
-      `Ein Buchstabe, ${categories} Kategorien, ${seconds} Sekunden – tippt eure Antworten am Handy.`,
-      "Wer alles ausgefüllt hat, ruft „Stopp!“ – dann bleiben allen nur noch 5 Sekunden.",
-      "Einzigartig: 10 Punkte · doppelt: 5 · als Einzige:r in der Kategorie: 20.",
-      "Danach prüft ihr gemeinsam: Daumen runter für Antworten, die nicht zählen sollen.",
-    ],
+    introRules: (categories: number, seconds: number, check: CheckMode) =>
+      [
+        `Ein Buchstabe, ${categories} Kategorien, ${seconds} Sekunden – tippt eure Antworten am Handy.`,
+        "Wer alles ausgefüllt hat, ruft „Stopp!“ – dann bleiben allen nur noch 5 Sekunden.",
+        "Einzigartig: 10 Punkte · doppelt: 5 · als Einzige:r in der Kategorie: 20.",
+        "Danach prüft ihr gemeinsam: Daumen runter für Antworten, die nicht zählen sollen.",
+        LEXICON_RULE[check],
+      ].filter((r): r is string => r !== null),
+    introCustom: "Eure Kategorien – in jeder Runde:",
     startsIn: "Gleich geht’s los",
+    setupTitle: "Eigene Kategorien",
+    setupBy: (host: string | null) => (host ? `${host} legt die Kategorien fest …` : "Die Kategorien werden am Host-Handy festgelegt …"),
+    setupEmpty: "Noch keine Kategorien …",
+    setupHint: (min: number) => `Mindestens ${min} Kategorien – sonst wird klassisch gespielt.`,
     letterLead: "Der Buchstabe ist …",
     secondsLeft: (n: number) => `Noch ${n} Sekunden`,
     filled: (n: number, of: number) => `${n}/${of}`,
@@ -98,8 +120,13 @@ export const t = {
     timeUpStop: (name: string) => `${name} war am schnellsten`,
     reviewOf: (i: number, n: number) => `Kategorie ${i + 1} / ${n}`,
     reviewHint: "Am Handy: 👎 für Antworten, die nicht zählen sollen",
+    reviewHintRescue: "Am Handy: 👎 streicht · 👍 rettet, was das Lexikon nicht kennt",
     reviewEmpty: "Niemand hat hier eine gültige Antwort.",
     votes: (n: number, needed: number) => `👎 ${n}/${needed}`,
+    rescueVotes: (n: number, needed: number) => `👍 ${n}/${needed}`,
+    lexiconKnown: "✓ im Lexikon",
+    lexiconUnknown: "nicht im Lexikon",
+    rescuedTag: "👍 gerettet",
     sharedTag: "doppelt",
     soloTag: "Einzige:r!",
     readyLabel: (n: number, of: number) => `${n} von ${of} sagen „Passt“`,
@@ -112,6 +139,17 @@ export const t = {
 
   controller: {
     loading: "Spiel wird vorbereitet …",
+    setupTitle: "Eure Kategorien",
+    setupLead: (min: number, max: number) => `${min} bis ${max} Kategorien – der Fernseher zeigt mit.`,
+    setupPlaceholder: (i: number) => `Kategorie ${i + 1}`,
+    setupRemove: (name: string) => `„${name}“ entfernen`,
+    setupAdd: "+ Kategorie",
+    setupDuplicate: "doppelt",
+    setupSuggest: "Vorschläge – antippen zum Hinzufügen",
+    setupGo: "Los geht’s!",
+    setupMin: (min: number) => `Mindestens ${min} Kategorien`,
+    setupSent: "Gleich geht’s los …",
+    setupWait: (host: string | null) => (host ? `${host} legt die Kategorien fest …` : "Die Kategorien werden gerade festgelegt …"),
     intro: "Gleich geht’s los – Finger warm machen!",
     letterWait: "Schau auf den Fernseher – gleich kommt der Buchstabe!",
     placeholder: (letter: string) => `${letter} …`,
@@ -125,8 +163,13 @@ export const t = {
     timeUpLead: "Gleich wird geprüft …",
     wrongLetter: (letter: string) => `beginnt nicht mit ${letter}`,
     reviewLead: "👎 für Antworten, die nicht zählen",
+    reviewLeadRescue: "👎 streicht · 👍 rettet Unbekanntes",
     mine: "du",
     voteLabel: (text: string) => `Daumen runter für „${text}“`,
+    rescueLabel: (text: string) => `Daumen hoch: „${text}“ zählt doch`,
+    lexiconKnown: "✓ Lexikon",
+    lexiconUnknown: "nicht im Lexikon",
+    rescued: "gerettet",
     noAnswer: "—",
     ready: "Passt – weiter",
     readyDone: "Warte auf die anderen …",

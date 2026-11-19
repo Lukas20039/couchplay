@@ -10,12 +10,15 @@ const ARTICLES = new Set(["der", "die", "das", "den", "dem", "des", "ein", "eine
 
 const UMLAUTS: Record<string, string> = { ä: "ae", ö: "oe", ü: "ue", ß: "ss" };
 
-/** Anzeigeform: NFC, verbotene Zeichen raus, Leerraum zusammengefasst, getrimmt, auf ANSWER_MAX gekürzt. */
-export function cleanAnswer(raw: string): string {
+/** Anzeigeform: NFC, verbotene Zeichen raus, Leerraum zusammengefasst, getrimmt, auf `max` Codepoints gekürzt. */
+export function cleanText(raw: string, max: number): string {
   const text = raw.normalize("NFC").replace(FORBIDDEN, "").replace(/\s+/g, " ").trim();
   const chars = [...text];
-  return chars.length <= ANSWER_MAX ? text : chars.slice(0, ANSWER_MAX).join("").trimEnd();
+  return chars.length <= max ? text : chars.slice(0, max).join("").trimEnd();
 }
+
+/** Anzeigeform einer Antwort (auf ANSWER_MAX gekürzt). Einargumentig – taugt für `.map(cleanAnswer)`. */
+export const cleanAnswer = (raw: string): string => cleanText(raw, ANSWER_MAX);
 
 /** Länge in Codepoints (Emoji zählen einzeln, wie beim Namen). */
 export const answerLength = (text: string): number => [...text].length;
