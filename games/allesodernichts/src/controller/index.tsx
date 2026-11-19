@@ -16,12 +16,18 @@ type Props = ControllerComponentProps<AonPlayerView, AonInput>;
 
 function TimeBar({ endsAt, durationMs, now }: { endsAt: number; durationMs: number; now: number }) {
   const remaining = Math.max(0, endsAt - now);
-  const share = durationMs > 0 ? Math.min(1, remaining / durationMs) : 0;
   return (
     <div class="an-time" aria-hidden="true">
-      <span key={endsAt} style={{ transform: `scaleX(${share})`, animation: `an-drain ${remaining}ms linear forwards` }} />
+      <Drain key={endsAt} name="an-drain" remaining={remaining} durationMs={durationMs} />
     </div>
   );
+}
+
+/** Ablaufbalken: Startwerte einmal je Frist festhalten. Würde die Animation bei jedem Tick neu gesetzt, rechnet
+ *  der Browser die schon verstrichene Zeit gegen die kürzere Restdauer – der Balken liefe schneller als die Uhr. */
+function Drain({ name, remaining, durationMs }: { name: string; remaining: number; durationMs?: number }) {
+  const [start] = useState(() => ({ remaining, share: durationMs ? Math.min(1, remaining / durationMs) : null }));
+  return <span style={{ transform: start.share === null ? undefined : `scaleX(${start.share})`, animation: `${name} ${start.remaining}ms linear forwards` }} />;
 }
 
 function Top({ index, total, score, right }: { index: number; total: number; score: number; right?: string }) {

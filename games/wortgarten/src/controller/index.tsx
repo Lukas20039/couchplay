@@ -221,7 +221,6 @@ function Round({ v, api, now }: { v: V<"round">; api: Api; now: number }) {
   const [current, setCurrent] = useState<number[]>([]);
   const expired = now >= v.endsAt;
   const remaining = Math.max(0, v.endsAt - now);
-  const share = v.durationMs > 0 ? Math.min(1, remaining / v.durationMs) : 0;
   const lastSeq = useRef(v.last?.seq ?? 0);
 
   // Haptik einmal je Rückmeldung (Replays nach Rejoin schaltet die Plattform stumm).
@@ -242,7 +241,7 @@ function Round({ v, api, now }: { v: V<"round">; api: Api; now: number }) {
         <span>{t.points(v.score)}</span>
       </div>
       <div class={`wg-time ${remaining <= 10_000 ? "is-low" : ""}`} aria-hidden="true">
-        <span key={v.endsAt} style={{ transform: `scaleX(${share})`, animation: `wg-drain ${remaining}ms linear forwards` }} />
+        <Drain key={v.endsAt} name="wg-drain" remaining={remaining} durationMs={v.durationMs} />
       </div>
       <FeedbackLine last={v.last} word={word} />
       <TraceGrid
@@ -267,7 +266,7 @@ function Round({ v, api, now }: { v: V<"round">; api: Api; now: number }) {
         {nextMult > 1 && (
           <div class="wg-combo" key={v.streak}>
             🔥 {t.ctrlCombo(t.factor(nextMult))}
-            <span style={{ animation: `wg-drain ${Math.max(0, v.streakEndsAt - now)}ms linear forwards` }} />
+            <Drain key={v.streakEndsAt} name="wg-drain" remaining={Math.max(0, v.streakEndsAt - now)} />
           </div>
         )}
       </div>
@@ -287,6 +286,13 @@ function Round({ v, api, now }: { v: V<"round">; api: Api; now: number }) {
 }
 
 // --------------------------------------------------------------- übrige Phasen
+
+/** Ablaufbalken: Startwerte einmal je Frist festhalten. Würde die Animation bei jedem Tick neu gesetzt, rechnet
+ *  der Browser die schon verstrichene Zeit gegen die kürzere Restdauer – der Balken liefe schneller als die Uhr. */
+function Drain({ name, remaining, durationMs }: { name: string; remaining: number; durationMs?: number }) {
+  const [start] = useState(() => ({ remaining, share: durationMs ? Math.min(1, remaining / durationMs) : null }));
+  return <span style={{ transform: start.share === null ? undefined : `scaleX(${start.share})`, animation: `${name} ${start.remaining}ms linear forwards` }} />;
+}
 
 function Intro({ v, api }: { v: V<"intro">; api: Api }) {
   const sent = useRef(false);

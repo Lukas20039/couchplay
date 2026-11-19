@@ -107,7 +107,7 @@ function Vote({ v, api, now, rejected }: { v: V<"vote">; api: Props["api"]; now:
   return (
     <>
       <div class="we-time" aria-hidden="true">
-        <span key={v.endsAt} style={{ transform: `scaleX(${Math.min(1, remaining / v.durationMs)})`, animation: `we-drain ${remaining}ms linear forwards` }} />
+        <Drain key={v.endsAt} name="we-drain" remaining={remaining} durationMs={v.durationMs} />
       </div>
       <h2 class="we-q">
         <small>{t.lead}</small>
@@ -185,6 +185,13 @@ function Reveal({ v, me }: { v: V<"reveal">; me: string }) {
       {iWon && <span>{t.controller.youGot(v.myVotes)}</span>}
     </div>
   );
+}
+
+/** Ablaufbalken: Startwerte einmal je Frist festhalten. Würde die Animation bei jedem Tick neu gesetzt, rechnet
+ *  der Browser die schon verstrichene Zeit gegen die kürzere Restdauer – der Balken liefe schneller als die Uhr. */
+function Drain({ name, remaining, durationMs }: { name: string; remaining: number; durationMs?: number }) {
+  const [start] = useState(() => ({ remaining, share: durationMs ? Math.min(1, remaining / durationMs) : null }));
+  return <span style={{ transform: start.share === null ? undefined : `scaleX(${start.share})`, animation: `${name} ${start.remaining}ms linear forwards` }} />;
 }
 
 function storage(): Storage | null {

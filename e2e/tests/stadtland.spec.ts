@@ -34,6 +34,17 @@ test.describe("Stadt, Land, Fluss", () => {
       const letter = (await a.tid("sl-letter").textContent())!.trim();
       expect(letter).toMatch(/^[A-Z]$/);
       await expect(tv.tid("sl-letter")).toHaveText(letter);
+      if (r === 0) {
+        // Zeitbalken: Die Animation am Handy darf sich pro Tick nicht ändern (sonst läuft sie schneller ab als
+        // die Uhr) und steht etwa so weit wie der Balken am TV.
+        const bar = a.page.locator(".sl-time span");
+        const duration = await bar.evaluate((el) => getComputedStyle(el).animationDuration);
+        await a.page.waitForTimeout(1500);
+        expect(await bar.evaluate((el) => getComputedStyle(el).animationDuration)).toBe(duration);
+        const fill = (el: Element) => el.getBoundingClientRect().width / el.parentElement!.getBoundingClientRect().width;
+        const [phoneFill, tvFill] = await Promise.all([bar.evaluate(fill), tv.page.locator(".sl-timebar span").first().evaluate(fill)]);
+        expect(Math.abs(phoneFill - tvFill)).toBeLessThan(0.05);
+      }
 
       await fillAll(a, letter, "anna");
       await fillAll(b, letter, "ben");

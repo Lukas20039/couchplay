@@ -132,7 +132,7 @@ function Sorter({ v, api, now, rejected }: { v: V<"sort">; api: Props["api"]; no
   return (
     <>
       <div class="sc-time" aria-hidden="true">
-        <span key={v.endsAt} style={{ transform: `scaleX(${Math.min(1, remaining / v.durationMs)})`, animation: `sc-drain ${remaining}ms linear forwards` }} />
+        <Drain key={v.endsAt} name="sc-drain" remaining={remaining} durationMs={v.durationMs} />
       </div>
       <h2 class="sc-q" data-testid="sc-prompt">
         {v.prompt}
@@ -226,6 +226,13 @@ function Result({ v }: { v: V<"reveal"> }) {
       <p class="sc-res__rank">{t.controller.rank(v.rank, v.playerCount)}</p>
     </div>
   );
+}
+
+/** Ablaufbalken: Startwerte einmal je Frist festhalten. Würde die Animation bei jedem Tick neu gesetzt, rechnet
+ *  der Browser die schon verstrichene Zeit gegen die kürzere Restdauer – der Balken liefe schneller als die Uhr. */
+function Drain({ name, remaining, durationMs }: { name: string; remaining: number; durationMs?: number }) {
+  const [start] = useState(() => ({ remaining, share: durationMs ? Math.min(1, remaining / durationMs) : null }));
+  return <span style={{ transform: start.share === null ? undefined : `scaleX(${start.share})`, animation: `${name} ${start.remaining}ms linear forwards` }} />;
 }
 
 function storage(): Storage | null {

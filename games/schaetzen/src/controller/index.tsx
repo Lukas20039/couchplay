@@ -126,7 +126,7 @@ function Ask({ v, api, now, rejected }: { v: V<"question">; api: Props["api"]; n
   return (
     <>
       <div class="es-time" aria-hidden="true">
-        <span key={v.endsAt} style={{ transform: `scaleX(${Math.min(1, remaining / v.durationMs)})`, animation: `es-drain ${remaining}ms linear forwards` }} />
+        <Drain key={v.endsAt} name="es-drain" remaining={remaining} durationMs={v.durationMs} />
       </div>
       <h2 class="es-q">{v.text}</h2>
       {locked !== null ? (
@@ -198,6 +198,13 @@ function Reveal({ v }: { v: V<"reveal"> }) {
       {v.points > 0 && <span class="es-gain">{t.plus(v.points)}</span>}
     </div>
   );
+}
+
+/** Ablaufbalken: Startwerte einmal je Frist festhalten. Würde die Animation bei jedem Tick neu gesetzt, rechnet
+ *  der Browser die schon verstrichene Zeit gegen die kürzere Restdauer – der Balken liefe schneller als die Uhr. */
+function Drain({ name, remaining, durationMs }: { name: string; remaining: number; durationMs?: number }) {
+  const [start] = useState(() => ({ remaining, share: durationMs ? Math.min(1, remaining / durationMs) : null }));
+  return <span style={{ transform: start.share === null ? undefined : `scaleX(${start.share})`, animation: `${name} ${start.remaining}ms linear forwards` }} />;
 }
 
 function storage(): Storage | null {

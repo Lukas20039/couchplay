@@ -83,7 +83,7 @@ function Ask({ v, api, now, rejected }: { v: V<"ask">; api: Props["api"]; now: n
   return (
     <>
       <div class="kd-time" aria-hidden="true">
-        <span key={v.endsAt} style={{ transform: `scaleX(${Math.min(1, remaining / v.durationMs)})`, animation: `kd-drain ${remaining}ms linear forwards` }} />
+        <Drain key={v.endsAt} name="kd-drain" remaining={remaining} durationMs={v.durationMs} />
       </div>
       <p class={`kd-lead ${hot ? "is-hot" : ""}`} style={{ "--c": playerColor(v.hotseat.color) }} data-testid="kd-role" data-role={v.role}>
         {lead}
@@ -138,6 +138,13 @@ function Reveal({ v }: { v: V<"reveal"> }) {
       {v.points > 0 && <span class="kd-gain">+{v.points}</span>}
     </div>
   );
+}
+
+/** Ablaufbalken: Startwerte einmal je Frist festhalten. Würde die Animation bei jedem Tick neu gesetzt, rechnet
+ *  der Browser die schon verstrichene Zeit gegen die kürzere Restdauer – der Balken liefe schneller als die Uhr. */
+function Drain({ name, remaining, durationMs }: { name: string; remaining: number; durationMs?: number }) {
+  const [start] = useState(() => ({ remaining, share: durationMs ? Math.min(1, remaining / durationMs) : null }));
+  return <span style={{ transform: start.share === null ? undefined : `scaleX(${start.share})`, animation: `${name} ${start.remaining}ms linear forwards` }} />;
 }
 
 function storage(): Storage | null {
